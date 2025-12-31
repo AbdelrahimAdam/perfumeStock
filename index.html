@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Perfume Stock | Luxury Fragrances Collection</title>
+  <meta name="description" content="Experience the essence of luxury with Perfume Stock. Premium French perfumes, exotic Arabic oud, and exclusive niche fragrances for the discerning connoisseur.">
+ 
+  <!-- Open Graph & Twitter -->
+  <meta property="og:title" content="Perfume Stock | World's Finest Luxury Fragrances">
+  <meta property="og:description" content="Discover our curated collection of the world's most exquisite perfumes">
+  <meta property="og:image" content="/images/og-luxury-perfumes.jpg">
+  <meta property="og:url" content="https://perfumestock.com">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Perfume Stock">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Perfume Stock | World's Finest Luxury Fragrances">
+  <meta name="twitter:description" content="Discover our curated collection of the world's most exquisite perfumes">
+  <meta name="twitter:image" content="/images/og-luxury-perfumes.jpg">
+ 
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+ 
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.exchangerate-api.com" crossorigin>
+  <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
+  <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+ 
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com;
+    img-src 'self' data: https: blob:;
+    connect-src 'self' https://api.exchangerate-api.com https://www.google-analytics.com https://fonts.googleapis.com https://fonts.gstatic.com https://www.googletagmanager.com;
+    frame-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  ">
+ 
+  <!-- Theme & PWA -->
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Perfume Stock">
+ 
+  <!-- SEO & Accessibility -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-TileColor" content="#0a0a0a">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+</head>
+<body>
+  <!-- Luxury Preloader -->
+  <div id="luxury-preloader" aria-hidden="true">
+    <div class="preloader-logo" style="
+      width: 60px;
+      height: 60px;
+      border: 2px solid #d4af37;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: pulse 1.5s infinite;
+    ">
+      <span style="
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 28px;
+        color: #d4af37;
+        font-weight: 600;
+      ">P</span>
+    </div>
+    <div class="preloader-text" style="
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: #f4e7c1;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    ">Loading Luxury...</div>
+  </div>
+ 
+  <!-- Main App -->
+  <div id="app"></div>
+ 
+  <!-- Scripts -->
+  <script type="module" src="/src/main.ts" crossorigin="anonymous" defer></script>
+ 
+  <!-- Minimal Critical CSS - Removed conflicting styles -->
+  <style>
+    /* CSS Reset */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+   
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+   
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: #0a0a0a;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+   
+    /* App Container */
+    #app {
+      min-height: 100vh;
+      display: block;
+    }
+   
+    /* Preloader Animation */
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+   
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+        visibility: visible;
+      }
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+   
+    /* Hide preloader when app loads */
+    body.loaded #luxury-preloader {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+   
+    /* Preloader positioning */
+    #luxury-preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+   
+    /* Focus Styles for Accessibility */
+    :focus-visible {
+      outline: 2px solid #d4af37;
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+   
+    /* Selection Color */
+    ::selection {
+      background-color: rgba(212, 175, 55, 0.3);
+      color: #f4e7c1;
+    }
+   
+    ::-moz-selection {
+      background-color: rgba(212, 175, 55, 0.3);
+      color: #f4e7c1;
+    }
+   
+    /* Print Styles */
+    @media print {
+      #luxury-preloader,
+      .no-print {
+        display: none !important;
+      }
+     
+      body {
+        background: white !important;
+        color: black !important;
+      }
+     
+      a {
+        text-decoration: underline;
+        color: #0000ee;
+      }
+    }
+   
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+ 
+  <!-- No JavaScript Fallback -->
+  <noscript>
+    <style>
+      #luxury-preloader {
+        display: none !important;
+      }
+     
+      .no-js-message {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0a0a0a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+        z-index: 10000;
+      }
+     
+      .no-js-message h1 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 32px;
+        color: #d4af37;
+        margin-bottom: 20px;
+      }
+     
+      .no-js-message p {
+        font-family: 'Inter', sans-serif;
+        font-size: 18px;
+        color: #f4e7c1;
+        max-width: 600px;
+        line-height: 1.6;
+      }
+    </style>
+   
+    <div class="no-js-message">
+      <h1>Perfume Stock</h1>
+      <p>JavaScript is required to experience our luxury perfume store. Please enable JavaScript in your browser settings to continue browsing our exquisite collection of fragrances.</p>
+      <p style="margin-top: 20px; font-size: 14px; opacity: 0.7;">
+        <a href="https://www.enable-javascript.com/" style="color: #d4af37; text-decoration: none; border-bottom: 1px solid #d4af37;">
+          Learn how to enable JavaScript
+        </a>
+      </p>
+    </div>
+  </noscript>
+</body>
+</html>

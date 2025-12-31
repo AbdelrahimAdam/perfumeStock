@@ -1,0 +1,593 @@
+/* main.css - Luxury Perfume Theme */
+
+/* Base Styles */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom Base Styles */
+@layer base {
+  :root {
+    /* Luxury Color Palette */
+    --color-dark-bg: 10 10 10; /* #0a0a0a */
+    --color-dark-brown: 26 18 11; /* #1a120b */
+    --color-gold: 212 175 55; /* #D4AF37 */
+    --color-gold-light: 244 231 193; /* #F4E7C1 */
+    --color-gold-dark: 184 148 31; /* #B8941F */
+    --color-light-bg: 249 247 243; /* #F9F7F3 */
+    --color-card-bg: 255 255 255; /* #FFFFFF */
+    --color-red: 196 30 58; /* #C41E3A */
+    
+    /* Typography */
+    --font-serif: 'Cormorant Garamond', serif;
+    --font-sans: 'Inter', sans-serif;
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 2rem;
+    --spacing-lg: 4rem;
+    --spacing-xl: 8rem;
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.15);
+    --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.3);
+    --shadow-luxury: 0 10px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#0a0a0a] text-[#f4e7c1] overflow-x-hidden;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+  }
+
+  /* Luxury Font Faces */
+  @font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  }
+
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 300 400 500 600;
+    font-display: swap;
+    src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  }
+
+  /* Arabic Font */
+  @font-face {
+    font-family: 'Noto Sans Arabic';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600&display=swap');
+  }
+
+  /* Luxury Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #d4af37;
+  }
+
+  /* Links */
+  a {
+    color: #f4e7c1;
+    text-decoration: none;
+    transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  a:hover {
+    color: #d4af37;
+  }
+}
+
+/* Custom Components */
+@layer components {
+  /* Luxury Header */
+  .luxury-header {
+    @apply fixed top-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-md 
+           border-b border-[#d4af37]/10 z-50 py-4;
+  }
+
+  /* Luxury Button */
+  .btn-luxury {
+    @apply px-8 py-3 bg-gradient-to-r from-[#d4af37] to-[#b8941f] 
+           text-[#0a0a0a] font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.3)]
+           hover:shadow-[0_0_40px_rgba(212,175,55,0.4)] transition-all duration-300 
+           hover:-translate-y-0.5 focus:outline-none focus:ring-2 
+           focus:ring-[#d4af37] focus:ring-offset-2 focus:ring-offset-[#0a0a0a];
+  }
+
+  /* Luxury Card */
+  .card-luxury {
+    @apply bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] 
+           hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transition-all 
+           duration-500 overflow-hidden;
+  }
+
+  /* Luxury Input */
+  .input-luxury {
+    @apply w-full px-6 py-4 border border-gray-300 rounded-xl 
+           focus:outline-none focus:ring-2 focus:ring-[#d4af37] 
+           focus:border-transparent transition-all duration-200 
+           placeholder-gray-400 bg-white text-gray-900;
+  }
+
+  /* Luxury Select */
+  .select-luxury {
+    @apply w-full px-6 py-4 border border-gray-300 rounded-xl 
+           focus:outline-none focus:ring-2 focus:ring-[#d4af37] 
+           focus:border-transparent transition-all duration-200 
+           appearance-none bg-white text-gray-900;
+  }
+
+  /* Luxury Badge */
+  .badge-luxury {
+    @apply inline-flex items-center px-4 py-2 rounded-full 
+           text-sm font-bold bg-[#f4e7c1] text-[#0a0a0a] 
+           border border-[#d4af37]/20;
+  }
+
+  /* Glass Effect */
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 
+           shadow-xl;
+  }
+
+  /* Gradient Text */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-[#d4af37] via-[#f4e7c1] to-[#d4af37] 
+           bg-clip-text text-transparent;
+  }
+
+  /* Line Clamp Utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Musical Lines Pattern */
+  .musical-lines {
+    @apply flex flex-col gap-2 w-48;
+  }
+
+  .musical-line {
+    @apply h-px bg-gradient-to-r from-transparent via-[#d4af37] to-transparent;
+  }
+
+  /* Luxury Section */
+  .luxury-section {
+    @apply py-16 md:py-24;
+  }
+
+  /* Container */
+  .luxury-container {
+    @apply max-w-7xl mx-auto px-4 md:px-8;
+  }
+
+  /* Hero Container */
+  .hero-container {
+    @apply max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-2 
+           gap-12 items-center min-h-[90vh];
+  }
+
+  /* Brands Grid */
+  .brands-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8;
+  }
+
+  /* Brand Card */
+  .brand-card {
+    @apply bg-white rounded-2xl p-8 aspect-square flex items-center 
+           justify-center relative overflow-hidden transition-all 
+           duration-300 hover:scale-105 hover:shadow-xl;
+  }
+
+  /* Offer Card */
+  .offer-card {
+    @apply bg-gradient-to-br from-[#d4af37] to-[#b8941f] rounded-3xl 
+           p-8 text-center relative overflow-hidden shadow-2xl;
+  }
+
+  /* Perfume Bottle Container */
+  .perfume-bottle-container {
+    @apply relative h-[500px] md:h-[600px] flex items-center justify-center;
+  }
+
+  /* Light Particle */
+  .light-particle {
+    @apply absolute w-1 h-1 bg-[#d4af37] rounded-full blur-sm;
+  }
+
+  /* Crystal Effect */
+  .crystal-effect {
+    @apply absolute w-32 h-32 bg-[radial-gradient(circle,rgba(212,175,55,0.4)_0%,transparent_70%)] 
+           blur-2xl animate-pulse;
+  }
+}
+
+/* Custom Utilities */
+@layer utilities {
+  /* Animation Delays */
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Text Balance */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hide Scrollbar */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom Animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-gentle {
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  .animate-sparkle {
+    animation: sparkle 3s ease-in-out infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 1s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 1s ease-out forwards;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+  }
+
+  /* Gradient Backgrounds */
+  .bg-gradient-luxury {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a120b 100%);
+  }
+
+  .bg-gradient-gold {
+    background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+  }
+
+  /* Custom Shadows */
+  .shadow-gold-lg {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+  }
+
+  .shadow-gold-xl {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+  }
+
+  .shadow-luxury-lg {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-luxury-xl {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Aspect Ratios */
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+  .aspect-portrait {
+    aspect-ratio: 3 / 4;
+  }
+  .aspect-hero {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* RTL Specific */
+  .rtl {
+    direction: rtl;
+  }
+  .ltr {
+    direction: ltr;
+  }
+
+  /* Print Styles */
+  @media print {
+    .print\:hidden {
+      display: none !important;
+    }
+    .print\:block {
+      display: block !important;
+    }
+  }
+
+  /* Custom Colors */
+  .text-gold {
+    color: #d4af37;
+  }
+
+  .text-gold-light {
+    color: #f4e7c1;
+  }
+
+  .bg-dark {
+    background-color: #0a0a0a;
+  }
+
+  .bg-dark-brown {
+    background-color: #1a120b;
+  }
+
+  .border-gold {
+    border-color: rgba(212, 175, 55, 0.3);
+  }
+}
+
+/* Animation Keyframes */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Scroll Animations */
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.scroll-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Accessibility */
+@layer base {
+  /* Focus styles for keyboard navigation */
+  :focus-visible {
+    @apply outline-2 outline-[#d4af37] outline-offset-2;
+  }
+
+  /* Skip to main content link */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 
+           z-50 bg-white p-4 text-gray-900 font-bold rounded-lg;
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .btn-luxury {
+      @apply border-2 border-black;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    .animate-float,
+    .animate-pulse-gentle,
+    .animate-sparkle,
+    .animate-fade-in,
+    .animate-fade-in-up,
+    .animate-shimmer {
+      animation: none !important;
+    }
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a120b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8941f;
+}
+
+/* Selection */
+::selection {
+  background-color: #d4af37;
+  color: #0a0a0a;
+}
+
+/* Vendor Overrides */
+@layer base {
+  /* Remove default button styles */
+  button {
+    @apply focus:outline-none;
+  }
+
+  /* Remove default list styles */
+  ul, ol {
+    @apply list-none p-0 m-0;
+  }
+
+  /* Better image defaults */
+  img {
+    @apply max-w-full h-auto align-middle;
+  }
+
+  /* Better table defaults */
+  table {
+    @apply border-collapse w-full;
+  }
+
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-200;
+  }
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .mobile\:stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile\:text-center {
+    text-align: center !important;
+  }
+  
+  .mobile\:py-8 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+  @page {
+    margin: 2cm;
+  }
+
+  body {
+    @apply text-black bg-white;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  a {
+    @apply text-black no-underline;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+  }
+
+  .no-print {
+    @apply hidden;
+  }
+  
+  /* Luxury specific print styles */
+  .luxury-header,
+  .luxury-footer {
+    display: none !important;
+  }
+  
+  .text-gold,
+  .text-gradient-gold {
+    color: #000 !important;
+    background: none !important;
+  }
+}
