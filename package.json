@@ -13,8 +13,20 @@
     "deploy:firestore": "firebase deploy --only firestore",
     "deploy:storage": "firebase deploy --only storage",
     "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
-    "generate-sitemap": "node sitemap-generator.js",
-    "type-check": "vue-tsc --noEmit"
+    "generate-sitemap": "node scripts/sitemap-generator.js",
+    "type-check": "vue-tsc --noEmit",
+    "create-superadmin": "node scripts/create-superadmin.js",
+    "create-admin": "node scripts/create-superadmin.js --interactive",
+    "reset-admin": "node scripts/create-superadmin.js --force",
+    "setup-admin": "node scripts/simple-setup.js",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "format": "prettier --write \"src/**/*.{vue,js,ts,json,css,scss}\"",
+    "prepare": "husky install",
+    "test:unit": "vitest",
+    "test:e2e": "playwright test",
+    "emulators": "firebase emulators:start",
+    "emulators:ui": "firebase emulators:start --only ui",
+    "emulators:all": "firebase emulators:start --import=./firebase-export --export-on-exit=./firebase-export"
   },
   "dependencies": {
     "@vueuse/core": "^10.7.0",
@@ -35,7 +47,29 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.5",
     "vite": "^5.0.0",
-    "vue-tsc": "^2.1.6"
+    "vue-tsc": "^2.1.6",
+    "firebase-admin": "^12.0.0",
+    "dotenv": "^16.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitejs/plugin-vue-jsx": "^3.1.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.20.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.1",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "@testing-library/vue": "^8.0.0",
+    "@vitest/ui": "^1.2.0",
+    "jsdom": "^24.0.0",
+    "vitest": "^1.2.0",
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.40.0",
+    "firebase-tools": "^13.0.0",
+    "compression": "^1.7.4",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-pwa": "^0.17.4",
+    "workbox-window": "^7.0.0"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -48,8 +82,27 @@
     "luxury",
     "perfume",
     "bilingual",
-    "typescript"
+    "typescript",
+    "admin",
+    "superadmin"
   ],
   "author": "Luxury Perfume Store",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/luxury-perfume-store.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/luxury-perfume-store/issues"
+  },
+  "homepage": "https://luxuryperfumes.com",
+  "lint-staged": {
+    "*.{vue,js,ts,jsx,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,scss,md}": [
+      "prettier --write"
+    ]
+  }
 }

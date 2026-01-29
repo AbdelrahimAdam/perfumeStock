@@ -69,7 +69,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
 import type { Product } from '@/types'
-import LuxuryProductCard from './LuxuryProductCard.vue'
+import LuxuryProductCard from './ProductCard.vue'
 
 interface Props {
   products: Product[]

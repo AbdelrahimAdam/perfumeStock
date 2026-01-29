@@ -9,7 +9,7 @@ import './assets/styles/main.css'
 // Import vue-i18n
 import { createI18n } from 'vue-i18n'
 
-// Setup vue-i18n with basic language support (you can add more translations as needed)
+// Setup vue-i18n with basic language support
 const i18n = createI18n({
   legacy: false, // Use composition API mode
   locale: 'en', // Default language
@@ -17,11 +17,25 @@ const i18n = createI18n({
     en: {
       message: {
         hello: 'Hello World',
+        adminLogin: 'Admin Login',
+        emailAddress: 'Email Address',
+        password: 'Password',
+        signIn: 'Sign In',
+        invalidCredentials: 'Invalid email or password',
+        backToStore: 'Back to Store',
+        accessRestricted: 'Access restricted to authorized personnel only.'
       },
     },
     ar: {
       message: {
         hello: 'مرحبًا بالعالم',
+        adminLogin: 'تسجيل دخول المسؤول',
+        emailAddress: 'البريد الإلكتروني',
+        password: 'كلمة المرور',
+        signIn: 'تسجيل الدخول',
+        invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        backToStore: 'العودة للمتجر',
+        accessRestricted: 'الوصول مقصور على الأشخاص المصرح لهم فقط.'
       },
     },
   },
@@ -35,7 +49,7 @@ const pinia = createPinia()
 vueApp.use(pinia)
 vueApp.use(router)
 vueApp.use(VueFire, { firebaseApp: app })
-vueApp.use(i18n) // Add vue-i18n to the app
+vueApp.use(i18n)
 
 // Mount app
 vueApp.mount('#app')
@@ -45,3 +59,6 @@ console.log('🚀 Luxury Perfume Store v1.0.0')
 console.log('🎨 Design: Luxury Minimalist')
 console.log('🌐 Languages: English & Arabic')
 console.log('🔥 Firebase: Connected')
+
+// ⚠️ Spark plan limitation: Cannot initialize superadmin from frontend
+// Superadmin creation should only be done via `create-superadmin.js` script locally

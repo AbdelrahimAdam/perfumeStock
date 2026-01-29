@@ -1,449 +1,561 @@
 <template>
-  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b">
-        <h2 class="text-2xl font-display-en font-bold">
-          {{ isEditing ? t('Edit Product') : t('Add New Product') }}
-        </h2>
-        <button
-          @click="$emit('close')"
-          class="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
+  <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- Background overlay -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="close"></div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="overflow-y-auto max-h-[calc(90vh-80px)]">
-        <div class="p-6 space-y-6">
-          <!-- Image Upload -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              {{ t('Product Image') }}
-            </label>
-            <div class="flex items-center space-x-6" :class="{ 'space-x-reverse': isRTL }">
-              <div 
-                @click="triggerFileInput"
-                class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-2xl 
-                       flex items-center justify-center cursor-pointer hover:border-primary-500 
-                       transition-colors"
-              >
-                <div v-if="imagePreview" class="relative w-full h-full">
-                  <img 
-                    :src="imagePreview" 
-                    alt="Product preview" 
-                    class="w-full h-full object-cover rounded-2xl"
-                  />
-                  <button
-                    type="button"
-                    @click.stop="removeImage"
-                    class="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white 
-                           rounded-full flex items-center justify-center"
-                    :class="{ 'right-auto left-2': isRTL }"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                  </button>
-                </div>
-                <div v-else class="text-center p-4">
-                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <p class="mt-2 text-sm text-gray-500">{{ t('Upload Image') }}</p>
-                </div>
-                <input
-                  ref="fileInput"
-                  type="file"
-                  accept="image/*"
-                  class="hidden"
-                  @change="handleImageUpload"
-                />
-              </div>
-              <div class="flex-1">
-                <p class="text-sm text-gray-500">
-                  {{ t('Upload a high-quality product image. Recommended size: 800x800px. Max size: 5MB.') }}
-                </p>
-              </div>
-            </div>
-            <p v-if="imageError" class="mt-2 text-sm text-red-600">{{ imageError }}</p>
-          </div>
-
-          <!-- Product Name -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <!-- Modal panel -->
+      <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
+        <!-- Header -->
+        <div class="bg-white px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('English Name') }} *
-              </label>
-              <input
-                v-model="form.name.en"
-                type="text"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500"
-                :placeholder="t('Enter product name in English')"
-              />
-              <p v-if="errors.name?.en" class="mt-2 text-sm text-red-600">
-                {{ errors.name.en }}
+              <h2 class="text-lg font-semibold text-gray-900" id="modal-title">
+                {{ editing ? t('Edit Product') : t('Add New Product') }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500">
+                {{ t('Fill in the product details below') }}
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('Arabic Name') }} *
-              </label>
-              <input
-                v-model="form.name.ar"
-                type="text"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500 text-right"
-                :placeholder="t('أدخل اسم المنتج بالعربية')"
-                dir="rtl"
-              />
-              <p v-if="errors.name?.ar" class="mt-2 text-sm text-red-600">
-                {{ errors.name.ar }}
-              </p>
-            </div>
+            <button
+              type="button"
+              class="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              @click="close"
+            >
+              <span class="sr-only">{{ t('Close') }}</span>
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
+        </div>
 
-          <!-- Category & Price -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Form content -->
+        <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+          <div class="space-y-6">
+            <!-- Product Image -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('Category') }} *
+              <label class="block text-sm font-medium text-gray-700 mb-3">
+                {{ t('Product Image') }} *
+                <span class="text-xs text-gray-500 ml-2">
+                  {{ t('Recommended: 800x800px, Max 5MB') }}
+                </span>
               </label>
-              <select
-                v-model="form.category"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{{ t('Select a category') }}</option>
-                <option 
-                  v-for="category in categories" 
-                  :key="category.id" 
-                  :value="category.id"
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6" :class="{ 'sm:flex-row-reverse': isRTL }">
+                <!-- Image upload area -->
+                <div 
+                  @click="triggerFileInput"
+                  class="w-40 h-40 flex-shrink-0 border-2 border-dashed border-gray-300 rounded-lg 
+                         flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 
+                         transition-colors bg-gray-50"
                 >
-                  {{ category[currentLanguage] }}
-                </option>
-              </select>
-              <p v-if="errors.category" class="mt-2 text-sm text-red-600">
-                {{ errors.category }}
-              </p>
+                  <div v-if="imagePreview" class="relative w-full h-full">
+                    <img 
+                      :src="imagePreview" 
+                      :alt="t('Product preview')" 
+                      class="w-full h-full object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      @click.stop="removeImage"
+                      class="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white 
+                             rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div v-else class="text-center p-4">
+                    <svg class="w-10 h-10 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="mt-2 text-sm text-gray-600">{{ t('Upload Image') }}</p>
+                    <p class="mt-1 text-xs text-gray-500">
+                      {{ t('Click to upload') }}
+                    </p>
+                  </div>
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleImageUpload"
+                  />
+                </div>
+                
+                <!-- Image tips -->
+                <div class="flex-1">
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">
+                      {{ t('Image Requirements') }}
+                    </h4>
+                    <ul class="text-xs text-blue-700 space-y-1">
+                      <li class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{{ t('Use high-quality product photos') }}</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{{ t('Square format works best') }}</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{{ t('White background recommended') }}</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{{ t('Show the product clearly') }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <p v-if="imageError" class="mt-2 text-sm text-red-600">{{ imageError }}</p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('Price') }} ($) *
-              </label>
-              <input
-                v-model="form.price"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500"
-                :placeholder="t('0.00')"
-              />
-              <p v-if="errors.price" class="mt-2 text-sm text-red-600">
-                {{ errors.price }}
-              </p>
-            </div>
-          </div>
 
-          <!-- Size & Concentration -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('Size') }} *
-              </label>
-              <select
-                v-model="form.size"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{{ t('Select size') }}</option>
-                <option value="30ml">30ml</option>
-                <option value="50ml">50ml</option>
-                <option value="100ml">100ml</option>
-                <option value="200ml">200ml</option>
-                <option value="500ml">500ml</option>
-              </select>
-              <p v-if="errors.size" class="mt-2 text-sm text-red-600">
-                {{ errors.size }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ t('Concentration') }} *
-              </label>
-              <select
-                v-model="form.concentration"
-                required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{{ t('Select concentration') }}</option>
-                <option value="EDT">Eau de Toilette (EDT)</option>
-                <option value="EDP">Eau de Parfum (EDP)</option>
-                <option value="Parfum">Parfum</option>
-                <option value="Extrait">Extrait de Parfum</option>
-              </select>
-              <p v-if="errors.concentration" class="mt-2 text-sm text-red-600">
-                {{ errors.concentration }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              {{ t('Description') }} *
-            </label>
+            <!-- Product Name -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label class="block text-xs text-gray-500 mb-1">
-                  {{ t('English Description') }}
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('English Name') }} *
                 </label>
-                <textarea
-                  v-model="form.description.en"
-                  rows="4"
+                <input
+                  v-model="formData.name.en"
+                  type="text"
                   required
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                         focus:ring-primary-500 focus:border-primary-500"
-                  :placeholder="t('Enter product description in English')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :class="{ 'border-red-300': errors.name?.en }"
+                  :placeholder="t('Enter product name in English')"
                 />
-                <p v-if="errors.description?.en" class="mt-2 text-sm text-red-600">
-                  {{ errors.description.en }}
+                <p v-if="errors.name?.en" class="mt-1 text-sm text-red-600">
+                  {{ errors.name.en }}
                 </p>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">
-                  {{ t('Arabic Description') }}
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Arabic Name') }} *
                 </label>
-                <textarea
-                  v-model="form.description.ar"
-                  rows="4"
+                <input
+                  v-model="formData.name.ar"
+                  type="text"
                   required
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                         focus:ring-primary-500 focus:border-primary-500 text-right"
-                  :placeholder="t('أدخل وصف المنتج بالعربية')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-right"
+                  :class="{ 'border-red-300': errors.name?.ar }"
+                  :placeholder="t('أدخل اسم المنتج بالعربية')"
                   dir="rtl"
                 />
-                <p v-if="errors.description?.ar" class="mt-2 text-sm text-red-600">
-                  {{ errors.description.ar }}
+                <p v-if="errors.name?.ar" class="mt-1 text-sm text-red-600">
+                  {{ errors.name.ar }}
                 </p>
               </div>
             </div>
-          </div>
 
-          <!-- Fragrance Notes -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-4">
-              {{ t('Fragrance Notes') }} *
-            </label>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Category & Price -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm text-gray-600 mb-2">
-                  {{ t('Top Notes') }}
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Category') }} *
                 </label>
-                <div class="space-y-2">
-                  <div 
-                    v-for="(note, index) in form.notes.top" 
-                    :key="index"
-                    class="flex items-center space-x-2" 
-                    :class="{ 'space-x-reverse': isRTL }"
+                <select
+                  v-model="formData.category"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :class="{ 'border-red-300': errors.category }"
+                >
+                  <option value="">{{ t('Select a category') }}</option>
+                  <option 
+                    v-for="category in categories" 
+                    :key="category.id" 
+                    :value="category.id"
                   >
-                    <input
-                      v-model="form.notes.top[index]"
-                      type="text"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                      :placeholder="t('Note')"
-                    />
-                    <button
-                      type="button"
-                      @click="removeNote('top', index)"
-                      class="p-2 text-red-600 hover:text-red-800"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    @click="addNote('top')"
-                    class="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    + {{ t('Add Top Note') }}
-                  </button>
-                </div>
+                    {{ category[currentLanguage] }}
+                  </option>
+                </select>
+                <p v-if="errors.category" class="mt-1 text-sm text-red-600">
+                  {{ errors.category }}
+                </p>
               </div>
-              
               <div>
-                <label class="block text-sm text-gray-600 mb-2">
-                  {{ t('Heart Notes') }}
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Price') }} ({{ t('currencyLE') }}) *
                 </label>
-                <div class="space-y-2">
-                  <div 
-                    v-for="(note, index) in form.notes.heart" 
-                    :key="index"
-                    class="flex items-center space-x-2" 
-                    :class="{ 'space-x-reverse': isRTL }"
-                  >
-                    <input
-                      v-model="form.notes.heart[index]"
-                      type="text"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                      :placeholder="t('Note')"
-                    />
-                    <button
-                      type="button"
-                      @click="removeNote('heart', index)"
-                      class="p-2 text-red-600 hover:text-red-800"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">EGP</span>
                   </div>
-                  <button
-                    type="button"
-                    @click="addNote('heart')"
-                    class="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    + {{ t('Add Heart Note') }}
-                  </button>
+                  <input
+                    v-model.number="formData.price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    class="w-full pl-14 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    :class="{ 'border-red-300': errors.price }"
+                    :placeholder="t('0.00')"
+                  />
                 </div>
+                <p v-if="errors.price" class="mt-1 text-sm text-red-600">
+                  {{ errors.price }}
+                </p>
               </div>
-              
+            </div>
+
+            <!-- Size & Concentration -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm text-gray-600 mb-2">
-                  {{ t('Base Notes') }}
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Size') }} *
                 </label>
-                <div class="space-y-2">
-                  <div 
-                    v-for="(note, index) in form.notes.base" 
-                    :key="index"
-                    class="flex items-center space-x-2" 
-                    :class="{ 'space-x-reverse': isRTL }"
-                  >
-                    <input
-                      v-model="form.notes.base[index]"
-                      type="text"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                      :placeholder="t('Note')"
-                    />
-                    <button
-                      type="button"
-                      @click="removeNote('base', index)"
-                      class="p-2 text-red-600 hover:text-red-800"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    @click="addNote('base')"
-                    class="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    + {{ t('Add Base Note') }}
-                  </button>
+                <select
+                  v-model="formData.size"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :class="{ 'border-red-300': errors.size }"
+                >
+                  <option value="">{{ t('Select size') }}</option>
+                  <option value="10ml">10ml</option>
+                  <option value="30ml">30ml</option>
+                  <option value="50ml">50ml</option>
+                  <option value="75ml">75ml</option>
+                  <option value="100ml">100ml</option>
+                  <option value="150ml">150ml</option>
+                  <option value="200ml">200ml</option>
+                </select>
+                <p v-if="errors.size" class="mt-1 text-sm text-red-600">
+                  {{ errors.size }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Concentration') }} *
+                </label>
+                <select
+                  v-model="formData.concentration"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :class="{ 'border-red-300': errors.concentration }"
+                >
+                  <option value="">{{ t('Select concentration') }}</option>
+                  <option value="EDT">{{ t('Eau de Toilette (EDT)') }}</option>
+                  <option value="EDP">{{ t('Eau de Parfum (EDP)') }}</option>
+                  <option value="Parfum">{{ t('Parfum') }}</option>
+                  <option value="Extrait">{{ t('Extrait de Parfum') }}</option>
+                  <option value="Cologne">{{ t('Cologne') }}</option>
+                </select>
+                <p v-if="errors.concentration" class="mt-1 text-sm text-red-600">
+                  {{ errors.concentration }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">
+                {{ t('Description') }} *
+              </label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-2">
+                    {{ t('English Description') }}
+                  </label>
+                  <textarea
+                    v-model="formData.description.en"
+                    rows="4"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    :class="{ 'border-red-300': errors.description?.en }"
+                    :placeholder="t('Enter product description in English')"
+                  />
+                  <p v-if="errors.description?.en" class="mt-1 text-sm text-red-600">
+                    {{ errors.description.en }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-2">
+                    {{ t('Arabic Description') }}
+                  </label>
+                  <textarea
+                    v-model="formData.description.ar"
+                    rows="4"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-right"
+                    :class="{ 'border-red-300': errors.description?.ar }"
+                    :placeholder="t('أدخل وصف المنتج بالعربية')"
+                    dir="rtl"
+                  />
+                  <p v-if="errors.description?.ar" class="mt-1 text-sm text-red-600">
+                    {{ errors.description.ar }}
+                  </p>
                 </div>
               </div>
             </div>
-            <p v-if="errors.notes" class="mt-2 text-sm text-red-600">{{ errors.notes }}</p>
-          </div>
 
-          <!-- Best Seller Toggle -->
-          <div>
-            <label class="flex items-center space-x-3 cursor-pointer" 
-                   :class="{ 'space-x-reverse': isRTL }">
-              <input
-                v-model="form.isBestSeller"
-                type="checkbox"
-                class="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <span class="text-sm font-medium text-gray-700">
-                {{ t('Mark as Best Seller') }}
-              </span>
-            </label>
+            <!-- Fragrance Notes -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">
+                {{ t('Fragrance Notes') }}
+              </label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-600 mb-2">
+                    {{ t('Top Notes') }}
+                  </label>
+                  <div class="space-y-2">
+                    <div 
+                      v-for="(note, index) in formData.notes.top" 
+                      :key="`top-${index}`"
+                      class="flex items-center gap-2"
+                    >
+                      <input
+                        v-model="formData.notes.top[index]"
+                        type="text"
+                        class="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        :placeholder="t('Note')"
+                      />
+                      <button
+                        type="button"
+                        @click="removeNote('top', index)"
+                        class="p-1.5 text-red-600 hover:text-red-800"
+                        :title="t('Remove note')"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      @click="addNote('top')"
+                      class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      + {{ t('Add Top Note') }}
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-xs text-gray-600 mb-2">
+                    {{ t('Heart Notes') }}
+                  </label>
+                  <div class="space-y-2">
+                    <div 
+                      v-for="(note, index) in formData.notes.heart" 
+                      :key="`heart-${index}`"
+                      class="flex items-center gap-2"
+                    >
+                      <input
+                        v-model="formData.notes.heart[index]"
+                        type="text"
+                        class="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        :placeholder="t('Note')"
+                      />
+                      <button
+                        type="button"
+                        @click="removeNote('heart', index)"
+                        class="p-1.5 text-red-600 hover:text-red-800"
+                        :title="t('Remove note')"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      @click="addNote('heart')"
+                      class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      + {{ t('Add Heart Note') }}
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label class="block text-xs text-gray-600 mb-2">
+                    {{ t('Base Notes') }}
+                  </label>
+                  <div class="space-y-2">
+                    <div 
+                      v-for="(note, index) in formData.notes.base" 
+                      :key="`base-${index}`"
+                      class="flex items-center gap-2"
+                    >
+                      <input
+                        v-model="formData.notes.base[index]"
+                        type="text"
+                        class="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        :placeholder="t('Note')"
+                      />
+                      <button
+                        type="button"
+                        @click="removeNote('base', index)"
+                        class="p-1.5 text-red-600 hover:text-red-800"
+                        :title="t('Remove note')"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      @click="addNote('base')"
+                      class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      + {{ t('Add Base Note') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p v-if="errors.notes" class="mt-2 text-sm text-red-600">{{ errors.notes }}</p>
+            </div>
+
+            <!-- Additional Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('Stock Quantity') }}
+                </label>
+                <input
+                  v-model.number="formData.stock"
+                  type="number"
+                  min="0"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :placeholder="t('Leave empty for unlimited')"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ t('SKU') }}
+                </label>
+                <input
+                  v-model="formData.sku"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  :placeholder="t('PROD-001')"
+                />
+              </div>
+            </div>
+
+            <!-- Flags -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="formData.isBestSeller"
+                  type="checkbox"
+                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label class="text-sm font-medium text-gray-700">
+                  {{ t('Mark as Best Seller') }}
+                </label>
+              </div>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="formData.isNew"
+                  type="checkbox"
+                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label class="text-sm font-medium text-gray-700">
+                  {{ t('Mark as New Arrival') }}
+                </label>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                {{ t('Status') }}
+              </label>
+              <div class="flex items-center gap-4">
+                <label class="inline-flex items-center">
+                  <input
+                    v-model="formData.isActive"
+                    type="radio"
+                    :value="true"
+                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">{{ t('Active') }}</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input
+                    v-model="formData.isActive"
+                    type="radio"
+                    :value="false"
+                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">{{ t('Inactive') }}</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="p-6 border-t bg-gray-50 flex justify-end space-x-3" 
-             :class="{ 'space-x-reverse': isRTL }">
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 sm:flex sm:flex-row-reverse sm:px-6">
           <button
             type="button"
-            @click="$emit('close')"
-            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg 
-                   hover:bg-gray-100 transition-colors"
+            @click="save"
+            :disabled="loading"
+            class="inline-flex w-full justify-center rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <template v-if="loading">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ t('Saving...') }}
+            </template>
+            <template v-else>
+              {{ editing ? t('Update Product') : t('Add Product') }}
+            </template>
+          </button>
+          <button
+            type="button"
+            @click="close"
+            :disabled="loading"
+            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ t('Cancel') }}
           </button>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="px-6 py-3 bg-primary-500 text-white rounded-lg font-medium 
-                   hover:bg-primary-600 transition-colors disabled:opacity-50 
-                   disabled:cursor-not-allowed"
-          >
-            <span v-if="!loading">
-              {{ isEditing ? t('Update Product') : t('Add Product') }}
-            </span>
-            <span v-else class="flex items-center space-x-2" 
-                  :class="{ 'space-x-reverse': isRTL }">
-              <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" 
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              <span>{{ t('Saving...') }}</span>
-            </span>
-          </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { Product, ProductFormData } from '@/types'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
-
-interface Props {
-  product?: Product | null
-}
-
-const props = defineProps<Props>()
-const emit = defineEmits<{
-  saved: []
-  close: []
-}>()
+import type { Product, ProductFormData } from '@/types'
 
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
 
-const { currentLanguage, isRTL } = languageStore
+const { currentLanguage, isRTL, t } = languageStore
 const { categories } = productsStore
 
-// Form state
-const form = ref<ProductFormData>({
+const props = defineProps<{
+  product?: Product
+}>()
+
+const emit = defineEmits<{
+  close: []
+  save: [data: ProductFormData]
+}>()
+
+// Form data
+const formData = reactive<ProductFormData>({
   name: { en: '', ar: '' },
   slug: '',
   category: '',
@@ -453,58 +565,69 @@ const form = ref<ProductFormData>({
   description: { en: '', ar: '' },
   notes: { top: [''], heart: [''], base: [''] },
   imageUrl: '',
+  imageFile: undefined,
   isBestSeller: false,
-  imageFile: undefined
+  isNew: false,
+  isActive: true,
+  stock: 0,
+  sku: ''
 })
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const imagePreview = ref<string>('')
-const imageError = ref<string>('')
+// Form state
+const errors = reactive<Record<string, any>>({})
 const loading = ref(false)
-const errors = ref<Record<string, any>>({})
+const fileInput = ref<HTMLInputElement | null>(null)
+const imagePreview = ref('')
+const imageError = ref('')
 
 // Computed
-const isEditing = computed(() => !!props.product)
+const editing = computed(() => !!props.product?.id)
 
-// Initialize form with product data
+// Initialize form
 const initializeForm = () => {
   if (props.product) {
-    const { id, createdAt, updatedAt, ...productData } = props.product
-    form.value = { ...productData, imageFile: undefined }
-    imagePreview.value = productData.imageUrl
+    Object.assign(formData, {
+      ...props.product,
+      imageFile: undefined
+    })
+    
+    if (props.product.imageUrl) {
+      imagePreview.value = props.product.imageUrl
+    }
+    
+    // Ensure notes arrays exist
+    if (!props.product.notes) {
+      formData.notes = { top: [''], heart: [''], base: [''] }
+    }
+  } else {
+    // Reset form
+    Object.assign(formData, {
+      name: { en: '', ar: '' },
+      slug: '',
+      category: '',
+      price: 0,
+      size: '',
+      concentration: '',
+      description: { en: '', ar: '' },
+      notes: { top: [''], heart: [''], base: [''] },
+      imageUrl: '',
+      imageFile: undefined,
+      isBestSeller: false,
+      isNew: false,
+      isActive: true,
+      stock: 0,
+      sku: ''
+    })
+    imagePreview.value = ''
+    imageError.value = ''
   }
+  
+  // Clear errors
+  Object.keys(errors).forEach(key => delete errors[key])
 }
 
 // Watch for product changes
 watch(() => props.product, initializeForm, { immediate: true })
-
-// Helper function for translation
-const t = (key: string): string => {
-  const translations: Record<string, { en: string; ar: string }> = {
-    'Edit Product': { en: 'Edit Product', ar: 'تعديل المنتج' },
-    'Add New Product': { en: 'Add New Product', ar: 'إضافة منتج جديد' },
-    'Product Image': { en: 'Product Image', ar: 'صورة المنتج' },
-    'Upload Image': { en: 'Upload Image', ar: 'رفع صورة' },
-    'English Name': { en: 'English Name', ar: 'الاسم بالإنجليزية' },
-    'Arabic Name': { en: 'Arabic Name', ar: 'الاسم بالعربية' },
-    'Category': { en: 'Category', ar: 'الفئة' },
-    'Price': { en: 'Price', ar: 'السعر' },
-    'Size': { en: 'Size', ar: 'الحجم' },
-    'Concentration': { en: 'Concentration', ar: 'التركيز' },
-    'Description': { en: 'Description', ar: 'الوصف' },
-    'Fragrance Notes': { en: 'Fragrance Notes', ar: 'ملاحظات العطر' },
-    'Top Notes': { en: 'Top Notes', ar: 'الرأس' },
-    'Heart Notes': { en: 'Heart Notes', ar: 'القلب' },
-    'Base Notes': { en: 'Base Notes', ar: 'القاعدة' },
-    'Mark as Best Seller': { en: 'Mark as Best Seller', ar: 'تعيين كأكثر مبيعاً' },
-    'Cancel': { en: 'Cancel', ar: 'إلغاء' },
-    'Update Product': { en: 'Update Product', ar: 'تحديث المنتج' },
-    'Add Product': { en: 'Add Product', ar: 'إضافة المنتج' },
-    'Saving...': { en: 'Saving...', ar: 'جاري الحفظ...' }
-  }
-  
-  return translations[key]?.[currentLanguage.value] || key
-}
 
 // Methods
 const triggerFileInput = () => {
@@ -518,7 +641,7 @@ const handleImageUpload = (event: Event) => {
   if (!file) return
   
   // Validate image
-  const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
   const maxSize = 5 * 1024 * 1024 // 5MB
   
   if (!validTypes.includes(file.type)) {
@@ -535,7 +658,7 @@ const handleImageUpload = (event: Event) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     imagePreview.value = e.target?.result as string
-    form.value.imageFile = file
+    formData.imageFile = file
     imageError.value = ''
   }
   reader.readAsDataURL(file)
@@ -543,92 +666,211 @@ const handleImageUpload = (event: Event) => {
 
 const removeImage = () => {
   imagePreview.value = ''
-  form.value.imageUrl = ''
-  form.value.imageFile = undefined
+  formData.imageUrl = ''
+  formData.imageFile = undefined
+  imageError.value = ''
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
 
 const addNote = (type: 'top' | 'heart' | 'base') => {
-  form.value.notes[type].push('')
+  formData.notes[type].push('')
 }
 
 const removeNote = (type: 'top' | 'heart' | 'base', index: number) => {
-  form.value.notes[type].splice(index, 1)
+  formData.notes[type].splice(index, 1)
 }
 
 const validateForm = (): boolean => {
-  errors.value = {}
+  let isValid = true
   
-  // Validate required fields
-  if (!form.value.name.en.trim()) {
-    errors.value.name = { en: t('English name is required') }
+  // Reset errors
+  Object.keys(errors).forEach(key => delete errors[key])
+  
+  // Validate name
+  if (!formData.name.en?.trim()) {
+    errors.name = { ...errors.name, en: t('English name is required') }
+    isValid = false
   }
   
-  if (!form.value.name.ar.trim()) {
-    errors.value.name = { ...errors.value.name, ar: t('Arabic name is required') }
-  }
-  
-  if (!form.value.category) {
-    errors.value.category = t('Category is required')
-  }
-  
-  if (!form.value.price || form.value.price <= 0) {
-    errors.value.price = t('Valid price is required')
-  }
-  
-  if (!form.value.size) {
-    errors.value.size = t('Size is required')
-  }
-  
-  if (!form.value.concentration) {
-    errors.value.concentration = t('Concentration is required')
-  }
-  
-  if (!form.value.description.en.trim()) {
-    errors.value.description = { en: t('English description is required') }
-  }
-  
-  if (!form.value.description.ar.trim()) {
-    errors.value.description = { ...errors.value.description, ar: t('Arabic description is required') }
-  }
-  
-  // Validate notes
-  const hasNotes = form.value.notes.top.some(n => n.trim()) || 
-                   form.value.notes.heart.some(n => n.trim()) || 
-                   form.value.notes.base.some(n => n.trim())
-  
-  if (!hasNotes) {
-    errors.value.notes = t('At least one fragrance note is required')
+  if (!formData.name.ar?.trim()) {
+    errors.name = { ...errors.name, ar: t('Arabic name is required') }
+    isValid = false
   }
   
   // Validate image
-  if (!imagePreview.value && !form.value.imageUrl) {
-    errors.value.image = t('Product image is required')
+  if (!imagePreview.value && !formData.imageUrl) {
+    errors.image = t('Product image is required')
+    isValid = false
   }
   
-  return Object.keys(errors.value).length === 0
+  // Validate category
+  if (!formData.category) {
+    errors.category = t('Category is required')
+    isValid = false
+  }
+  
+  // Validate price
+  if (!formData.price || formData.price <= 0) {
+    errors.price = t('Valid price is required')
+    isValid = false
+  }
+  
+  // Validate size
+  if (!formData.size) {
+    errors.size = t('Size is required')
+    isValid = false
+  }
+  
+  // Validate concentration
+  if (!formData.concentration) {
+    errors.concentration = t('Concentration is required')
+    isValid = false
+  }
+  
+  // Validate description
+  if (!formData.description.en?.trim()) {
+    errors.description = { ...errors.description, en: t('English description is required') }
+    isValid = false
+  }
+  
+  if (!formData.description.ar?.trim()) {
+    errors.description = { ...errors.description, ar: t('Arabic description is required') }
+    isValid = false
+  }
+  
+  return isValid
 }
 
-const handleSubmit = async () => {
+const save = async () => {
   if (!validateForm()) return
   
   loading.value = true
   
   try {
-    if (isEditing.value && props.product) {
-      await productsStore.editProduct(props.product.id, form.value)
-    } else {
-      await productsStore.addProduct(form.value)
+    // Generate slug from English name if not provided
+    if (!formData.slug && formData.name.en) {
+      formData.slug = formData.name.en
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '-')
+        .trim()
     }
     
-    emit('saved')
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Emit the form data
+    emit('save', { ...formData })
+    
+    // Close modal
     emit('close')
   } catch (error) {
     console.error('Error saving product:', error)
+    alert(t('Failed to save product. Please try again.'))
   } finally {
     loading.value = false
   }
 }
+
+const close = () => {
+  if (loading.value) return
+  emit('close')
+}
+
+// Keyboard event listener
+onMounted(() => {
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      close()
+    }
+  }
+  
+  document.addEventListener('keydown', handleKeydown)
+  
+  // Remove event listener on unmount
+  return () => {
+    document.removeEventListener('keydown', handleKeydown)
+  }
+})
 </script>
+
+<style scoped>
+/* Custom scrollbar for modal */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .bg-white {
+    background-color: #1f2937;
+  }
+  
+  .text-gray-900 {
+    color: #f9fafb;
+  }
+  
+  .text-gray-500 {
+    color: #9ca3af;
+  }
+  
+  .border-gray-300 {
+    border-color: #4b5563;
+  }
+  
+  .bg-gray-50 {
+    background-color: #374151;
+  }
+  
+  .bg-blue-50 {
+    background-color: #1e3a8a;
+  }
+  
+  .border-blue-200 {
+    border-color: #1e40af;
+  }
+  
+  .text-blue-800 {
+    color: #bfdbfe;
+  }
+  
+  .text-blue-700 {
+    color: #93c5fd;
+  }
+  
+  .text-blue-600 {
+    color: #60a5fa;
+  }
+  
+  .ring-gray-300 {
+    ring-color: #4b5563;
+  }
+  
+  .hover\:bg-gray-50:hover {
+    background-color: #4b5563;
+  }
+}
+</style>

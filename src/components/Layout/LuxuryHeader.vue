@@ -26,8 +26,8 @@
               </router-link>
             </li>
             <li class="luxury-nav-item">
-              <router-link to="/collections" class="luxury-nav-link" active-class="active">
-                {{ languageStore.t('collections') }}
+              <router-link to="/shop" class="luxury-nav-link" active-class="active">
+                {{ languageStore.t('shop') }}
               </router-link>
             </li>
             <li class="luxury-nav-item">
@@ -36,13 +36,23 @@
               </router-link>
             </li>
             <li class="luxury-nav-item">
-              <router-link to="/categories" class="luxury-nav-link" active-class="active">
-                {{ languageStore.t('categories') }}
+              <router-link to="/collections" class="luxury-nav-link" active-class="active">
+                {{ languageStore.t('collections') }}
               </router-link>
             </li>
             <li class="luxury-nav-item">
-              <router-link to="/gifts" class="luxury-nav-link" active-class="active">
-                {{ languageStore.t('gifts') }}
+              <router-link to="/category/mens" class="luxury-nav-link" active-class="active">
+                {{ languageStore.t('mens') }}
+              </router-link>
+            </li>
+            <li class="luxury-nav-item">
+              <router-link to="/category/womens" class="luxury-nav-link" active-class="active">
+                {{ languageStore.t('womens') }}
+              </router-link>
+            </li>
+            <li class="luxury-nav-item">
+              <router-link to="/category/luxury" class="luxury-nav-link" active-class="active">
+                {{ languageStore.t('luxury') }}
               </router-link>
             </li>
             <li class="luxury-nav-item">
@@ -62,10 +72,9 @@
         <div class="luxury-header-right">
           <!-- Desktop Toggles & Actions -->
           <div class="luxury-desktop-section">
-            <!-- Language & Currency -->
+            <!-- Language Toggle Only -->
             <div class="luxury-header-toggles">
               <LuxuryLanguageToggle />
-              <LuxuryCurrencyToggle />
             </div>
             
             <!-- Actions -->
@@ -79,7 +88,7 @@
               </button>
               
               <!-- User -->
-              <button class="luxury-header-action" @click="toggleUserMenu" :aria-label="languageStore.t('account')">
+              <button class="luxury-header-action" @click="handleUserClick" :aria-label="languageStore.t('account')">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
                         stroke="currentColor" stroke-width="1.5"/>
@@ -138,10 +147,9 @@
         </div>
         
         <div class="mobile-menu-content">
-          <!-- Mobile Toggles -->
+          <!-- Mobile Language Toggle -->
           <div class="mobile-toggles">
             <LuxuryLanguageToggle />
-            <LuxuryCurrencyToggle />
           </div>
           
           <!-- Mobile Navigation -->
@@ -153,8 +161,8 @@
                 </router-link>
               </li>
               <li class="mobile-nav-item">
-                <router-link to="/collections" class="mobile-nav-link" @click="closeMobileMenu">
-                  {{ languageStore.t('collections') }}
+                <router-link to="/shop" class="mobile-nav-link" @click="closeMobileMenu">
+                  {{ languageStore.t('shop') }}
                 </router-link>
               </li>
               <li class="mobile-nav-item">
@@ -163,13 +171,23 @@
                 </router-link>
               </li>
               <li class="mobile-nav-item">
-                <router-link to="/categories" class="mobile-nav-link" @click="closeMobileMenu">
-                  {{ languageStore.t('categories') }}
+                <router-link to="/collections" class="mobile-nav-link" @click="closeMobileMenu">
+                  {{ languageStore.t('collections') }}
                 </router-link>
               </li>
               <li class="mobile-nav-item">
-                <router-link to="/gifts" class="mobile-nav-link" @click="closeMobileMenu">
-                  {{ languageStore.t('gifts') }}
+                <router-link to="/category/mens" class="mobile-nav-link" @click="closeMobileMenu">
+                  {{ languageStore.t('mens') }}
+                </router-link>
+              </li>
+              <li class="mobile-nav-item">
+                <router-link to="/category/womens" class="mobile-nav-link" @click="closeMobileMenu">
+                  {{ languageStore.t('womens') }}
+                </router-link>
+              </li>
+              <li class="mobile-nav-item">
+                <router-link to="/category/luxury" class="mobile-nav-link" @click="closeMobileMenu">
+                  {{ languageStore.t('luxury') }}
                 </router-link>
               </li>
               <li class="mobile-nav-item">
@@ -226,28 +244,20 @@
     </div>
     
     <!-- User Menu Dropdown -->
-    <div v-if="userMenuOpen" class="luxury-dropdown user-dropdown" @click.stop>
+    <div v-if="userMenuOpen && isAuthenticated" class="luxury-dropdown user-dropdown" @click.stop>
       <div class="dropdown-content">
-        <div v-if="isAuthenticated" class="dropdown-user">
+        <div class="dropdown-user">
           <div class="user-avatar">
             <span class="avatar-initials">{{ userInitials }}</span>
           </div>
           <div class="user-info">
-            <h4 class="user-name">{{ user?.displayName }}</h4>
+            <h4 class="user-name">{{ user?.displayName || languageStore.t('customer') }}</h4>
             <p class="user-email">{{ user?.email }}</p>
           </div>
         </div>
         
         <div class="dropdown-menu">
-          <router-link v-if="!isAuthenticated" to="/login" class="dropdown-item" @click="userMenuOpen = false">
-            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H15M10 17L15 12M15 12L10 7M15 12H3" 
-                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>{{ languageStore.t('login') }}</span>
-          </router-link>
-          
-          <router-link v-if="isAuthenticated" to="/profile" class="dropdown-item" @click="userMenuOpen = false">
+          <router-link to="/account" class="dropdown-item" @click="userMenuOpen = false">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
               <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" 
                     stroke="currentColor" stroke-width="1.5"/>
@@ -257,7 +267,7 @@
             <span>{{ languageStore.t('profile') }}</span>
           </router-link>
           
-          <router-link v-if="isAuthenticated" to="/orders" class="dropdown-item" @click="userMenuOpen = false">
+          <router-link to="/orders" class="dropdown-item" @click="userMenuOpen = false">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
               <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" 
                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -275,7 +285,7 @@
             <span>{{ languageStore.t('adminPanel') }}</span>
           </router-link>
           
-          <button v-if="isAuthenticated" @click="handleLogout" class="dropdown-item logout-btn">
+          <button @click="handleLogout" class="dropdown-item logout-btn">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
               <path d="M17 16L21 12M21 12L17 8M21 12H7M13 16C13 17.6569 11.6569 19 10 19H6C4.34315 19 3 17.6569 3 16V8C3 6.34315 4.34315 5 6 5H10C11.6569 5 13 6.34315 13 8" 
                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -310,7 +320,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useLanguageStore } from '@/stores/language'
 import { useCartStore } from '@/stores/cart'
 import LuxuryLanguageToggle from '@/components/UI/LuxuryLanguageToggle.vue'
-import LuxuryCurrencyToggle from '@/components/UI/LuxuryCurrencyToggle.vue'
 import LuxuryCartIcon from '@/components/Cart/LuxuryCartIcon.vue'
 
 const router = useRouter()
@@ -329,12 +338,13 @@ const wishlistOpen = ref(false)
 
 // Computed
 const userInitials = computed(() => {
-  if (!user.value) return ''
+  if (!user.value || !user.value.displayName) return 'U'
   return user.value.displayName
     .split(' ')
     .map(n => n[0])
     .join('')
     .toUpperCase()
+    .slice(0, 2)
 })
 
 const isRTL = computed(() => languageStore.currentLanguage === 'ar')
@@ -357,12 +367,33 @@ const closeMobileMenu = () => {
   document.body.classList.remove('no-scroll')
 }
 
+const handleUserClick = () => {
+  if (isAuthenticated) {
+    userMenuOpen.value = !userMenuOpen.value
+    if (userMenuOpen.value) {
+      mobileMenuOpen.value = false
+      searchOpen.value = false
+      wishlistOpen.value = false
+    }
+  } else {
+    // Redirect to login page if not authenticated
+    router.push('/admin/login')
+    closeAllMenus()
+  }
+}
+
 const toggleUserMenu = () => {
-  userMenuOpen.value = !userMenuOpen.value
-  if (userMenuOpen.value) {
-    mobileMenuOpen.value = false
-    searchOpen.value = false
-    wishlistOpen.value = false
+  // Only toggle if authenticated, otherwise redirect to login
+  if (isAuthenticated) {
+    userMenuOpen.value = !userMenuOpen.value
+    if (userMenuOpen.value) {
+      mobileMenuOpen.value = false
+      searchOpen.value = false
+      wishlistOpen.value = false
+    }
+  } else {
+    router.push('/admin/login')
+    closeAllMenus()
   }
 }
 
@@ -384,6 +415,14 @@ const toggleWishlist = () => {
   window.dispatchEvent(event)
 }
 
+const closeAllMenus = () => {
+  mobileMenuOpen.value = false
+  userMenuOpen.value = false
+  searchOpen.value = false
+  wishlistOpen.value = false
+  document.body.classList.remove('no-scroll')
+}
+
 const handleMobileAction = (action: string) => {
   closeMobileMenu()
   switch(action) {
@@ -391,7 +430,11 @@ const handleMobileAction = (action: string) => {
       toggleSearch()
       break
     case 'user':
-      toggleUserMenu()
+      if (isAuthenticated) {
+        toggleUserMenu()
+      } else {
+        router.push('/admin/login')
+      }
       break
     case 'wishlist':
       toggleWishlist()
@@ -702,7 +745,7 @@ onUnmounted(() => {
 .luxury-nav-list {
   display: flex;
   justify-content: center;
-  gap: 3rem;
+  gap: 2rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -710,13 +753,13 @@ onUnmounted(() => {
 
 @media (min-width: 1280px) {
   .luxury-nav-list {
-    gap: 4rem;
+    gap: 2.5rem;
   }
 }
 
 @media (max-width: 1279px) and (min-width: 1024px) {
   .luxury-nav-list {
-    gap: 2rem;
+    gap: 1.5rem;
   }
 }
 
@@ -736,6 +779,7 @@ onUnmounted(() => {
   position: relative;
   transition: all 0.3s ease;
   opacity: 0.9;
+  white-space: nowrap;
 }
 
 .luxury-nav-link::after {
@@ -794,7 +838,6 @@ onUnmounted(() => {
 .luxury-header-toggles {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
 
 .luxury-header-actions {
@@ -1101,9 +1144,6 @@ onUnmounted(() => {
 }
 
 .mobile-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
   padding-bottom: 2rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid rgba(212, 175, 55, 0.1);
@@ -1469,50 +1509,6 @@ onUnmounted(() => {
 /* No Scroll */
 .no-scroll {
   overflow: hidden;
-}
-
-/* Currency Toggle Styles */
-:deep(.luxury-currency-toggle) {
-  position: relative;
-}
-
-:deep(.luxury-currency-toggle .luxury-dropdown-btn) {
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  color: #f4e7c1;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  min-width: 80px;
-  transition: all 0.3s ease;
-}
-
-:deep(.luxury-currency-toggle .luxury-dropdown-btn:hover) {
-  background: rgba(212, 175, 55, 0.15);
-  border-color: #d4af37;
-  color: #d4af37;
-}
-
-:deep(.luxury-currency-toggle .luxury-dropdown-menu) {
-  background: rgba(10, 10, 10, 0.98);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  min-width: 120px;
-  z-index: 1005 !important;
-}
-
-:deep(.luxury-currency-toggle .luxury-dropdown-item) {
-  color: #f4e7c1;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-}
-
-:deep(.luxury-currency-toggle .luxury-dropdown-item:hover) {
-  background: rgba(212, 175, 55, 0.1);
-  color: #d4af37;
 }
 
 /* Language Toggle Styles */

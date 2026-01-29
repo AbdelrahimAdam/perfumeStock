@@ -15,7 +15,7 @@
   <div v-else-if="product" class="min-h-screen bg-white">
     <SEOHead 
       :title="product.name[currentLanguage]"
-      :description="product.description[currentLanguage].substring(0, 160)"
+      :description="productDescription"
       :image="product.imageUrl"
       type="product"
     />
@@ -29,10 +29,10 @@
         </router-link>
         <span class="mx-3">/</span>
         <router-link 
-          :to="`/category/${product.category}`" 
+          :to="`/brand/${product.brand}`" 
           class="hover:text-primary-600 transition-colors"
         >
-          {{ getCategoryName(product.category) }}
+          {{ getBrandName(product.brand) }}
         </router-link>
         <span class="mx-3">/</span>
         <span class="text-gray-900 font-medium">{{ product.name[currentLanguage] }}</span>
@@ -78,10 +78,10 @@
 
         <!-- Product Info -->
         <div :class="{ 'text-right': isRTL }">
-          <!-- Category & Badges -->
+          <!-- Brand & Badges -->
           <div class="flex items-center gap-3 mb-6" :class="{ 'flex-row-reverse': isRTL }">
             <span class="px-4 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
-              {{ getCategoryName(product.category) }}
+              {{ getBrandName(product.brand) }}
             </span>
             <span 
               v-if="product.isBestSeller"
@@ -112,14 +112,16 @@
             </span>
           </div>
 
-          <!-- Rating (Placeholder) -->
+          <!-- Rating -->
           <div class="flex items-center gap-2 mb-8">
             <div class="flex text-yellow-400">
               <svg v-for="i in 5" :key="i" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
               </svg>
             </div>
-            <span class="text-gray-600">(4.8 • 124 {{ t('reviews') }})</span>
+            <span class="text-gray-600">
+              {{ product.rating.toFixed(1) }} • {{ product.reviewCount }} {{ t('reviews') }}
+            </span>
           </div>
 
           <!-- Description -->
@@ -294,7 +296,7 @@ const productsStore = useProductsStore()
 const cartStore = useCartStore()
 
 const { currentLanguage, isRTL, t } = languageStore
-const { products, fetchProductBySlug, getCategoryById } = productsStore
+const { getProductById } = productsStore
 
 const product = ref<Product | null>(null)
 const loading = ref(true)
@@ -305,32 +307,55 @@ const selectedImage = ref('')
 // Computed properties
 const productImages = computed(() => {
   if (!product.value) return []
-  // For now, just return the main image
-  // In a real app, you might have multiple images
-  return [product.value.imageUrl]
+  // Use images array if available, otherwise use single imageUrl
+  return product.value.images && product.value.images.length > 0 
+    ? product.value.images 
+    : [product.value.imageUrl]
+})
+
+const productDescription = computed(() => {
+  if (!product.value) return ''
+  const desc = product.value.description[currentLanguage]
+  return desc.length > 160 ? desc.substring(0, 160) + '...' : desc
 })
 
 const isNewArrival = computed(() => {
   if (!product.value?.createdAt) return false
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  return product.value.createdAt.toDate() > oneMonthAgo
+  // Handle both timestamp formats
+  const productDate = product.value.createdAt.seconds 
+    ? new Date(product.value.createdAt.seconds * 1000)
+    : new Date(product.value.createdAt)
+  return productDate > oneMonthAgo
 })
 
 const relatedProducts = computed(() => {
-  if (!product.value) return []
-  return products
+  if (!product.value || !productsStore.products.length) return []
+  
+  return productsStore.products
     .filter(p => 
       p.id !== product.value!.id && 
-      (p.category === product.value!.category || p.isBestSeller)
+      (p.brand === product.value!.brand || p.category === product.value!.category)
     )
     .slice(0, 4)
 })
 
+// Brand data for display
+const brands = [
+  { slug: 'dior', name: { en: 'Dior', ar: 'ديور' } },
+  { slug: 'chanel', name: { en: 'Chanel', ar: 'شانيل' } },
+  { slug: 'tom-ford', name: { en: 'Tom Ford', ar: 'توم فورد' } },
+  { slug: 'gucci', name: { en: 'Gucci', ar: 'غوتشي' } },
+  { slug: 'versace', name: { en: 'Versace', ar: 'فيرساتشي' } },
+  { slug: 'yves-saint-laurent', name: { en: 'Yves Saint Laurent', ar: 'ايف سان لوران' } },
+  { slug: 'saint-laurent', name: { en: 'Saint Laurent', ar: 'سان لوران' } }
+]
+
 // Methods
-const getCategoryName = (categoryId: string) => {
-  const category = getCategoryById.value(categoryId)
-  return category ? category[currentLanguage.value] : categoryId
+const getBrandName = (brandSlug: string) => {
+  const brand = brands.find(b => b.slug === brandSlug)
+  return brand ? brand.name[currentLanguage] : brandSlug
 }
 
 const decreaseQuantity = () => {
@@ -350,8 +375,10 @@ const addToCart = () => {
 }
 
 const addToWishlist = () => {
-  // Implement wishlist functionality
-  console.log('Added to wishlist:', product.value?.name[currentLanguage.value])
+  if (product.value) {
+    console.log('Added to wishlist:', product.value.name[currentLanguage])
+    // TODO: Implement wishlist functionality
+  }
 }
 
 const viewProduct = (relatedProduct: Product) => {
@@ -365,16 +392,27 @@ watch(
     if (newSlug) {
       loading.value = true
       error.value = null
+      
       try {
-        product.value = await fetchProductBySlug(newSlug as string)
-        if (!product.value) {
+        // Make sure products are loaded
+        if (productsStore.products.length === 0) {
+          await productsStore.fetchProducts()
+        }
+        
+        // Find product by slug
+        const foundProduct = productsStore.products.find(p => p.slug === newSlug)
+        
+        if (!foundProduct) {
           error.value = t('Product not found')
+          product.value = null
         } else {
+          product.value = foundProduct
           selectedImage.value = product.value.imageUrl
           quantity.value = 1
         }
       } catch (err: any) {
         error.value = err.message || t('Failed to load product')
+        product.value = null
       } finally {
         loading.value = false
       }
@@ -382,4 +420,16 @@ watch(
   },
   { immediate: true }
 )
+
+// On mounted
+onMounted(() => {
+  // Load products if not already loaded
+  if (productsStore.products.length === 0) {
+    productsStore.fetchProducts()
+  }
+})
 </script>
+
+<style scoped>
+/* Custom styles if needed */
+</style>

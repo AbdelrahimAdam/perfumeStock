@@ -1,7 +1,8 @@
+<!-- src/pages/HomePage.vue - FULLY UPDATED WITH STORE INTEGRATION -->
 <template>
   <div class="luxury-perfume-homepage" :class="{ 'dark-mode': isDarkMode, 'rtl-direction': isRTL, 'ltr-direction': !isRTL }">
-    <!-- Loading Spinner Fix -->
-    <div v-if="isLoading" class="loading-overlay">
+    <!-- Loading Spinner -->
+    <div v-if="homepageStore.isLoading" class="loading-overlay">
       <div class="luxury-spinner">
         <div class="spinner-gold-ring"></div>
         <div class="spinner-glow"></div>
@@ -9,30 +10,45 @@
       </div>
     </div>
 
-    <!-- NO header spacer - banner will start right after header -->
-    
+    <!-- Debug Panel (Development Only) -->
+    <div v-if="isDevelopment" class="debug-panel">
+      <details>
+        <summary>📊 Store Debug</summary>
+        <div class="debug-info">
+          <div><strong>Status:</strong> {{ homepageStore.isLoading ? 'Loading...' : 'Ready' }}</div>
+          <div><strong>Error:</strong> {{ homepageStore.error || 'None' }}</div>
+          <div><strong>Brands:</strong> {{ featuredBrands.length }}</div>
+          <div><strong>Offers:</strong> {{ activeOffers.length }}</div>
+          <div><strong>Listening:</strong> {{ homepageStore.isListening ? 'Yes' : 'No' }}</div>
+          <div><strong>Last Update:</strong> {{ homepageStore.homepageData.lastUpdated ? formatDate(homepageStore.homepageData.lastUpdated) : 'Never' }}</div>
+          <div class="debug-actions">
+            <button @click="forceRefreshStoreData">🔄 Refresh</button>
+            <button @click="homepageStore.clearCache()">🧹 Clear Cache</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
     <!-- Hero Banner with Fixed Background -->
     <section class="hero-banner">
-      <!-- Video-Style Banner Container for Mobile -->
+      <!-- Video-Style Banner Container -->
       <div class="banner-video-container">
-        <!-- Optimized Background Image - Using local image -->
-        <div class="hero-background">
-          <div class="background-overlay"></div>
-        </div>
+        <!-- Background Image from store -->
+        <div class="hero-background" :style="{ backgroundImage: `url('${heroBanner.imageUrl}')` }"></div>
         
-        <!-- Gradient Overlays for Better Contrast -->
+        <!-- Gradient Overlays -->
         <div class="gradient-overlay-top"></div>
         <div class="gradient-overlay-bottom"></div>
       </div>
       
       <!-- Content Overlay -->
       <div class="banner-container">
-        <!-- Left: Brand Identity - Simplified for Mobile -->
+        <!-- Brand Identity -->
         <div class="banner-left">
           <div class="glass-card luxury-branding">
-            <h1 class="brand-name-large">{{ t('brandName') }}</h1>
+            <h1 class="brand-name-large">{{ heroBanner.title || t('brandName') }}</h1>
             
-            <!-- Mobile View: Simplified Content -->
+            <!-- Mobile View -->
             <div class="mobile-simple-view">
               <button class="shop-now-button" @click="navigateToShop">
                 <span class="button-icon">↗</span>
@@ -40,7 +56,7 @@
               </button>
             </div>
             
-            <!-- Desktop View: Full Card -->
+            <!-- Desktop View -->
             <div class="desktop-full-view">
               <div class="premium-badge">
                 <span>{{ t('luxury') }}</span>
@@ -69,41 +85,39 @@
         </div>
       </div>
       
-      <!-- Smooth Floating Brand Logos - UPDATED TO START FROM BEGINNING -->
+      <!-- Floating Brand Logos from store -->
       <div class="floating-brands">
         <div class="marquee-track">
-          <router-link
-            v-for="brand in featuredBrands"
-            :key="brand.id"
-            :to="`/brand/${brand.slug}`"
-            class="brand-link"
-          >
-            <img :src="brand.logo" :alt="t(brand.nameKey)" class="brand-logo" />
-          </router-link>
-          <router-link
-            v-for="brand in featuredBrands"
-            :key="'dup-' + brand.id"
-            :to="`/brand/${brand.slug}`"
-            class="brand-link"
-          >
-            <img :src="brand.logo" :alt="t(brand.nameKey)" class="brand-logo" />
-          </router-link>
-          <router-link
-            v-for="brand in featuredBrands"
-            :key="'dup2-' + brand.id"
-            :to="`/brand/${brand.slug}`"
-            class="brand-link"
-          >
-            <img :src="brand.logo" :alt="t(brand.nameKey)" class="brand-logo" />
-          </router-link>
+          <template v-if="marqueeBrands.length > 0">
+            <router-link
+              v-for="brand in marqueeBrands"
+              :key="brand.id"
+              :to="`/brand/${brand.slug}`"
+              class="brand-link"
+            >
+              <img :src="brand.logo" :alt="brand.name" class="brand-logo" @error="handleImageError($event, brand)" />
+            </router-link>
+            <!-- Duplicate for seamless loop -->
+            <router-link
+              v-for="brand in marqueeBrands"
+              :key="'dup-' + brand.id"
+              :to="`/brand/${brand.slug}`"
+              class="brand-link"
+            >
+              <img :src="brand.logo" :alt="brand.name" class="brand-logo" @error="handleImageError($event, brand)" />
+            </router-link>
+          </template>
+          <div v-else class="no-brands-message">
+            <span>{{ t('loadingBrands') }}</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Featured Brands & Offer Section - Directly Below Marquee -->
+    <!-- Featured Brands & Offer Section -->
     <section class="main-content-section">
       <div class="content-container">
-        <!-- MOBILE LAYOUT: 2×3 Grid with Offer Side by Side -->
+        <!-- MOBILE LAYOUT -->
         <div class="mobile-content-layout">
           <div class="section-header">
             <h2 class="section-title">{{ t('featuredBrands') }}</h2>
@@ -111,9 +125,9 @@
           </div>
           
           <div class="mobile-grid-container">
-            <!-- Left side: 2×3 Brands Grid (All 6 brands) -->
+            <!-- Left side: Brands Grid -->
             <div class="mobile-brands-section">
-              <div class="brands-grid-mobile">
+              <div v-if="featuredBrands.length > 0" class="brands-grid-mobile">
                 <router-link
                   v-for="brand in featuredBrands"
                   :key="brand.id"
@@ -122,57 +136,73 @@
                 >
                   <div class="brand-card-mobile">
                     <div class="brand-image-wrapper-mobile">
-                      <img :src="brand.image" :alt="t(brand.nameKey)" loading="lazy" />
+                      <img 
+                        :src="brand.image" 
+                        :alt="brand.name" 
+                        loading="lazy" 
+                        @error="handleImageError($event, brand)"
+                      />
                       <div class="brand-overlay-mobile"></div>
                     </div>
                     <div class="brand-info-mobile">
-                      <h3 class="brand-name-mobile">{{ t(brand.nameKey) }}</h3>
-                      <p class="brand-signature-mobile">{{ t(brand.signatureKey) }}</p>
+                      <h3 class="brand-name-mobile">{{ brand.name }}</h3>
+                      <p class="brand-signature-mobile">{{ brand.signature }}</p>
+                      <p class="brand-price-mobile">{{ brand.price }} {{ t('currencyLE') }}</p>
                     </div>
                   </div>
                 </router-link>
               </div>
+              <div v-else class="no-data-message">
+                <p>{{ t('noBrandsAvailable') }}</p>
+                <button @click="forceRefreshStoreData" class="refresh-button">
+                  {{ t('refresh') }}
+                </button>
+              </div>
             </div>
             
-            <!-- Right side: Today's Offer -->
+            <!-- Right side: Today's Offer from store -->
             <div class="mobile-offer-section">
-              <div class="offer-card-mobile">
+              <div v-if="activeOffers.length > 0" class="offer-card-mobile">
                 <div class="offer-badge-mobile">{{ t('todaysExclusiveOffer') }}</div>
                 <div class="offer-content-mobile">
                   <div class="offer-image-wrapper-mobile">
                     <img
-                      src="/images/chanceshaneal.jpeg"
-                      :alt="t('cocoChanel')"
+                      :src="activeOffers[0].imageUrl"
+                      :alt="activeOffers[0].title"
                       class="offer-bottle-mobile"
                       loading="lazy"
+                      @error="handleImageError($event, activeOffers[0])"
                     />
                   </div>
                   <div class="offer-details-mobile">
-                    <h3 class="offer-title-mobile">{{ t('cocoChanel') }}</h3>
-                    <p class="offer-subtitle-mobile">{{ t('iconicEauDeParfum') }}</p>
+                    <h3 class="offer-title-mobile">{{ activeOffers[0].title }}</h3>
+                    <p class="offer-subtitle-mobile">{{ activeOffers[0].subtitle }}</p>
                     <div class="offer-pricing-mobile">
-                      <span class="old-price-mobile">1500 {{ t('currencyLE') }}</span>
-                      <span class="new-price-mobile">150 {{ t('currencyLE') }}</span>
+                      <span class="old-price-mobile">{{ activeOffers[0].oldPrice }} {{ t('currencyLE') }}</span>
+                      <span class="new-price-mobile">{{ activeOffers[0].newPrice }} {{ t('currencyLE') }}</span>
                     </div>
-                    <button class="buy-now-button-mobile" @click="navigateToOffer">
+                    <button class="buy-now-button-mobile" @click="navigateToOffer(activeOffers[0])">
                       <span class="button-text">{{ t('buyNow') }}</span>
                     </button>
                   </div>
                 </div>
               </div>
+              <div v-else class="no-offer-message">
+                <p>{{ t('noOffersAvailable') }}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- DESKTOP LAYOUT: Original Structure -->
+        <!-- DESKTOP LAYOUT -->
         <div class="desktop-content-layout">
-          <!-- Featured Brands Grid -->
+          <!-- Featured Brands Grid from store -->
           <div class="featured-brands">
             <div class="section-header">
               <h2 class="section-title">{{ t('featuredBrands') }}</h2>
               <p class="section-subtitle">{{ t('luxuryCollections') }}</p>
             </div>
-            <div class="brands-grid">
+            <div v-if="featuredBrands.length > 0" class="brands-grid">
               <router-link
                 v-for="brand in featuredBrands"
                 :key="brand.id"
@@ -181,47 +211,63 @@
               >
                 <div class="brand-card">
                   <div class="brand-image-wrapper">
-                    <img :src="brand.image" :alt="t(brand.nameKey)" loading="lazy" />
+                    <img 
+                      :src="brand.image" 
+                      :alt="brand.name" 
+                      loading="lazy"
+                      @error="handleImageError($event, brand)"
+                    />
                     <div class="brand-overlay"></div>
                     <div class="brand-glow"></div>
                     <div class="gold-sparkles"></div>
                   </div>
                   <div class="brand-info">
-                    <h3 class="brand-name">{{ t(brand.nameKey) }}</h3>
-                    <p class="brand-signature">{{ t(brand.signatureKey) }}</p>
+                    <h3 class="brand-name">{{ brand.name }}</h3>
+                    <p class="brand-signature">{{ brand.signature }}</p>
+                    <p class="brand-price">{{ brand.price }} {{ t('currencyLE') }}</p>
                   </div>
                 </div>
               </router-link>
             </div>
+            <div v-else class="no-data-message">
+              <p>{{ t('noBrandsAvailable') }}</p>
+              <button @click="forceRefreshStoreData" class="refresh-button">
+                {{ t('refresh') }}
+              </button>
+            </div>
           </div>
 
-          <!-- Today's Exclusive Offer -->
+          <!-- Today's Exclusive Offer from store -->
           <aside class="offer-sidebar">
-            <div class="offer-card">
+            <div v-if="activeOffers.length > 0" class="offer-card">
               <div class="offer-badge">{{ t('todaysExclusiveOffer') }}</div>
               <div class="offer-content">
                 <div class="offer-image-wrapper">
                   <img
-                    src="/images/chanceshaneal.jpeg"
-                    :alt="t('cocoChanel')"
+                    :src="activeOffers[0].imageUrl"
+                    :alt="activeOffers[0].title"
                     class="offer-bottle"
                     loading="lazy"
+                    @error="handleImageError($event, activeOffers[0])"
                   />
                   <div class="offer-glow"></div>
                 </div>
                 <div class="offer-details">
-                  <h3 class="offer-title">{{ t('cocoChanel') }}</h3>
-                  <p class="offer-subtitle">{{ t('iconicEauDeParfum') }}</p>
+                  <h3 class="offer-title">{{ activeOffers[0].title }}</h3>
+                  <p class="offer-subtitle">{{ activeOffers[0].subtitle }}</p>
                   <div class="offer-pricing">
-                    <span class="old-price">1500 {{ t('currencyLE') }}</span>
-                    <span class="new-price">150 {{ t('currencyLE') }}</span>
+                    <span class="old-price">{{ activeOffers[0].oldPrice }} {{ t('currencyLE') }}</span>
+                    <span class="new-price">{{ activeOffers[0].newPrice }} {{ t('currencyLE') }}</span>
                   </div>
-                  <button class="buy-now-button" @click="navigateToOffer">
+                  <button class="buy-now-button" @click="navigateToOffer(activeOffers[0])">
                     <span class="button-text">{{ t('buyNow') }}</span>
                     <span class="button-icon">↗</span>
                   </button>
                 </div>
               </div>
+            </div>
+            <div v-else class="no-offer-message">
+              <p>{{ t('noOffersAvailable') }}</p>
             </div>
           </aside>
         </div>
@@ -231,34 +277,129 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
+import { useHomepageStore } from '@/stores/homepage'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
-const t = languageStore.t
+const homepageStore = useHomepageStore()
+const { t, formatDate } = languageStore
 
-// Loading state management
-const isLoading = ref(true)
+// Development mode check
+const isDevelopment = import.meta.env.DEV
 
-// Dark mode - start with light mode by default
-const isDarkMode = ref(false)
+// Store data - directly from homepage store (reactive)
+const heroBanner = computed(() => homepageStore.homepageData.heroBanner)
+const featuredBrands = computed(() => homepageStore.homepageData.featuredBrands || [])
+const activeOffers = computed(() => homepageStore.homepageData.activeOffers || [])
+const marqueeBrands = computed(() => homepageStore.homepageData.marqueeBrands || [])
 
-// RTL based on language - default RTL for Arabic
+// Dark mode from store
+const isDarkMode = computed(() => homepageStore.homepageData.settings?.isDarkMode || false)
+
+// RTL based on language
 const isRTL = computed(() => {
   const currentLang = languageStore.currentLanguage;
-  // Return true for RTL languages (Arabic), false for LTR languages (English)
   return currentLang === 'ar' || currentLang === 'fa' || currentLang === 'he';
 })
 
-onMounted(() => {
+// Debug info
+const debugInfo = ref({
+  storeLoaded: false,
+  lastUpdate: ''
+})
+
+// Watch for store updates
+watch(() => homepageStore.homepageData, (newData) => {
+  console.log('🏪 Homepage data updated:', {
+    brands: newData.featuredBrands?.length || 0,
+    offers: newData.activeOffers?.length || 0,
+    lastUpdated: newData.lastUpdated || 'Never'
+  })
+  
+  debugInfo.value = {
+    storeLoaded: true,
+    lastUpdate: newData.lastUpdated || 'Never'
+  }
+  
+  // Apply dark mode if changed
+  if (newData.settings?.isDarkMode) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+}, { deep: true })
+
+// Watch for errors
+watch(() => homepageStore.error, (error) => {
+  if (error) {
+    console.error('❌ Homepage store error:', error)
+  }
+})
+
+// Force refresh function
+const forceRefreshStoreData = async () => {
+  console.log('🔄 Force refreshing homepage data...')
+  try {
+    await homepageStore.forceRefresh()
+    console.log('✅ Store data force refreshed')
+  } catch (error: any) {
+    console.error('❌ Error refreshing store:', error.message)
+  }
+}
+
+// Handle image loading errors
+const handleImageError = (event: Event, item: any) => {
+  const img = event.target as HTMLImageElement
+  console.warn(`⚠️ Image failed to load: ${img.src}`)
+  
+  // Set a fallback image
+  if (item && 'image' in item) {
+    img.src = '/images/placeholder-brand.jpg'
+  } else if (item && 'imageUrl' in item) {
+    img.src = '/images/placeholder-offer.jpg'
+  } else if (item && 'logo' in item) {
+    img.src = '/images/placeholder-logo.png'
+  }
+}
+
+// Navigation functions
+const navigateToShop = () => {
+  router.push('/shop')
+}
+
+const navigateToOffer = (offer: any) => {
+  if (offer?.slug) {
+    router.push(`/offer/${offer.slug}`)
+  } else {
+    router.push('/offers')
+  }
+}
+
+onMounted(async () => {
+  console.log('🏠 HomePage.vue mounted - Initializing...')
   document.documentElement.style.scrollBehavior = 'smooth'
   
-  // Simulate loading completion
-  setTimeout(() => {
-    isLoading.value = false
-  }, 500)
+  // Clear any old cache first
+  homepageStore.clearCache()
+  
+  // Load homepage data from store
+  try {
+    console.log('📥 Loading homepage data from Firebase...')
+    await homepageStore.loadHomepageData()
+    
+    console.log('✅ Homepage data loaded:', {
+      brands: featuredBrands.value.length,
+      offers: activeOffers.value.length,
+      marquee: marqueeBrands.value.length,
+      darkMode: isDarkMode.value
+    })
+    
+  } catch (err: any) {
+    console.error('❌ Could not load homepage data:', err.message)
+  }
   
   // Intersection Observer for animations
   const observer = new IntersectionObserver(
@@ -272,80 +413,18 @@ onMounted(() => {
     { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
   )
   
-  document.querySelectorAll('.brand-card, .offer-card, .brand-card-mobile, .offer-card-mobile').forEach((el) => {
-    observer.observe(el)
-  })
+  // Observe elements after a short delay to ensure they exist
+  setTimeout(() => {
+    document.querySelectorAll('.brand-card, .offer-card, .brand-card-mobile, .offer-card-mobile').forEach((el) => {
+      observer.observe(el)
+    })
+  }, 100)
 })
 
-// Function to toggle dark mode (call this from header component)
-const toggleDarkMode = () => {
-  isDarkMode.value = !isDarkMode.value
-}
-
-// Expose function to parent/header component
-defineExpose({
-  toggleDarkMode,
-  isDarkMode
+onUnmounted(() => {
+  // Clean up Firebase listener when component is destroyed
+  homepageStore.stopListening()
 })
-
-const navigateToShop = () => {
-  router.push('/shop')
-}
-
-const navigateToOffer = () => {
-  router.push('/offer/coco-chanel')
-}
-
-const featuredBrands = ref([
-  { 
-    id: 1, 
-    slug: 'tom-ford', 
-    nameKey: 'brandTomFord',
-    signatureKey: 'noirExtreme',
-    image: '/images/GURLAND.png', 
-    logo: '/images/tomford.png'
-  },
-  { 
-    id: 2, 
-    slug: 'saint-laurent', 
-    nameKey: 'brandYsl',
-    signatureKey: 'blackOpium',
-    image: '/images/santlaurent.jpg', 
-    logo: '/images/saintlaurent.jpg'
-  },
-  { 
-    id: 3, 
-    slug: 'versace', 
-    nameKey: 'brandVersace',
-    signatureKey: 'erosFlame',
-    image: '/images/versacee.jpg', 
-    logo: '/images/versace.jpeg'
-  },
-  { 
-    id: 4, 
-    slug: 'chanel', 
-    nameKey: 'brandChanel',
-    signatureKey: 'cocoMademoiselle',
-    image: '/images/chanceshaneal.jpeg', 
-    logo: '/images/shaneal.jpg'
-  },
-  { 
-    id: 5, 
-    slug: 'dior', 
-    nameKey: 'brandDior',
-    signatureKey: 'sauvageElixir',
-    image: '/images/DIOUR.jpg', 
-    logo: '/images/dior.jpg'
-  },
-  { 
-    id: 6, 
-    slug: 'gucci', 
-    nameKey: 'brandGucci',
-    signatureKey: 'bloom',
-    image: '/images/GUCCI.jpg', 
-    logo: '/images/goochi.jpg'
-  },
-])
 </script>
 
 <style scoped>
@@ -395,6 +474,109 @@ const featuredBrands = ref([
   --glass-border: rgba(212, 175, 55, 0.4);
   --offer-badge: linear-gradient(to right, #e63946, #ff6b6b);
   --overlay-gradient: linear-gradient(to bottom, transparent 40%, rgba(26, 26, 26, 0.95));
+}
+
+/* Debug Panel */
+.debug-panel {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 9999;
+  max-width: 300px;
+  max-height: 300px;
+  overflow: auto;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--gold-primary);
+}
+
+.debug-panel summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--gold-primary);
+  padding: 5px;
+}
+
+.debug-info {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.debug-info div {
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.debug-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+.debug-actions button {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--gold-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: opacity 0.2s;
+}
+
+.debug-actions button:hover {
+  opacity: 0.9;
+}
+
+/* No data messages */
+.no-data-message,
+.no-offer-message,
+.no-brands-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.no-brands-message {
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.refresh-button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background: var(--gold-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.refresh-button:hover {
+  background: var(--gold-secondary);
+  transform: translateY(-2px);
+}
+
+/* Brand price display */
+.brand-price,
+.brand-price-mobile {
+  color: var(--gold-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.brand-price-mobile {
+  font-size: 0.75rem;
 }
 
 /* RTL Direction Support */
@@ -572,7 +754,6 @@ const featuredBrands = ref([
 .hero-background {
   position: absolute;
   inset: 0;
-  background-image: url('/images/banner.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

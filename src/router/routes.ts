@@ -1,7 +1,9 @@
+// src/router/routes.ts
 import type { RouteRecordRaw } from 'vue-router'
 import type { Language } from '@/types'
 
 export const routes: Array<RouteRecordRaw> = [
+  // ========== PUBLIC ROUTES (NO LOGIN REQUIRED) ==========
   {
     path: '/',
     name: 'home',
@@ -12,13 +14,32 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'عطور فاخرة | مجموعة العطور المميزة'
       },
       description: {
-        en: 'Discover our exclusive collection of luxury perfumes, Arabic oud, French perfumes, and niche fragrances. Free shipping on orders over $200.',
-        ar: 'اكتشف مجموعتنا الحصرية من العطور الفاخرة، العود العربي، العطور الفرنسية، والعبوات النيش. شحن مجاني للطلبات فوق 200 دولار.'
+        en: 'Discover our exclusive collection of luxury perfumes, Arabic oud, French perfumes, and niche fragrances. Free shipping on orders over 2000 EGP.',
+        ar: 'اكتشف مجموعتنا الحصرية من العطور الفاخرة، العود العربي، العطور الفرنسية، والعبوات النيش. شحن مجاني للطلبات فوق 2000 جنيه مصري.'
       },
       requiresAuth: false,
       layout: 'default'
     }
   },
+
+  {
+    path: '/shop',
+    name: 'shop',
+    component: () => import('@/pages/ShopPage.vue'),
+    meta: {
+      title: {
+        en: 'Shop All Perfumes | Luxury Fragrance Store',
+        ar: 'تسوق جميع العطور | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Browse our complete collection of luxury perfumes from all brands and categories. Prices in EGP.',
+        ar: 'تصفح مجموعتنا الكاملة من العطور الفاخرة من جميع الماركات والفئات. الأسعار بالجنيه المصري.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
   {
     path: '/category/:slug',
     name: 'category',
@@ -37,6 +58,62 @@ export const routes: Array<RouteRecordRaw> = [
       layout: 'default'
     }
   },
+
+  {
+    path: '/brands',
+    name: 'brands',
+    component: () => import('@/pages/BrandsPage.vue'),
+    meta: {
+      title: {
+        en: 'Brands | Luxury Perfume Collections',
+        ar: 'الماركات | مجموعات العطور الفاخرة'
+      },
+      description: {
+        en: 'Explore our luxury perfume collections from premium brands worldwide. All prices in EGP.',
+        ar: 'استكشف مجموعات العطور الفاخرة من الماركات العالمية المميزة. جميع الأسعار بالجنيه المصري.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/brand/:slug',
+    name: 'brand',
+    component: () => import('@/pages/BrandPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Brand Collection | Luxury Perfumes',
+        ar: 'مجموعة العلامة التجارية | عطور فاخرة'
+      },
+      description: {
+        en: 'Discover our curated collection of luxury perfumes from this premium brand.',
+        ar: 'اكتشف مجموعتنا المختارة من العطور الفاخرة من هذه العلامة التجارية المميزة.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/collections',
+    name: 'collections',
+    component: () => import('@/pages/CollectionsPage.vue'),
+    meta: {
+      title: {
+        en: 'Collections | Curated Perfume Sets',
+        ar: 'المجموعات | مجموعات عطور مختارة'
+      },
+      description: {
+        en: 'Discover our specially curated perfume collections and gift sets. Perfect gifts in EGP.',
+        ar: 'اكتشف مجموعات العطور المختارة خصيصاً ومجموعات الهدايا. هدايا مثالية بالجنيه المصري.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
   {
     path: '/product/:slug',
     name: 'product',
@@ -48,13 +125,14 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'عطر فاخر | عبور مميز'
       },
       description: {
-        en: 'Discover this luxury perfume with premium ingredients and exquisite craftsmanship.',
-        ar: 'اكتشف هذا العطر الفاخر مع مكونات مميزة وحرفية رائعة.'
+        en: 'Discover this luxury perfume with premium ingredients and exquisite craftsmanship. Price in EGP.',
+        ar: 'اكتشف هذا العطر الفاخر مع مكونات مميزة وحرفية رائعة. السعر بالجنيه المصري.'
       },
       requiresAuth: false,
       layout: 'default'
     }
   },
+
   {
     path: '/cart',
     name: 'cart',
@@ -65,13 +143,32 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'سلة التسوق | اختياراتك الفاخرة'
       },
       description: {
-        en: 'Review your selected luxury perfumes and proceed to checkout.',
-        ar: 'راجع عطورك الفاخرة المختارة وتابع إلى الدفع.'
+        en: 'Review your selected luxury perfumes and proceed to checkout. Prices in EGP.',
+        ar: 'راجع عطورك الفاخرة المختارة وتابع إلى الدفع. الأسعار بالجنيه المصري.'
       },
       requiresAuth: false,
       layout: 'default'
     }
   },
+
+  {
+    path: '/checkout',
+    name: 'checkout',
+    component: () => import('@/pages/CheckoutPage.vue'),
+    meta: {
+      title: {
+        en: 'Checkout | Secure Payment',
+        ar: 'الدفع | دفع آمن'
+      },
+      description: {
+        en: 'Complete your purchase securely with multiple payment options. All prices in EGP.',
+        ar: 'أكمل عملية الشراء بأمان مع خيارات دفع متعددة. جميع الأسعار بالجنيه المصري.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
   {
     path: '/contact',
     name: 'contact',
@@ -89,7 +186,56 @@ export const routes: Array<RouteRecordRaw> = [
       layout: 'default'
     }
   },
-  // Admin Routes
+
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import('@/pages/AboutPage.vue'),
+    meta: {
+      title: {
+        en: 'About Us | Luxury Perfume Store',
+        ar: 'من نحن | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Learn about our passion for luxury perfumes and commitment to quality.',
+        ar: 'تعرف على شغفنا بالعطور الفاخرة والتزامنا بالجودة.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+
+
+  {
+    path: '/orders',
+    name: 'orders',
+    component: () => import('@/pages/OrdersPage.vue'),
+    meta: {
+      title: {
+        en: 'My Orders | Luxury Perfume Store',
+        ar: 'طلباتي | متجر العطور الفاخرة'
+      },
+      requiresAuth: true,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/wishlist',
+    name: 'wishlist',
+    component: () => import('@/pages/WishlistPage.vue'),
+    meta: {
+      title: {
+        en: 'My Wishlist | Luxury Perfume Store',
+        ar: 'قائمة رغباتي | متجر العطور الفاخرة'
+      },
+      requiresAuth: true,
+      layout: 'default'
+    }
+  },
+
+  // ========== ADMIN ROUTES (ADMIN ONLY) ==========
+  // Admin Login (No auth required)
   {
     path: '/admin/login',
     name: 'admin-login',
@@ -99,10 +245,13 @@ export const routes: Array<RouteRecordRaw> = [
         en: 'Admin Login | Luxury Perfume Store',
         ar: 'تسجيل دخول المسؤول | متجر العطور الفاخرة'
       },
-      requiresGuest: true,
-      layout: 'admin'
+      requiresAuth: false,
+      requiresAdmin: false,
+      layout: 'admin-login'
     }
   },
+
+  // Admin Dashboard
   {
     path: '/admin',
     name: 'admin-dashboard',
@@ -113,9 +262,17 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'لوحة تحكم المسؤول | متجر العطور الفاخرة'
       },
       requiresAuth: true,
+      requiresAdmin: true,
       layout: 'admin'
     }
   },
+  
+  {
+    path: '/admin/dashboard',
+    redirect: { name: 'admin-dashboard' }
+  },
+  
+  // Products Management
   {
     path: '/admin/products',
     name: 'admin-products',
@@ -126,9 +283,11 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'إدارة المنتجات | لوحة تحكم المسؤول'
       },
       requiresAuth: true,
+      requiresAdmin: true,
       layout: 'admin'
     }
   },
+  
   {
     path: '/admin/products/new',
     name: 'admin-product-new',
@@ -139,9 +298,11 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'إضافة منتج جديد | لوحة تحكم المسؤول'
       },
       requiresAuth: true,
+      requiresAdmin: true,
       layout: 'admin'
     }
   },
+  
   {
     path: '/admin/products/edit/:id',
     name: 'admin-product-edit',
@@ -153,10 +314,114 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'تعديل المنتج | لوحة تحكم المسؤول'
       },
       requiresAuth: true,
+      requiresAdmin: true,
       layout: 'admin'
     }
   },
-  // 404 Catch-all route
+  
+  // Orders Management
+  {
+    path: '/admin/orders',
+    name: 'admin-orders',
+    component: () => import('@/pages/Admin/OrdersPage.vue'),
+    meta: {
+      title: {
+        en: 'Manage Orders | Admin Dashboard',
+        ar: 'إدارة الطلبات | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // Customers Management
+  {
+    path: '/admin/customers',
+    name: 'admin-customers',
+    component: () => import('@/pages/Admin/CustomersPage.vue'),
+    meta: {
+      title: {
+        en: 'Manage Customers | Admin Dashboard',
+        ar: 'إدارة العملاء | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== HOMEPAGE MANAGEMENT ROUTES (SUPER ADMIN ONLY) ==========
+  {
+    path: '/admin/homepage',
+    name: 'admin-homepage',
+    component: () => import('@/components/Admin/HomepageManagement.vue'),
+    meta: {
+      title: {
+        en: 'Homepage Management | Admin Dashboard',
+        ar: 'إدارة الصفحة الرئيسية | لوحة تحكم المسؤول'
+      },
+      description: {
+        en: 'Manage homepage content including hero banner, featured brands, special offers, and settings.',
+        ar: 'إدارة محتوى الصفحة الرئيسية بما في ذلك البانر الرئيسي، العلامات التجارية المميزة، العروض الخاصة، والإعدادات.'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      requiresSuperAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  {
+    path: '/admin/homepage/preview',
+    name: 'admin-homepage-preview',
+    component: () => import('@/pages/Admin/HomepagePreviewPage.vue'),
+    meta: {
+      title: {
+        en: 'Homepage Preview | Admin Dashboard',
+        ar: 'معاينة الصفحة الرئيسية | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      requiresSuperAdmin: true,
+      layout: 'admin-preview'
+    }
+  },
+
+  // ========== SUPER ADMIN ROUTES ==========
+  {
+    path: '/admin/superadmin',
+    name: 'admin-superadmin',
+    component: () => import('@/pages/Admin/SuperAdminPage.vue'),
+    meta: {
+      title: {
+        en: 'Super Admin Panel | Admin Dashboard',
+        ar: 'لوحة المشرف العام | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      requiresSuperAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== PROFILE ROUTES ==========
+  {
+    path: '/admin/profile',
+    name: 'admin-profile',
+    component: () => import('@/pages/Admin/ProfilePage.vue'),
+    meta: {
+      title: {
+        en: 'Admin Profile | Luxury Perfume Store',
+        ar: 'ملف المسؤول | متجر العطور الفاخرة'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== 404 CATCH-ALL ROUTE ==========
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',

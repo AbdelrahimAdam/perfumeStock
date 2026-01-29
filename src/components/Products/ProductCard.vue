@@ -85,10 +85,18 @@ defineEmits<{
   'add-to-cart': []
 }>()
 
+// ✅ Robust computed for new arrival
 const isNewArrival = computed(() => {
+  const c = props.product?.createdAt
+  if (!c) return false
+
+  // Convert Firestore Timestamp or string/Date to JS Date
+  const createdDate = typeof c?.toDate === 'function' ? c.toDate() : new Date(c)
+
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  return props.product.createdAt?.toDate() > oneMonthAgo
+
+  return createdDate > oneMonthAgo
 })
 </script>
 

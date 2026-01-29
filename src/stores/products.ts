@@ -1,14 +1,13 @@
+// src/stores/products.ts
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { 
-  getProducts,
+  getAllProducts,
   getProductBySlug,
   getFeaturedProducts,
   getNewArrivals,
-  createProduct,
-  updateProduct,
-  deleteProduct
-} from '@/firebase/firestore'
+  getProductsByBrand
+} from '@/data/products'
 import type { Product, ProductFormData, Category, FilterOptions } from '@/types'
 import { LUXURY_CATEGORIES } from '@/utils/luxuryConstants'
 import { productNotification } from '@/utils/notifications'
@@ -42,7 +41,7 @@ export const useProductsStore = defineStore('products', () => {
   const byCategory = computed(() => 
     (categoryId: string) => products.value
       .filter(p => p.category === categoryId)
-      .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+      .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
   )
 
   const getCategoryById = computed(() => 
@@ -67,8 +66,16 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      products.value = await getProducts()
+      // Load from local data
+      products.value = getAllProducts()
+      
+      // Also load featured and new arrivals
+      featuredProducts.value = getFeaturedProducts(8)
+      newArrivals.value = getNewArrivals(8)
+      
       lastUpdated.value = new Date()
+      
+      console.log(`✅ Loaded ${products.value.length} products from local data`)
       
       // Cache products
       localStorage.setItem('luxury_products_cache', JSON.stringify({
@@ -77,7 +84,7 @@ export const useProductsStore = defineStore('products', () => {
       }))
       
     } catch (err: any) {
-      error.value = err.message
+      error.value = err.message || 'Failed to load products'
       productNotification.error('Failed to load luxury products')
       
       // Try to load from cache
@@ -86,8 +93,10 @@ export const useProductsStore = defineStore('products', () => {
         try {
           const { products: cachedProducts } = JSON.parse(cached)
           products.value = cachedProducts
+          console.log('📦 Loaded products from cache')
         } catch {
           // Cache is invalid
+          console.error('❌ Cache is invalid')
         }
       }
     } finally {
@@ -98,7 +107,7 @@ export const useProductsStore = defineStore('products', () => {
   const fetchFeaturedProducts = async () => {
     isLoading.value = true
     try {
-      featuredProducts.value = await getFeaturedProducts()
+      featuredProducts.value = getFeaturedProducts(8)
     } catch (err: any) {
       error.value = err.message
     } finally {
@@ -109,7 +118,7 @@ export const useProductsStore = defineStore('products', () => {
   const fetchNewArrivals = async () => {
     isLoading.value = true
     try {
-      newArrivals.value = await getNewArrivals()
+      newArrivals.value = getNewArrivals(8)
     } catch (err: any) {
       error.value = err.message
     } finally {
@@ -136,11 +145,23 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      const product = await getProductBySlug(slug)
+      // First try to find in already loaded products
+      let product = products.value.find(p => p.slug === slug)
+      
+      // If not found, get from data
+      if (!product) {
+        product = getProductBySlug(slug)
+      }
+      
+      if (!product) {
+        throw new Error(`Product with slug "${slug}" not found`)
+      }
+      
       currentProduct.value = product
       return product
     } catch (err: any) {
       error.value = err.message
+      productNotification.error(`Failed to load product: ${err.message}`)
       return null
     } finally {
       isLoading.value = false
@@ -152,14 +173,36 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      const productId = await createProduct(productData)
+      // In local mode, we can't actually add to Firebase
+      // For demo purposes, we'll simulate adding
+      const mockProduct: Product = {
+        id: `local-${Date.now()}`,
+        slug: productData.name.en.toLowerCase().replace(/\s+/g, '-'),
+        name: productData.name,
+        description: productData.description,
+        brand: productData.brand || '',
+        category: productData.category || 'luxury',
+        price: productData.price || 0,
+        size: productData.size || '100ml',
+        concentration: productData.concentration || 'Eau de Parfum',
+        imageUrl: productData.imageUrl || '',
+        isBestSeller: productData.isBestSeller || false,
+        isFeatured: productData.isFeatured || false,
+        rating: 0,
+        reviewCount: 0,
+        notes: productData.notes || { top: [], heart: [], base: [] },
+        inStock: true,
+        stockQuantity: productData.stockQuantity || 0,
+        createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+        updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
+      }
       
-      // Refresh products
-      await fetchProducts()
+      // Add to local state
+      products.value.unshift(mockProduct)
       
       productNotification.added(productData.name.en)
       
-      return productId
+      return mockProduct.id
     } catch (err: any) {
       error.value = err.message
       productNotification.error('Failed to add product')
@@ -174,10 +217,15 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      await updateProduct(id, productData)
-      
-      // Refresh products
-      await fetchProducts()
+      // Find and update product in local state
+      const index = products.value.findIndex(p => p.id === id)
+      if (index !== -1) {
+        products.value[index] = {
+          ...products.value[index],
+          ...productData,
+          updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
+        }
+      }
       
       productNotification.updated(productData.name?.en || 'Product')
     } catch (err: any) {
@@ -192,12 +240,10 @@ export const useProductsStore = defineStore('products', () => {
   const removeProduct = async (id: string) => {
     const product = products.value.find(p => p.id === id)
     
-    const confirmed = await confirmAction({
-      title: 'Delete Product',
-      message: `Are you sure you want to delete ${product?.name.en}?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel'
-    })
+    // For local mode, just remove with confirmation
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${product?.name.en}?`
+    )
 
     if (!confirmed) return
 
@@ -205,8 +251,6 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      await deleteProduct(id)
-      
       // Remove from local state
       products.value = products.value.filter(p => p.id !== id)
       
@@ -229,9 +273,9 @@ export const useProductsStore = defineStore('products', () => {
     
     return products.value.filter(product => 
       product.name.en.toLowerCase().includes(term) ||
-      product.name.ar.includes(searchTerm) ||
+      product.name.ar.toLowerCase().includes(term) ||
       product.description.en.toLowerCase().includes(term) ||
-      product.description.ar.includes(searchTerm) ||
+      product.description.ar.toLowerCase().includes(term) ||
       product.brand.toLowerCase().includes(term) ||
       product.notes.top.some(note => note.toLowerCase().includes(term)) ||
       product.notes.heart.some(note => note.toLowerCase().includes(term)) ||
@@ -269,7 +313,7 @@ export const useProductsStore = defineStore('products', () => {
 
     // Filter by rating
     if (options.minRating !== undefined) {
-      filtered = filtered.filter(p => (p.rating || 0) >= options.minRating!)
+      filtered = filtered.filter(p => p.rating >= options.minRating!)
     }
 
     // Filter by bestseller
@@ -277,12 +321,11 @@ export const useProductsStore = defineStore('products', () => {
       filtered = filtered.filter(p => p.isBestSeller === options.bestseller)
     }
 
-    // Filter by new arrival
+    // Filter by new arrival (products from last 30 days)
     if (options.newArrival !== undefined) {
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+      const oneMonthAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60)
       filtered = filtered.filter(p => 
-        p.createdAt?.toDate() > oneMonthAgo === options.newArrival
+        (p.createdAt.seconds > oneMonthAgo) === options.newArrival
       )
     }
 
@@ -295,13 +338,13 @@ export const useProductsStore = defineStore('products', () => {
         filtered.sort((a, b) => b.price - a.price)
         break
       case 'rating':
-        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        filtered.sort((a, b) => b.rating - a.rating)
         break
       case 'popular':
         filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0))
         break
       case 'newest':
-        filtered.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+        filtered.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
         break
       case 'name-asc':
         filtered.sort((a, b) => a.name.en.localeCompare(b.name.en))
@@ -310,7 +353,7 @@ export const useProductsStore = defineStore('products', () => {
         filtered.sort((a, b) => b.name.en.localeCompare(a.name.en))
         break
       default:
-        filtered.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+        filtered.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
     }
 
     return filtered
@@ -320,8 +363,15 @@ export const useProductsStore = defineStore('products', () => {
     return products.value.find(p => p.id === id)
   }
 
-  const getProductsByBrand = (brand: string): Product[] => {
-    return products.value.filter(p => p.brand === brand)
+  // Use local data function for brand filtering
+  const getProductsByBrand = (brandSlug: string): Product[] => {
+    // First check if we have products loaded
+    if (products.value.length > 0) {
+      return products.value.filter(p => p.brand === brandSlug)
+    }
+    
+    // If not, use the data function
+    return getProductsByBrand(brandSlug)
   }
 
   const getRelatedProducts = (product: Product, limit: number = 4): Product[] => {
@@ -361,6 +411,16 @@ export const useProductsStore = defineStore('products', () => {
       window.dispatchEvent(confirmEvent)
     })
   }
+
+  // Initialize products on store creation
+  const initialize = () => {
+    if (products.value.length === 0) {
+      fetchProducts()
+    }
+  }
+
+  // Auto-initialize
+  initialize()
 
   return {
     // State

@@ -68,7 +68,7 @@
               :key="category.id" 
               :value="category.id"
             >
-              {{ category[currentLanguage] }}
+              {{ getCategoryDisplayName(category) }}
             </option>
           </select>
 
@@ -110,7 +110,9 @@
         <div class="bg-white rounded-xl shadow-luxury overflow-hidden">
           <!-- Loading State -->
           <div v-if="productsStore.isLoading" class="p-12 text-center">
-            <LoadingSpinner size="lg" />
+            <div class="flex justify-center">
+              <div class="luxury-loading-spinner"></div>
+            </div>
             <p class="text-gray-600 mt-4">{{ t('Loading products...') }}</p>
           </div>
 
@@ -132,7 +134,7 @@
           </div>
 
           <!-- Empty State -->
-          <div v-else-if="filteredProducts.length === 0" class="p-12 text-center">
+          <div v-else-if="filteredProducts.length === 0 && !productsStore.isLoading" class="p-12 text-center">
             <div class="w-16 h-16 mx-auto mb-4 text-gray-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" 
@@ -194,14 +196,15 @@
                     <div class="flex items-center">
                       <div class="h-12 w-12 flex-shrink-0">
                         <img 
-                          :src="product.imageUrl" 
-                          :alt="product.name[currentLanguage]"
-                          class="h-12 w-12 rounded-lg object-cover"
+                          :src="getProductImage(product)" 
+                          :alt="getProductName(product)"
+                          class="h-12 w-12 rounded-lg object-cover bg-gray-100"
+                          @error="handleImageError"
                         />
                       </div>
-                      <div class="ml-4" :class="{ 'mr-4': isRTL }">
+                      <div class="ml-4" :class="{ 'mr-4 ml-0': isRTL }">
                         <div class="text-sm font-medium text-gray-900">
-                          {{ product.name[currentLanguage] }}
+                          {{ getProductName(product) }}
                         </div>
                         <div class="text-sm text-gray-500">
                           {{ product.size }} • {{ product.concentration }}
@@ -240,12 +243,12 @@
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ formatDate(product.createdAt.toDate()) }}
+                    {{ formatDateProduct(product.createdAt) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex items-center gap-3">
                       <router-link
-                        :to="`/product/${product.slug}`"
+                        :to="`/product/${product.slug || product.id}`"
                         target="_blank"
                         class="text-gray-600 hover:text-primary-600"
                         :title="t('View on site')"
@@ -285,13 +288,13 @@
           </div>
 
           <!-- Pagination -->
-          <div v-if="filteredProducts.length > 0" class="px-6 py-4 border-t border-gray-200">
+          <div v-if="filteredProducts.length > 0 && !productsStore.isLoading" class="px-6 py-4 border-t border-gray-200">
             <div class="flex items-center justify-between">
               <div class="text-sm text-gray-700">
                 {{ t('Showing') }} 
-                <span class="font-medium">{{ filteredProducts.length }}</span>
+                <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, allFilteredProducts.length) }}</span>
                 {{ t('of') }}
-                <span class="font-medium">{{ products.length }}</span>
+                <span class="font-medium">{{ allFilteredProducts.length }}</span>
                 {{ t('products') }}
               </div>
               <div class="flex items-center gap-2">
@@ -334,7 +337,7 @@
         </h3>
         <p class="text-gray-600 mb-6">
           {{ t('Are you sure you want to delete') }} 
-          "<span class="font-medium">{{ productToDelete?.name[currentLanguage] }}</span>"?
+          "<span class="font-medium">{{ getProductName(productToDelete) }}</span>"?
           {{ t('This action cannot be undone.') }}
         </p>
         <div class="flex justify-end gap-3">
@@ -373,14 +376,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
 import AdminSidebar from '@/components/Admin/AdminSidebar.vue'
-import LoadingSpinner from '@/components/UI/LoadingSpinner.vue'
-import type { Product } from '@/types'
+import type { Product, Category } from '@/types'
 
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
 
-const { currentLanguage, isRTL, t, formatDate } = languageStore
-const { products, categories, getCategoryById, removeProduct } = productsStore
+const { currentLanguage, isRTL, t } = languageStore
+const { products, categories } = productsStore
 
 // Filters & Search
 const searchQuery = ref('')
@@ -404,16 +406,19 @@ const hasActiveFilters = computed(() => {
   return filters.value.category || filters.value.status || searchQuery.value
 })
 
-const filteredProducts = computed(() => {
+// Get all filtered products (without pagination)
+const allFilteredProducts = computed(() => {
   let filtered = [...products]
 
   // Apply search
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(product =>
-      product.name[currentLanguage.value].toLowerCase().includes(query) ||
-      product.description[currentLanguage.value].toLowerCase().includes(query) ||
-      product.category.toLowerCase().includes(query)
+      getProductName(product).toLowerCase().includes(query) ||
+      (product.description && 
+       typeof product.description === 'object' && 
+       product.description[currentLanguage.value]?.toLowerCase().includes(query)) ||
+      product.category?.toLowerCase().includes(query)
     )
   }
 
@@ -428,13 +433,27 @@ const filteredProducts = computed(() => {
   } else if (filters.value.status === 'new') {
     const oneMonthAgo = new Date()
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-    filtered = filtered.filter(product => product.createdAt?.toDate() > oneMonthAgo)
+    filtered = filtered.filter(product => {
+      if (!product.createdAt) return false
+      const createdAt = product.createdAt instanceof Date 
+        ? product.createdAt 
+        : product.createdAt.toDate?.() || new Date(product.createdAt)
+      return createdAt > oneMonthAgo
+    })
   }
 
   // Apply sorting
   switch (filters.value.sort) {
     case 'oldest':
-      filtered.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds)
+      filtered.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date 
+          ? a.createdAt 
+          : a.createdAt?.toDate?.() || new Date(a.createdAt || 0)
+        const dateB = b.createdAt instanceof Date 
+          ? b.createdAt 
+          : b.createdAt?.toDate?.() || new Date(b.createdAt || 0)
+        return dateA.getTime() - dateB.getTime()
+      })
       break
     case 'price-high':
       filtered.sort((a, b) => b.price - a.price)
@@ -444,34 +463,120 @@ const filteredProducts = computed(() => {
       break
     case 'name':
       filtered.sort((a, b) => 
-        a.name[currentLanguage.value].localeCompare(b.name[currentLanguage.value])
+        getProductName(a).localeCompare(getProductName(b))
       )
       break
     default: // newest
-      filtered.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+      filtered.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date 
+          ? a.createdAt 
+          : a.createdAt?.toDate?.() || new Date(a.createdAt || 0)
+        const dateB = b.createdAt instanceof Date 
+          ? b.createdAt 
+          : b.createdAt?.toDate?.() || new Date(b.createdAt || 0)
+        return dateB.getTime() - dateA.getTime()
+      })
   }
 
-  // Apply pagination
+  return filtered
+})
+
+// Get paginated products
+const filteredProducts = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   const end = start + itemsPerPage
-  return filtered.slice(start, end)
+  return allFilteredProducts.value.slice(start, end)
 })
 
 const totalPages = computed(() => {
-  return Math.ceil(products.length / itemsPerPage)
+  return Math.ceil(allFilteredProducts.value.length / itemsPerPage)
 })
 
-// Methods
+// Helper methods
+const getCategoryDisplayName = (category: Category) => {
+  if (!category) return ''
+  if (typeof category === 'string') return category
+  return category[currentLanguage.value] || category.name || category.id || ''
+}
+
 const getCategoryName = (categoryId: string) => {
-  const category = getCategoryById.value(categoryId)
-  return category ? category[currentLanguage.value] : categoryId
+  if (!categoryId) return ''
+  
+  // Find category in categories array
+  const category = categories.value?.find(cat => cat.id === categoryId)
+  if (category) {
+    return getCategoryDisplayName(category)
+  }
+  
+  // If not found, try to get from productsStore.getCategoryById if it exists
+  if (productsStore.getCategoryById && typeof productsStore.getCategoryById === 'function') {
+    const found = productsStore.getCategoryById(categoryId)
+    if (found) {
+      return getCategoryDisplayName(found)
+    }
+  }
+  
+  return categoryId
+}
+
+const getProductName = (product: Product | null) => {
+  if (!product) return ''
+  if (typeof product.name === 'string') return product.name
+  return product.name?.[currentLanguage.value] || product.name?.en || 'Unnamed Product'
+}
+
+const getProductImage = (product: Product) => {
+  if (!product) return ''
+  if (typeof product.imageUrl === 'string') return product.imageUrl
+  return product.imageUrl || '/images/placeholder-product.jpg'
+}
+
+const formatDateProduct = (date: any) => {
+  if (!date) return ''
+  
+  try {
+    let dateObj: Date
+    if (date instanceof Date) {
+      dateObj = date
+    } else if (date?.toDate && typeof date.toDate === 'function') {
+      dateObj = date.toDate()
+    } else if (typeof date === 'string' || typeof date === 'number') {
+      dateObj = new Date(date)
+    } else {
+      return ''
+    }
+    
+    return dateObj.toLocaleDateString(currentLanguage.value === 'ar' ? 'ar-EG' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch {
+    return ''
+  }
 }
 
 const isNewArrival = (product: Product) => {
   if (!product.createdAt) return false
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  return product.createdAt.toDate() > oneMonthAgo
+  
+  try {
+    let createdAt: Date
+    if (product.createdAt instanceof Date) {
+      createdAt = product.createdAt
+    } else if (product.createdAt?.toDate && typeof product.createdAt.toDate === 'function') {
+      createdAt = product.createdAt.toDate()
+    } else if (typeof product.createdAt === 'string' || typeof product.createdAt === 'number') {
+      createdAt = new Date(product.createdAt)
+    } else {
+      return false
+    }
+    
+    return createdAt > oneMonthAgo
+  } catch {
+    return false
+  }
 }
 
 const clearFilters = () => {
@@ -496,6 +601,12 @@ const nextPage = () => {
   }
 }
 
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/placeholder-product.jpg'
+  img.onerror = null // Prevent infinite loop
+}
+
 const confirmDelete = (product: Product) => {
   productToDelete.value = product
   showDeleteModal.value = true
@@ -506,7 +617,7 @@ const deleteProduct = async () => {
 
   deleting.value = true
   try {
-    await removeProduct(productToDelete.value.id)
+    await productsStore.removeProduct(productToDelete.value.id)
     showDeleteModal.value = false
     productToDelete.value = null
   } catch (error) {
@@ -523,8 +634,66 @@ watch([searchQuery, filters], () => {
 
 // Initialize
 onMounted(async () => {
-  if (!products.length) {
-    await productsStore.fetchProducts()
+  try {
+    if (products.length === 0) {
+      await productsStore.fetchProducts()
+    }
+  } catch (error) {
+    console.error('Error loading products:', error)
   }
 })
+
+// Add loading spinner styles
 </script>
+
+<style scoped>
+.luxury-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 2px solid rgba(212, 175, 55, 0.2);
+  border-top: 2px solid #d4af37;
+  border-radius: 50%;
+  animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ensure table cells have proper spacing */
+table {
+  border-spacing: 0;
+}
+
+th, td {
+  padding: 0.75rem 1.5rem;
+}
+
+/* Improve image display */
+img {
+  object-fit: cover;
+  background-color: #f3f4f6;
+}
+
+/* Better hover states */
+tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .lg\:ml-64 {
+    margin-left: 0;
+  }
+  
+  th, td {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .px-8 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+</style>

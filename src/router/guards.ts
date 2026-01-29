@@ -9,18 +9,41 @@ export const authGuard = async (
 ) => {
   const authStore = useAuthStore()
 
+  console.log('🛡️ Auth guard triggered for:', to.path)
+  console.log('🔍 Current auth state:', {
+    isAuthenticated: authStore.isAuthenticated,
+    isAdmin: authStore.isAdmin,
+    isSuperAdmin: authStore.isSuperAdmin,
+    user: authStore.user
+  })
+
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
+    console.log('🔐 Not authenticated, checking auth...')
     await authStore.checkAuth()
   }
 
-  if (authStore.isAuthenticated && authStore.isAdmin) {
+  const userHasAccess = authStore.isAuthenticated && authStore.isAdmin
+  
+  console.log('✅ Access check result:', {
+    userHasAccess,
+    isAuthenticated: authStore.isAuthenticated,
+    isAdmin: authStore.isAdmin,
+    isSuperAdmin: authStore.isSuperAdmin
+  })
+
+  if (userHasAccess) {
+    console.log('🎉 Access granted, proceeding to:', to.path)
     next()
   } else {
+    console.log('🚫 Access denied, redirecting to login')
     // Redirect to login with return URL
     next({
       name: 'admin-login',
-      query: { redirect: to.fullPath }
+      query: { 
+        redirect: to.fullPath,
+        error: 'access_denied'
+      }
     })
   }
 }
@@ -33,16 +56,80 @@ export const guestGuard = async (
 ) => {
   const authStore = useAuthStore()
 
+  console.log('🛡️ Guest guard triggered for:', to.path)
+  
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
     await authStore.checkAuth()
   }
 
   if (authStore.isAuthenticated && authStore.isAdmin) {
+    console.log('✅ Already logged in as admin, redirecting to dashboard')
     // Already logged in, redirect to admin dashboard
     next({ name: 'admin-dashboard' })
   } else {
+    console.log('👤 Not logged in or not admin, allowing access to login')
     next()
+  }
+}
+
+// Admin-only guard (requires admin role)
+export const adminGuard = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext
+) => {
+  const authStore = useAuthStore()
+
+  console.log('🛡️ Admin guard triggered for:', to.path)
+  
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    await authStore.checkAuth()
+  }
+
+  if (authStore.isAuthenticated && authStore.isAdmin) {
+    console.log('✅ Admin access granted')
+    next()
+  } else {
+    console.log('🚫 Admin access denied')
+    next({
+      name: 'admin-login',
+      query: { 
+        redirect: to.fullPath,
+        error: 'admin_required'
+      }
+    })
+  }
+}
+
+// Super-admin-only guard (requires super-admin role)
+export const superAdminGuard = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext
+) => {
+  const authStore = useAuthStore()
+
+  console.log('🛡️ SuperAdmin guard triggered for:', to.path)
+  
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    await authStore.checkAuth()
+  }
+
+  if (authStore.isAuthenticated && authStore.isSuperAdmin) {
+    console.log('✅ SuperAdmin access granted')
+    next()
+  } else {
+    console.log('🚫 SuperAdmin access denied')
+    next({
+      name: 'admin-login',
+      query: { 
+        redirect: to.fullPath,
+        error: 'superadmin_required'
+      }
+    })
   }
 }
 

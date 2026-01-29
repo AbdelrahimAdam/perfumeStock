@@ -45,7 +45,7 @@
               : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
           ]"
         >
-          {{ range.label }}
+          {{ range.label[currentLanguage] }}
         </button>
       </div>
     </div>
@@ -113,7 +113,7 @@ import { ref, computed } from 'vue'
 import type { FilterOptions } from '@/types'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
-import { PRICE_RANGES, SORT_OPTIONS } from '@/utils/constants'
+import { LUXURY_PRICE_RANGES, LUXURY_SORT_OPTIONS, LUXURY_CONCENTRATIONS } from '@/utils/luxuryConstants'
 
 interface Props {
   filters: FilterOptions
@@ -130,19 +130,14 @@ const productsStore = useProductsStore()
 const { currentLanguage, isRTL } = languageStore
 const { categories, products } = productsStore
 
-// Concentrations
-const concentrations = [
-  { value: 'EDT', label: { en: 'Eau de Toilette', ar: 'أو دي تواليت' } },
-  { value: 'EDP', label: { en: 'Eau de Parfum', ar: 'أو دي بارفيوم' } },
-  { value: 'Parfum', label: { en: 'Parfum', ar: 'بارفيوم' } },
-  { value: 'Extrait', label: { en: 'Extrait de Parfum', ar: 'إكسترا دي بارفيوم' } }
-]
+// Use concentrations from luxuryConstants
+const concentrations = LUXURY_CONCENTRATIONS
 
-// Price ranges
-const priceRanges = PRICE_RANGES
+// Price ranges from luxuryConstants
+const priceRanges = LUXURY_PRICE_RANGES
 
-// Sort options
-const sortOptions = SORT_OPTIONS
+// Sort options from luxuryConstants
+const sortOptions = LUXURY_SORT_OPTIONS
 
 // Category counts
 const categoryCounts = computed(() => {
@@ -174,7 +169,7 @@ const updatePriceRange = (range: typeof priceRanges[0]) => {
     delete newFilters.maxPrice
   } else {
     newFilters.minPrice = range.min
-    newFilters.maxPrice = range.max === Infinity ? undefined : range.max
+    newFilters.maxPrice = range.max === 1000 ? undefined : range.max
   }
   
   emit('update:filters', newFilters)
@@ -188,7 +183,7 @@ const isPriceRangeSelected = (range: typeof priceRanges[0]) => {
   return (
     props.filters.minPrice === range.min &&
     (props.filters.maxPrice === range.max || 
-     (range.max === Infinity && props.filters.maxPrice === undefined))
+     (range.max === 1000 && props.filters.maxPrice === undefined))
   )
 }
 </script>

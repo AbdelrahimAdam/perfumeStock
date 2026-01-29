@@ -1,4 +1,64 @@
-node_modules
-dist
+# ===============================
+# Dependencies
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===============================
+# Build output
+# ===============================
+dist/
+dist-ssr/
+.vite/
+
+# ===============================
+# Environment variables (SECRETS)
+# ===============================
 .env
 .env.*
+serviceAccountKey.json
+superadmin-*.json
+
+# ===============================
+# Admin / Firebase scripts (PRIVATE)
+# ===============================
+create-superadmin.js
+
+# ===============================
+# Firebase local files
+# ===============================
+.firebase/
+firebase-debug.log*
+
+# ===============================
+# Uploaded / generated assets
+# ===============================
+public/images/products/
+
+# ===============================
+# Editor / OS files
+# ===============================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Logs
+# ===============================
+logs/
+*.log
+
+# ===============================
+# Temporary / misc
+# ===============================
+move
+*.tmp
+*.swp
+
+# ===============================
+# TypeScript
+# ===============================
+*.tsbuildinfo
