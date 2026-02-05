@@ -1,96 +1,97 @@
 import type { ExchangeRate } from '@/types/currency'
+import { db } from '@/firebase/config'
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
 
-const API_BASE_URL = import.meta.env.VITE_CURRENCY_API_URL || 'https://api.exchangerate-api.com/v4'
+const API_BASE_URL =
+  import.meta.env.VITE_CURRENCY_API_URL || 'https://api.exchangerate-api.com/v4'
 const API_KEY = import.meta.env.VITE_CURRENCY_API_KEY
 
+const BASE_CURRENCY = 'EGP'
+const CACHE_DOC_ID = 'egp-latest'
+const CACHE_DURATION = 60 * 60 * 1000 // 1 hour
+
+/**
+ * Fetch exchange rates (EGP base) with Firestore caching
+ */
 export const getExchangeRates = async (): Promise<ExchangeRate[]> => {
-  try {
-    // Production API call
-    const response = await fetch(`${API_BASE_URL}/latest/USD`, {
-      headers: API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {}
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Currency API error: ${response.status}`)
+  const cacheRef = doc(db, 'exchangeRates', CACHE_DOC_ID)
+
+  // 1️⃣ Try cache
+  const cachedSnap = await getDoc(cacheRef)
+
+  if (cachedSnap.exists()) {
+    const data = cachedSnap.data()
+
+    if (
+      data.timestamp instanceof Timestamp &&
+      Date.now() - data.timestamp.toMillis() < CACHE_DURATION
+    ) {
+      return data.rates as ExchangeRate[]
     }
-    
-    const data = await response.json()
-    
-    // Convert API response to our format
-    const rates: ExchangeRate[] = Object.entries(data.rates).map(([to, rate]) => ({
-      from: data.base,
+  }
+
+  // 2️⃣ Fetch real API
+  const response = await fetch(`${API_BASE_URL}/latest/${BASE_CURRENCY}`, {
+    headers: API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}
+  })
+
+  if (!response.ok) {
+    throw new Error(`Currency API error: ${response.status}`)
+  }
+
+  const apiData = await response.json()
+
+  const rates: ExchangeRate[] = Object.entries(apiData.rates).map(
+    ([to, rate]) => ({
+      from: BASE_CURRENCY,
       to,
       rate: rate as number,
-      timestamp: new Date(data.date)
-    }))
-    
-    return rates
-    
-  } catch (error) {
-    console.error('Failed to fetch exchange rates:', error)
-    
-    // Fallback to mock data
-    return getMockExchangeRates()
-  }
+      timestamp: new Date(apiData.date)
+    })
+  )
+
+  // 3️⃣ Save cache
+  await setDoc(cacheRef, {
+    base: BASE_CURRENCY,
+    rates,
+    timestamp: Timestamp.now()
+  })
+
+  return rates
 }
 
-export const getCurrencyRates = async (baseCurrency: string = 'USD'): Promise<Record<string, number>> => {
+/**
+ * Get rates map (EGP only)
+ */
+export const getCurrencyRates = async (): Promise<Record<string, number>> => {
   const rates = await getExchangeRates()
-  const result: Record<string, number> = { [baseCurrency]: 1 }
-  
+
+  const result: Record<string, number> = {
+    [BASE_CURRENCY]: 1
+  }
+
   rates.forEach(rate => {
-    if (rate.from === baseCurrency) {
-      result[rate.to] = rate.rate
-    }
+    result[rate.to] = rate.rate
   })
-  
+
   return result
 }
 
-export const convertCurrency = async (amount: number, from: string, to: string): Promise<number> => {
-  const rates = await getCurrencyRates(from)
-  const rate = rates[to] || 1
-  return amount * rate
-}
+/**
+ * Convert FROM EGP → TO currency
+ */
+export const convertCurrency = async (
+  amount: number,
+  to: string
+): Promise<number> => {
+  if (to === BASE_CURRENCY) return amount
 
-// Mock data for development
-const getMockExchangeRates = (): ExchangeRate[] => {
-  const timestamp = new Date()
-  
-  return [
-    { from: 'USD', to: 'EUR', rate: 0.92, timestamp },
-    { from: 'USD', to: 'GBP', rate: 0.79, timestamp },
-    { from: 'USD', to: 'AED', rate: 3.67, timestamp },
-    { from: 'USD', to: 'SAR', rate: 3.75, timestamp },
-    { from: 'USD', to: 'QAR', rate: 3.64, timestamp },
-    { from: 'USD', to: 'KWD', rate: 0.31, timestamp },
-    { from: 'USD', to: 'EGP', rate: 30.9, timestamp },
-    { from: 'USD', to: 'JPY', rate: 148.5, timestamp },
-    { from: 'USD', to: 'CNY', rate: 7.18, timestamp },
-    { from: 'USD', to: 'CHF', rate: 0.88, timestamp },
-    { from: 'USD', to: 'CAD', rate: 1.36, timestamp }
-  ]
-}
+  const rates = await getCurrencyRates()
+  const rate = rates[to]
 
-// Cache mechanism
-const CACHE_DURATION = 60 * 60 * 1000 // 1 hour
-
-let cachedRates: ExchangeRate[] | null = null
-let cacheTimestamp: number | null = null
-
-export const getCachedExchangeRates = (): ExchangeRate[] | null => {
-  if (!cachedRates || !cacheTimestamp) return null
-  
-  if (Date.now() - cacheTimestamp > CACHE_DURATION) {
-    cachedRates = null
-    cacheTimestamp = null
-    return null
+  if (!rate) {
+    throw new Error(`Unsupported currency: ${to}`)
   }
-  
-  return cachedRates
-}
 
-export const setCachedExchangeRates = (rates: ExchangeRate[]) => {
-  cachedRates = rates
-  cacheTimestamp = Date.now()
+  return amount * rate
 }

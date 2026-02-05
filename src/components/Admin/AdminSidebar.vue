@@ -19,78 +19,124 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="p-4 space-y-1">
-      <router-link
-        to="/admin"
-        class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
-        :class="[
-          $route.path === '/admin' || $route.path === '/admin/dashboard'
-            ? 'bg-primary-500 text-white'
-            : 'text-gray-300 hover:bg-gray-800',
-          { 'space-x-reverse': isRTL }
-        ]"
-        @click="handleNavigation"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
-        <span>{{ t('Dashboard') }}</span>
-      </router-link>
+    <nav class="p-4 space-y-1 overflow-y-auto" style="height: calc(100vh - 180px)">
+      <!-- Main Navigation -->
+      <div class="space-y-1">
+        <router-link
+          to="/admin"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path === '/admin' || $route.path === '/admin/dashboard'
+              ? 'bg-primary-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span>{{ t('Dashboard') }}</span>
+        </router-link>
 
-      <router-link
-        to="/admin/products"
-        class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
-        :class="[
-          $route.path.startsWith('/admin/products')
-            ? 'bg-primary-500 text-white'
-            : 'text-gray-300 hover:bg-gray-800',
-          { 'space-x-reverse': isRTL }
-        ]"
-        @click="handleNavigation"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-        </svg>
-        <span>{{ t('Products') }}</span>
-      </router-link>
+        <router-link
+          to="/admin/products"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/products')
+              ? 'bg-primary-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+          <span>{{ t('Products') }}</span>
+        </router-link>
 
-      <router-link
-        to="/admin/orders"
-        class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
-        :class="[
-          $route.path.startsWith('/admin/orders')
-            ? 'bg-primary-500 text-white'
-            : 'text-gray-300 hover:bg-gray-800',
-          { 'space-x-reverse': isRTL }
-        ]"
-        @click="handleNavigation"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>{{ t('Orders') }}</span>
-      </router-link>
+        <router-link
+          to="/admin/orders"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/orders')
+              ? 'bg-primary-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>{{ t('Orders') }}</span>
+        </router-link>
 
-      <router-link
-        to="/admin/customers"
-        class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
-        :class="[
-          $route.path.startsWith('/admin/customers')
-            ? 'bg-primary-500 text-white'
-            : 'text-gray-300 hover:bg-gray-800',
-          { 'space-x-reverse': isRTL }
-        ]"
-        @click="handleNavigation"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-        </svg>
-        <span>{{ t('Customers') }}</span>
-      </router-link>
+        <router-link
+          to="/admin/customers"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/customers')
+              ? 'bg-primary-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span>{{ t('Customers') }}</span>
+        </router-link>
+      </div>
+
+      <!-- Store Management (All Admins) -->
+      <div class="pt-4 border-t border-gray-800">
+        <p class="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">
+          {{ t('Store Management') }}
+        </p>
+        
+        <router-link
+          to="/admin/brands"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/brands')
+              ? 'bg-green-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <span>{{ t('Brands') }}</span>
+        </router-link>
+
+        <router-link
+          to="/admin/profile"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/profile')
+              ? 'bg-blue-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          <span>{{ t('Profile') }}</span>
+        </router-link>
+      </div>
 
       <!-- Super Admin Features -->
       <div v-if="isSuperAdmin" class="pt-4 border-t border-gray-800">
@@ -98,7 +144,6 @@
           {{ t('Super Admin') }}
         </p>
         
-        <!-- Homepage Management Link -->
         <router-link
           to="/admin/homepage"
           class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
@@ -119,7 +164,6 @@
           <span>{{ t('Homepage Management') }}</span>
         </router-link>
 
-        <!-- Super Admin Panel Link -->
         <router-link
           to="/admin/superadmin"
           class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
@@ -137,6 +181,91 @@
           </svg>
           <span>{{ t('Super Admin Panel') }}</span>
         </router-link>
+
+        <router-link
+          to="/admin/settings"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/settings')
+              ? 'bg-indigo-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>{{ t('Settings') }}</span>
+        </router-link>
+
+        <router-link
+          to="/admin/admins"
+          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
+          :class="[
+            $route.path.startsWith('/admin/admins')
+              ? 'bg-red-500 text-white'
+              : 'text-gray-300 hover:bg-gray-800',
+            { 'space-x-reverse': isRTL }
+          ]"
+          @click="handleNavigation"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m0 0V9a2 2 0 012-2h2a2 2 0 012 2v6"/>
+          </svg>
+          <span>{{ t('Manage Admins') }}</span>
+        </router-link>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="pt-4 border-t border-gray-800">
+        <p class="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">
+          {{ t('Quick Actions') }}
+        </p>
+        
+        <button
+          @click="goToAddProduct"
+          class="flex items-center space-x-3 w-full px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800"
+          :class="{ 'space-x-reverse': isRTL }"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          <span>{{ t('Add Product') }}</span>
+        </button>
+
+        <button
+          @click="goToAddBrand"
+          class="flex items-center space-x-3 w-full px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800"
+          :class="{ 'space-x-reverse': isRTL }"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <span>{{ t('Add Brand') }}</span>
+        </button>
+
+        <button
+          v-if="isSuperAdmin"
+          @click="goToAddOffer"
+          class="flex items-center space-x-3 w-full px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800"
+          :class="{ 'space-x-reverse': isRTL }"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 12l2 2 4-4"/>
+          </svg>
+          <span>{{ t('Add Offer') }}</span>
+        </button>
       </div>
     </nav>
 
@@ -169,11 +298,12 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const languageStore = useLanguageStore()
 const authStore = useAuthStore()
 
@@ -221,6 +351,21 @@ const handleLogout = async () => {
   }
 }
 
+const goToAddProduct = () => {
+  router.push('/admin/products/add')
+  handleNavigation()
+}
+
+const goToAddBrand = () => {
+  router.push('/admin/brands/add')
+  handleNavigation()
+}
+
+const goToAddOffer = () => {
+  router.push('/admin/homepage/offers')
+  handleNavigation()
+}
+
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 1024
   if (isMobile.value) {
@@ -266,6 +411,22 @@ onUnmounted(() => {
   background-color: #eab308;
 }
 
+.bg-green-500 {
+  background-color: #10b981;
+}
+
+.bg-blue-500 {
+  background-color: #3b82f6;
+}
+
+.bg-indigo-500 {
+  background-color: #6366f1;
+}
+
+.bg-red-500 {
+  background-color: #ef4444;
+}
+
 /* Mobile sidebar overlay */
 @media (max-width: 1023px) {
   aside {
@@ -285,11 +446,6 @@ onUnmounted(() => {
 }
 
 /* Custom scrollbar for navigation */
-nav {
-  height: calc(100vh - 200px);
-  overflow-y: auto;
-}
-
 nav::-webkit-scrollbar {
   width: 4px;
 }
@@ -316,5 +472,51 @@ nav::-webkit-scrollbar-thumb:hover {
 [dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
   margin-right: 0;
   margin-left: 0.75rem;
+}
+
+/* Better spacing for sections */
+.space-y-1 > * + * {
+  margin-top: 0.25rem;
+}
+
+.pt-4 {
+  padding-top: 1rem;
+}
+
+/* Ensure text doesn't overflow */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quick action buttons */
+button {
+  cursor: pointer;
+}
+
+button:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  aside {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+/* Dark mode touch improvements */
+@media (hover: hover) and (pointer: fine) {
+  .hover\:bg-gray-800:hover {
+    background-color: rgba(31, 41, 55, 0.8);
+  }
 }
 </style>

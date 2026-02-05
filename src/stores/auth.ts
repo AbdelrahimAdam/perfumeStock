@@ -2,38 +2,35 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AdminUser } from '@/types'
 import { 
-  loginAdmin, 
-  logoutAdmin, 
-  getCurrentAdmin 
-} from '@/firebase/auth'
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  type User as FirebaseUser
+} from 'firebase/auth'
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc,
+  serverTimestamp 
+} from 'firebase/firestore'
+import { auth, db } from '@/firebase/config'
 import { authNotification } from '@/utils/notifications'
 
 export const useAuthStore = defineStore('auth', () => {
-  // Admin state
+  // Super-admin state
   const user = ref<AdminUser | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const lastLogin = ref<Date | null>(null)
   const sessionExpiry = ref<Date | null>(null)
 
-  // Only current admin is fetched on Spark plan
-  const adminUsers = ref<AdminUser[]>([])
-  const adminUsersLoading = ref(false)
-
-  // Getters - UPDATED ROLE CHECKS
+  // Getters
   const isAuthenticated = computed(() => !!user.value)
-  const isAdmin = computed(() => {
-    if (!user.value) return false
-    const role = user.value.role?.toLowerCase()
-    return role === 'admin' || role === 'super-admin'
-  })
-  const isSuperAdmin = computed(() => {
-    if (!user.value) return false
-    const role = user.value.role?.toLowerCase()
-    return role === 'super-admin'
-  })
+  const isSuperAdmin = computed(() => user.value?.role?.toLowerCase() === 'super-admin')
   const userInitials = computed(() => {
-    if (!user.value) return ''
+    if (!user.value?.displayName) return ''
     return user.value.displayName
       .split(' ')
       .map(n => n[0])
@@ -42,55 +39,66 @@ export const useAuthStore = defineStore('auth', () => {
   })
   const sessionTimeLeft = computed(() => {
     if (!sessionExpiry.value) return 0
-    const now = new Date()
-    return Math.max(0, sessionExpiry.value.getTime() - now.getTime())
-  })
-  const userPermissions = computed(() => {
-    if (!user.value) return []
-    return user.value.permissions || []
-  })
-  const hasAllPermissions = computed(() => {
-    return userPermissions.value.includes('all')
+    return Math.max(0, sessionExpiry.value.getTime() - new Date().getTime())
   })
 
-  // Actions
-  const login = async (email: string, password: string) => {
+  // Helper: fetch super-admin from 'admins' collection
+  const getSuperAdminFromFirestore = async (firebaseUser: FirebaseUser): Promise<AdminUser | null> => {
+    try {
+      const adminDoc = await getDoc(doc(db, 'admins', firebaseUser.uid))
+      if (!adminDoc.exists()) return null
+      const data = adminDoc.data()
+      return {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        displayName: data.displayName || firebaseUser.displayName || '',
+        role: 'super-admin',
+        photoURL: data.photoURL || firebaseUser.photoURL || null,
+        isActive: data.isActive !== false,
+        permissions: data.permissions || ['all'],
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        lastLogin: new Date()
+      }
+    } catch (err) {
+      console.error('❌ Error getting super-admin from Firestore:', err)
+      return null
+    }
+  }
+
+  // Login action (only super-admin)
+  const login = async (email: string, password: string): Promise<AdminUser> => {
     isLoading.value = true
     error.value = null
-
     try {
-      user.value = await loginAdmin(email, password)
-      
-      console.log('✅ Login successful:', {
-        email: user.value.email,
-        role: user.value.role,
-        displayName: user.value.displayName,
-        isAdmin: isAdmin.value,
-        isSuperAdmin: isSuperAdmin.value
-      })
-      
+      console.log('🔐 Attempting super-admin login:', email)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const firebaseUser = userCredential.user
+      const adminData = await getSuperAdminFromFirestore(firebaseUser)
+
+      if (!adminData) {
+        throw new Error('Access denied: not a super-admin')
+      }
+
+      // Update lastLogin in Firestore
+      await updateDoc(doc(db, 'admins', firebaseUser.uid), { lastLogin: serverTimestamp() })
+
+      user.value = adminData
       lastLogin.value = new Date()
       sessionExpiry.value = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h session
 
+      localStorage.setItem('luxury_admin_session', JSON.stringify({
+        user: user.value,
+        expiry: sessionExpiry.value.getTime(),
+        timestamp: Date.now()
+      }))
+
       authNotification.loggedIn(user.value.displayName)
-
-      // Store session locally
-      localStorage.setItem(
-        'luxury_admin_session',
-        JSON.stringify({ 
-          user: user.value, 
-          expiry: sessionExpiry.value.getTime(),
-          timestamp: Date.now()
-        })
-      )
-
-      // Fetch only current admin
-      await fetchAdminUsers()
-
-      return user.value // Return user data for redirection
-
+      console.log('✅ Super-admin authenticated:', user.value.email)
+      return user.value
     } catch (err: any) {
-      error.value = err.message || 'Invalid email or password'
+      console.error('❌ Super-admin login error:', err)
+      error.value = err.message || 'Invalid credentials'
       authNotification.error(error.value)
       throw err
     } finally {
@@ -98,14 +106,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Logout action
   const logout = async () => {
     isLoading.value = true
     error.value = null
     try {
-      await logoutAdmin()
+      await signOut(auth)
       user.value = null
       sessionExpiry.value = null
-      adminUsers.value = []
       localStorage.removeItem('luxury_admin_session')
       authNotification.loggedOut()
     } catch (err: any) {
@@ -116,105 +124,113 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Check session/auth state
   const checkAuth = async () => {
     isLoading.value = true
     try {
-      // Load session from localStorage
-      const savedSession = localStorage.getItem('luxury_admin_session')
-      if (savedSession) {
-        const { user: savedUser, expiry } = JSON.parse(savedSession)
+      const saved = localStorage.getItem('luxury_admin_session')
+      if (saved) {
+        const { user: savedUser, expiry } = JSON.parse(saved)
         if (new Date(expiry) > new Date()) {
           user.value = savedUser
           sessionExpiry.value = new Date(expiry)
-          await fetchAdminUsers()
           return
+        } else {
+          localStorage.removeItem('luxury_admin_session')
         }
       }
 
-      // Fallback: get current admin from Firebase
-      user.value = await getCurrentAdmin()
-      if (user.value) {
-        console.log('✅ Session restored from Firebase:', {
-          email: user.value.email,
-          role: user.value.role,
-          isSuperAdmin: isSuperAdmin.value
+      return new Promise<void>((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            const adminData = await getSuperAdminFromFirestore(firebaseUser)
+            if (adminData) {
+              user.value = adminData
+              sessionExpiry.value = new Date(Date.now() + 24 * 60 * 60 * 1000)
+              localStorage.setItem('luxury_admin_session', JSON.stringify({
+                user: user.value,
+                expiry: sessionExpiry.value.getTime(),
+                timestamp: Date.now()
+              }))
+            } else {
+              user.value = null
+              localStorage.removeItem('luxury_admin_session')
+            }
+          } else {
+            user.value = null
+            localStorage.removeItem('luxury_admin_session')
+          }
+          unsubscribe()
+          resolve()
         })
-        
-        sessionExpiry.value = new Date(Date.now() + 24 * 60 * 60 * 1000)
-        localStorage.setItem(
-          'luxury_admin_session',
-          JSON.stringify({ 
-            user: user.value, 
-            expiry: sessionExpiry.value.getTime(),
-            timestamp: Date.now()
-          })
-        )
-        await fetchAdminUsers()
-      }
+      })
 
-    } catch (error) {
-      console.error('❌ Auth check failed:', error)
-      localStorage.removeItem('luxury_admin_session')
+    } catch (err) {
+      console.error('❌ Super-admin auth check failed:', err)
       user.value = null
+      localStorage.removeItem('luxury_admin_session')
     } finally {
       isLoading.value = false
     }
   }
 
-  // Fetch only the currently logged-in admin
-  const fetchAdminUsers = async () => {
-    if (!user.value) return
-    adminUsersLoading.value = true
+  // Create initial super-admin
+  const createSuperAdmin = async (email: string, password: string, displayName: string) => {
+    isLoading.value = true
     try {
-      const currentAdmin = await getCurrentAdmin()
-      if (currentAdmin) {
-        adminUsers.value = [currentAdmin]
-      } else {
-        adminUsers.value = []
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const firebaseUser = userCredential.user
+      const adminData: AdminUser = {
+        id: firebaseUser.uid,
+        email,
+        displayName,
+        role: 'super-admin',
+        photoURL: null,
+        isActive: true,
+        permissions: ['all'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: new Date()
       }
+      await setDoc(doc(db, 'admins', firebaseUser.uid), {
+        ...adminData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+      console.log('✅ Super-admin created:', adminData.email)
+      return adminData
     } catch (err: any) {
-      console.error('Failed to fetch admin users:', err)
-      adminUsers.value = []
+      error.value = err.message
+      throw err
     } finally {
-      adminUsersLoading.value = false
+      isLoading.value = false
     }
   }
 
-  const refreshSession = async () => {
+  // Refresh session
+  const refreshSession = () => {
     if (!user.value) return
     sessionExpiry.value = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    localStorage.setItem(
-      'luxury_admin_session',
-      JSON.stringify({ 
-        user: user.value, 
-        expiry: sessionExpiry.value.getTime(),
-        timestamp: Date.now()
-      })
-    )
+    localStorage.setItem('luxury_admin_session', JSON.stringify({
+      user: user.value,
+      expiry: sessionExpiry.value.getTime(),
+      timestamp: Date.now()
+    }))
   }
 
-  const updateProfile = async (updates: Partial<AdminUser>) => {
-    if (!user.value) return
-    user.value = { ...user.value, ...updates }
-    localStorage.setItem(
-      'luxury_admin_session',
-      JSON.stringify({ 
-        user: user.value, 
-        expiry: sessionExpiry.value?.getTime(),
-        timestamp: Date.now()
-      })
-    )
-  }
+  // Clear error
+  const clearError = () => { error.value = null }
 
-  const clearError = () => {
-    error.value = null
-  }
-
-  // Check permission
-  const hasPermission = (permission: string) => {
-    if (!user.value) return false
-    if (hasAllPermissions.value) return true
-    return userPermissions.value.includes(permission)
+  // Initialize listener
+  const init = () => {
+    onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const adminData = await getSuperAdminFromFirestore(firebaseUser)
+        user.value = adminData
+      } else {
+        user.value = null
+      }
+    })
   }
 
   return {
@@ -223,22 +239,16 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     lastLogin,
     sessionExpiry,
-    adminUsers,
-    adminUsersLoading,
     isAuthenticated,
-    isAdmin,
     isSuperAdmin,
     userInitials,
     sessionTimeLeft,
-    userPermissions,
-    hasAllPermissions,
     login,
     logout,
     checkAuth,
+    createSuperAdmin,
     refreshSession,
-    updateProfile,
-    fetchAdminUsers,
     clearError,
-    hasPermission
+    init
   }
 })

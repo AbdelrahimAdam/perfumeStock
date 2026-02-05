@@ -1,16 +1,25 @@
-// src/stores/products.ts
+// stores/products.ts - UPDATED FOR FIREBASE
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { 
-  getAllProducts,
-  getProductBySlug,
-  getFeaturedProducts,
-  getNewArrivals,
-  getProductsByBrand
-} from '@/data/products'
-import type { Product, ProductFormData, Category, FilterOptions } from '@/types'
-import { LUXURY_CATEGORIES } from '@/utils/luxuryConstants'
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  query, 
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  DocumentSnapshot,
+  QueryConstraint
+} from 'firebase/firestore'
+import { ref as storageRef, getDownloadURL } from 'firebase/storage'
+import { db, storage } from '@/firebase/config'
+import type { Product, ProductFormData, FilterOptions } from '@/types'
+import { useLocalStorage } from '@vueuse/core'
 import { productNotification } from '@/utils/notifications'
+import { LUXURY_CATEGORIES } from '@/utils/luxuryConstants'
 
 export const useProductsStore = defineStore('products', () => {
   // Luxury State
@@ -22,6 +31,12 @@ export const useProductsStore = defineStore('products', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
+  const lastVisible = ref<DocumentSnapshot | null>(null)
+  const hasMore = ref(true)
+  const limitPerPage = 12
+
+  // Filters state
+  const filters = useLocalStorage<FilterOptions>('luxury_product_filters', {})
 
   // Luxury Getters
   const categories = computed(() => LUXURY_CATEGORIES)
@@ -41,7 +56,11 @@ export const useProductsStore = defineStore('products', () => {
   const byCategory = computed(() => 
     (categoryId: string) => products.value
       .filter(p => p.category === categoryId)
-      .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
+      .sort((a, b) => {
+        const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(0)
+        const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+        return dateB.getTime() - dateA.getTime()
+      })
   )
 
   const getCategoryById = computed(() => 
@@ -60,34 +79,153 @@ export const useProductsStore = defineStore('products', () => {
     }
   })
 
-  // Luxury Actions
-  const fetchProducts = async (options: FilterOptions = {}) => {
+  // Firebase Collection Reference
+  const getProductsCollection = () => collection(db, 'products')
+
+  // Firebase Actions
+  const fetchProducts = async (options: FilterOptions = {}, resetPagination: boolean = true) => {
+    if (isLoading.value) return
+
     isLoading.value = true
     error.value = null
 
     try {
-      // Load from local data
-      products.value = getAllProducts()
+      if (resetPagination) {
+        lastVisible.value = null
+        hasMore.value = true
+        products.value = []
+      }
+
+      // Build query constraints
+      const constraints: QueryConstraint[] = [
+        where('inStock', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(limitPerPage)
+      ]
+
+      // Add filters to constraints if provided
+      if (options.category) {
+        constraints.unshift(where('category', '==', options.category))
+      }
       
-      // Also load featured and new arrivals
-      featuredProducts.value = getFeaturedProducts(8)
-      newArrivals.value = getNewArrivals(8)
+      if (options.brand) {
+        constraints.unshift(where('brand', '==', options.brand))
+      }
       
-      lastUpdated.value = new Date()
+      if (options.bestseller !== undefined) {
+        constraints.unshift(where('isBestSeller', '==', options.bestseller))
+      }
+
+      // Add pagination
+      if (lastVisible.value && !resetPagination) {
+        constraints.push(startAfter(lastVisible.value))
+      }
+
+      // Execute query
+      const productsQuery = query(getProductsCollection(), ...constraints)
+      const snapshot = await getDocs(productsQuery)
       
-      console.log(`✅ Loaded ${products.value.length} products from local data`)
-      
-      // Cache products
-      localStorage.setItem('luxury_products_cache', JSON.stringify({
-        products: products.value,
-        timestamp: lastUpdated.value.getTime()
-      }))
-      
+      if (snapshot.empty) {
+        hasMore.value = false
+        if (resetPagination) {
+          products.value = []
+        }
+      } else {
+        lastVisible.value = snapshot.docs[snapshot.docs.length - 1]
+        
+        const fetchedProducts = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data()
+            
+            // Handle timestamps
+            const createdAt = data.createdAt || { seconds: Date.now() / 1000, nanoseconds: 0 }
+            const updatedAt = data.updatedAt || { seconds: Date.now() / 1000, nanoseconds: 0 }
+            
+            // Fetch main image from storage if path is provided
+            let imageUrl = data.imageUrl || ''
+            if (data.imagePath) {
+              try {
+                const imageRef = storageRef(storage, data.imagePath)
+                imageUrl = await getDownloadURL(imageRef)
+              } catch (error) {
+                console.error('Error fetching image:', error)
+                // Fallback to imageUrl or default
+              }
+            }
+
+            // Fetch additional images if available
+            let images: string[] = []
+            if (data.images && Array.isArray(data.images)) {
+              images = await Promise.all(
+                data.images.map(async (imagePath: string) => {
+                  try {
+                    const ref = storageRef(storage, imagePath)
+                    return await getDownloadURL(ref)
+                  } catch (error) {
+                    console.error('Error fetching additional image:', error)
+                    return imagePath // Fallback to the path itself
+                  }
+                })
+              )
+            }
+
+            return {
+              id: docSnap.id,
+              slug: data.slug || docSnap.id,
+              name: data.name || { en: 'Unnamed Product', ar: 'منتج بدون اسم' },
+              description: data.description || { en: '', ar: '' },
+              brand: data.brand || '',
+              category: data.category || '',
+              price: data.price || 0,
+              originalPrice: data.originalPrice || data.price,
+              size: data.size || '100ml',
+              concentration: data.concentration || 'Eau de Parfum',
+              imageUrl: imageUrl,
+              images: images.length > 0 ? images : [imageUrl],
+              isBestSeller: data.isBestSeller || false,
+              isFeatured: data.isFeatured || false,
+              rating: data.rating || 0,
+              reviewCount: data.reviewCount || 0,
+              notes: data.notes || { top: [], heart: [], base: [] },
+              inStock: data.inStock !== false,
+              stockQuantity: data.stockQuantity || 0,
+              createdAt: createdAt,
+              updatedAt: updatedAt,
+              meta: data.meta || {}
+            } as Product
+          })
+        )
+
+        if (resetPagination) {
+          products.value = fetchedProducts
+        } else {
+          products.value = [...products.value, ...fetchedProducts]
+        }
+
+        hasMore.value = snapshot.docs.length === limitPerPage
+        lastUpdated.value = new Date()
+        
+        // Cache products locally
+        localStorage.setItem('luxury_products_cache', JSON.stringify({
+          products: products.value,
+          timestamp: lastUpdated.value.getTime()
+        }))
+
+        // Also load featured and new arrivals
+        await Promise.all([
+          fetchFeaturedProducts(),
+          fetchNewArrivals(),
+          fetchLuxuryCollections()
+        ])
+        
+        console.log(`✅ Loaded ${products.value.length} products from Firebase`)
+      }
     } catch (err: any) {
+      console.error('Error fetching products:', err)
       error.value = err.message || 'Failed to load products'
       productNotification.error('Failed to load luxury products')
       
-      // Try to load from cache
+      // Fallback to cache
       const cached = localStorage.getItem('luxury_products_cache')
       if (cached) {
         try {
@@ -95,7 +233,6 @@ export const useProductsStore = defineStore('products', () => {
           products.value = cachedProducts
           console.log('📦 Loaded products from cache')
         } catch {
-          // Cache is invalid
           console.error('❌ Cache is invalid')
         }
       }
@@ -105,38 +242,147 @@ export const useProductsStore = defineStore('products', () => {
   }
 
   const fetchFeaturedProducts = async () => {
-    isLoading.value = true
+    if (isLoading.value) return
+    
     try {
-      featuredProducts.value = getFeaturedProducts(8)
+      const featuredQuery = query(
+        getProductsCollection(),
+        where('isFeatured', '==', true),
+        where('inStock', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(8)
+      )
+      
+      const snapshot = await getDocs(featuredQuery)
+      featuredProducts.value = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data()
+          
+          // Fetch image from storage if path is provided
+          let imageUrl = data.imageUrl || ''
+          if (data.imagePath) {
+            try {
+              const imageRef = storageRef(storage, data.imagePath)
+              imageUrl = await getDownloadURL(imageRef)
+            } catch (error) {
+              console.error('Error fetching featured image:', error)
+            }
+          }
+          
+          return {
+            id: docSnap.id,
+            ...data,
+            imageUrl: imageUrl,
+            images: data.images || [imageUrl],
+            createdAt: data.createdAt || { seconds: Date.now() / 1000, nanoseconds: 0 },
+            updatedAt: data.updatedAt || { seconds: Date.now() / 1000, nanoseconds: 0 }
+          } as Product
+        })
+      )
     } catch (err: any) {
-      error.value = err.message
-    } finally {
-      isLoading.value = false
+      console.error('Error fetching featured products:', err)
+      // Use local products as fallback
+      featuredProducts.value = products.value
+        .filter(p => p.isFeatured)
+        .slice(0, 8)
     }
   }
 
   const fetchNewArrivals = async () => {
-    isLoading.value = true
+    if (isLoading.value) return
+    
     try {
-      newArrivals.value = getNewArrivals(8)
+      const newArrivalsQuery = query(
+        getProductsCollection(),
+        where('inStock', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(8)
+      )
+      
+      const snapshot = await getDocs(newArrivalsQuery)
+      newArrivals.value = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data()
+          
+          // Fetch image from storage
+          let imageUrl = data.imageUrl || ''
+          if (data.imagePath) {
+            try {
+              const imageRef = storageRef(storage, data.imagePath)
+              imageUrl = await getDownloadURL(imageRef)
+            } catch (error) {
+              console.error('Error fetching new arrival image:', error)
+            }
+          }
+          
+          return {
+            id: docSnap.id,
+            ...data,
+            imageUrl: imageUrl,
+            images: data.images || [imageUrl],
+            createdAt: data.createdAt || { seconds: Date.now() / 1000, nanoseconds: 0 },
+            updatedAt: data.updatedAt || { seconds: Date.now() / 1000, nanoseconds: 0 }
+          } as Product
+        })
+      )
     } catch (err: any) {
-      error.value = err.message
-    } finally {
-      isLoading.value = false
+      console.error('Error fetching new arrivals:', err)
+      // Use local products as fallback
+      newArrivals.value = [...products.value]
+        .sort((a, b) => {
+          const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(0)
+          const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(0)
+          return dateB.getTime() - dateA.getTime()
+        })
+        .slice(0, 8)
     }
   }
 
   const fetchLuxuryCollections = async () => {
-    isLoading.value = true
+    if (isLoading.value) return
+    
     try {
-      // Filter for luxury collections (price > $200)
+      const luxuryQuery = query(
+        getProductsCollection(),
+        where('price', '>', 200),
+        where('inStock', '==', true),
+        orderBy('price', 'desc'),
+        limit(10)
+      )
+      
+      const snapshot = await getDocs(luxuryQuery)
+      luxuryCollections.value = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data()
+          
+          // Fetch image from storage
+          let imageUrl = data.imageUrl || ''
+          if (data.imagePath) {
+            try {
+              const imageRef = storageRef(storage, data.imagePath)
+              imageUrl = await getDownloadURL(imageRef)
+            } catch (error) {
+              console.error('Error fetching luxury collection image:', error)
+            }
+          }
+          
+          return {
+            id: docSnap.id,
+            ...data,
+            imageUrl: imageUrl,
+            images: data.images || [imageUrl],
+            createdAt: data.createdAt || { seconds: Date.now() / 1000, nanoseconds: 0 },
+            updatedAt: data.updatedAt || { seconds: Date.now() / 1000, nanoseconds: 0 }
+          } as Product
+        })
+      )
+    } catch (err: any) {
+      console.error('Error fetching luxury collections:', err)
+      // Use local products as fallback
       luxuryCollections.value = products.value
         .filter(p => p.price > 200)
         .sort((a, b) => b.price - a.price)
-    } catch (err: any) {
-      error.value = err.message
-    } finally {
-      isLoading.value = false
+        .slice(0, 10)
     }
   }
 
@@ -148,13 +394,75 @@ export const useProductsStore = defineStore('products', () => {
       // First try to find in already loaded products
       let product = products.value.find(p => p.slug === slug)
       
-      // If not found, get from data
+      // If not found, fetch from Firebase
       if (!product) {
-        product = getProductBySlug(slug)
-      }
-      
-      if (!product) {
-        throw new Error(`Product with slug "${slug}" not found`)
+        const productQuery = query(
+          getProductsCollection(),
+          where('slug', '==', slug),
+          where('inStock', '==', true),
+          limit(1)
+        )
+        
+        const snapshot = await getDocs(productQuery)
+        
+        if (snapshot.empty) {
+          throw new Error(`Product with slug "${slug}" not found`)
+        }
+        
+        const docSnap = snapshot.docs[0]
+        const data = docSnap.data()
+        
+        // Fetch main image
+        let imageUrl = data.imageUrl || ''
+        if (data.imagePath) {
+          try {
+            const imageRef = storageRef(storage, data.imagePath)
+            imageUrl = await getDownloadURL(imageRef)
+          } catch (error) {
+            console.error('Error fetching product image:', error)
+          }
+        }
+        
+        // Fetch additional images
+        let images: string[] = []
+        if (data.images && Array.isArray(data.images)) {
+          images = await Promise.all(
+            data.images.map(async (imagePath: string) => {
+              try {
+                const ref = storageRef(storage, imagePath)
+                return await getDownloadURL(ref)
+              } catch (error) {
+                console.error('Error fetching additional image:', error)
+                return imagePath
+              }
+            })
+          )
+        }
+
+        product = {
+          id: docSnap.id,
+          slug: data.slug || docSnap.id,
+          name: data.name || { en: 'Unnamed Product', ar: 'منتج بدون اسم' },
+          description: data.description || { en: '', ar: '' },
+          brand: data.brand || '',
+          category: data.category || '',
+          price: data.price || 0,
+          originalPrice: data.originalPrice || data.price,
+          size: data.size || '100ml',
+          concentration: data.concentration || 'Eau de Parfum',
+          imageUrl: imageUrl,
+          images: images.length > 0 ? images : [imageUrl],
+          isBestSeller: data.isBestSeller || false,
+          isFeatured: data.isFeatured || false,
+          rating: data.rating || 0,
+          reviewCount: data.reviewCount || 0,
+          notes: data.notes || { top: [], heart: [], base: [] },
+          inStock: data.inStock !== false,
+          stockQuantity: data.stockQuantity || 0,
+          createdAt: data.createdAt || { seconds: Date.now() / 1000, nanoseconds: 0 },
+          updatedAt: data.updatedAt || { seconds: Date.now() / 1000, nanoseconds: 0 },
+          meta: data.meta || {}
+        } as Product
       }
       
       currentProduct.value = product
@@ -173,8 +481,13 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      // In local mode, we can't actually add to Firebase
-      // For demo purposes, we'll simulate adding
+      // Note: On Spark Plan, we cannot write to Firestore directly
+      // This is a simulation for admin panel
+      
+      console.log('⚠️ Spark Plan: Write operations are not available')
+      console.log('Product data would be added:', productData)
+      
+      // For demo purposes, add to local state only
       const mockProduct: Product = {
         id: `local-${Date.now()}`,
         slug: productData.name.en.toLowerCase().replace(/\s+/g, '-'),
@@ -183,15 +496,17 @@ export const useProductsStore = defineStore('products', () => {
         brand: productData.brand || '',
         category: productData.category || 'luxury',
         price: productData.price || 0,
+        originalPrice: productData.originalPrice || productData.price,
         size: productData.size || '100ml',
         concentration: productData.concentration || 'Eau de Parfum',
         imageUrl: productData.imageUrl || '',
+        images: productData.images || [],
         isBestSeller: productData.isBestSeller || false,
         isFeatured: productData.isFeatured || false,
         rating: 0,
         reviewCount: 0,
         notes: productData.notes || { top: [], heart: [], base: [] },
-        inStock: true,
+        inStock: productData.inStock !== false,
         stockQuantity: productData.stockQuantity || 0,
         createdAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
         updatedAt: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
@@ -217,7 +532,11 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      // Find and update product in local state
+      // Note: On Spark Plan, we cannot write to Firestore directly
+      console.log('⚠️ Spark Plan: Write operations are not available')
+      console.log('Product would be updated:', { id, productData })
+      
+      // For demo purposes, update local state only
       const index = products.value.findIndex(p => p.id === id)
       if (index !== -1) {
         products.value[index] = {
@@ -240,10 +559,14 @@ export const useProductsStore = defineStore('products', () => {
   const removeProduct = async (id: string) => {
     const product = products.value.find(p => p.id === id)
     
-    // For local mode, just remove with confirmation
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${product?.name.en}?`
-    )
+    // For demo purposes only
+    const confirmed = await confirmAction({
+      title: 'Delete Product',
+      message: `Are you sure you want to delete ${product?.name.en}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'warning'
+    })
 
     if (!confirmed) return
 
@@ -251,7 +574,11 @@ export const useProductsStore = defineStore('products', () => {
     error.value = null
 
     try {
-      // Remove from local state
+      // Note: On Spark Plan, we cannot delete from Firestore
+      console.log('⚠️ Spark Plan: Delete operations are not available')
+      console.log('Product would be deleted:', id)
+      
+      // For demo purposes, remove from local state
       products.value = products.value.filter(p => p.id !== id)
       
       if (product) {
@@ -325,7 +652,7 @@ export const useProductsStore = defineStore('products', () => {
     if (options.newArrival !== undefined) {
       const oneMonthAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60)
       filtered = filtered.filter(p => 
-        (p.createdAt.seconds > oneMonthAgo) === options.newArrival
+        (p.createdAt?.seconds || 0) > oneMonthAgo
       )
     }
 
@@ -338,13 +665,17 @@ export const useProductsStore = defineStore('products', () => {
         filtered.sort((a, b) => b.price - a.price)
         break
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       case 'popular':
         filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0))
         break
       case 'newest':
-        filtered.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
+        filtered.sort((a, b) => {
+          const dateA = a.createdAt?.seconds || 0
+          const dateB = b.createdAt?.seconds || 0
+          return dateB - dateA
+        })
         break
       case 'name-asc':
         filtered.sort((a, b) => a.name.en.localeCompare(b.name.en))
@@ -353,7 +684,11 @@ export const useProductsStore = defineStore('products', () => {
         filtered.sort((a, b) => b.name.en.localeCompare(a.name.en))
         break
       default:
-        filtered.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
+        filtered.sort((a, b) => {
+          const dateA = a.createdAt?.seconds || 0
+          const dateB = b.createdAt?.seconds || 0
+          return dateB - dateA
+        })
     }
 
     return filtered
@@ -363,15 +698,10 @@ export const useProductsStore = defineStore('products', () => {
     return products.value.find(p => p.id === id)
   }
 
-  // Use local data function for brand filtering
   const getProductsByBrand = (brandSlug: string): Product[] => {
-    // First check if we have products loaded
-    if (products.value.length > 0) {
-      return products.value.filter(p => p.brand === brandSlug)
-    }
-    
-    // If not, use the data function
-    return getProductsByBrand(brandSlug)
+    return products.value.filter(p => 
+      p.brand.toLowerCase() === brandSlug.toLowerCase()
+    )
   }
 
   const getRelatedProducts = (product: Product, limit: number = 4): Product[] => {
@@ -390,7 +720,20 @@ export const useProductsStore = defineStore('products', () => {
   const refreshProducts = async () => {
     // Clear cache and refresh
     localStorage.removeItem('luxury_products_cache')
-    await fetchProducts()
+    await fetchProducts({}, true)
+  }
+
+  const loadMoreProducts = async () => {
+    if (!hasMore.value || isLoading.value) return
+    await fetchProducts(filters.value, false)
+  }
+
+  const setFilters = (newFilters: FilterOptions) => {
+    filters.value = { ...filters.value, ...newFilters }
+  }
+
+  const resetFilters = () => {
+    filters.value = {}
   }
 
   // Helper function for confirmations
@@ -399,6 +742,7 @@ export const useProductsStore = defineStore('products', () => {
     message: string
     confirmText?: string
     cancelText?: string
+    type?: string
   }): Promise<boolean> => {
     return new Promise((resolve) => {
       const confirmEvent = new CustomEvent('luxury-confirmation', {
@@ -413,9 +757,9 @@ export const useProductsStore = defineStore('products', () => {
   }
 
   // Initialize products on store creation
-  const initialize = () => {
+  const initialize = async () => {
     if (products.value.length === 0) {
-      fetchProducts()
+      await fetchProducts({}, true)
     }
   }
 
@@ -423,41 +767,49 @@ export const useProductsStore = defineStore('products', () => {
   initialize()
 
   return {
-    // State
-    products,
-    featuredProducts,
-    newArrivals,
-    luxuryCollections,
-    currentProduct,
-    isLoading,
-    error,
-    lastUpdated,
+  // State
+  products,
+  featuredProducts,
+  newArrivals,
+  luxuryCollections,
+  currentProduct,
+  isLoading,
+  error,
+  lastUpdated,
+  hasMore,
+  filters,
 
-    // Getters
-    categories,
-    bestSellers,
-    luxuryBrands,
-    byCategory,
-    getCategoryById,
-    totalProducts,
-    priceRange,
+  // Getters
+  categories,
+  bestSellers,
+  luxuryBrands,
+  byCategory,
+  getCategoryById,
+  totalProducts,
+  priceRange,
 
-    // Actions
-    fetchProducts,
-    fetchFeaturedProducts,
-    fetchNewArrivals,
-    fetchLuxuryCollections,
-    fetchProductBySlug,
-    addProduct,
-    editProduct,
-    removeProduct,
-    searchProducts,
-    filterProducts,
-    getProductById,
-    getProductsByBrand,
-    getRelatedProducts,
-    clearError,
-    refreshProducts,
-    confirmAction
-  }
+  // Actions
+  fetchProducts,
+  fetchFeaturedProducts,
+  fetchNewArrivals,
+  fetchLuxuryCollections,
+  fetchProductBySlug,
+  addProduct,
+  editProduct,
+  removeProduct,
+  searchProducts,
+  filterProducts,
+  getProductById,
+  getProductsByBrand,
+  getRelatedProducts,
+  clearError,
+  refreshProducts,
+  loadMoreProducts,
+  setFilters,
+  resetFilters,
+  confirmAction,
+
+  // ✅ Add initialize here
+  initialize
+}
 })

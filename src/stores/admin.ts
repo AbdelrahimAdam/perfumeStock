@@ -1,0 +1,186 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { AdminService } from '@/services/adminService'
+import type { AdminUser, CreateAdminDto, UpdateAdminDto } from '@/types/admin'
+
+export const useAdminStore = defineStore('admin', () => {
+  const admins = ref<AdminUser[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const stats = ref({
+    total: 0,
+    superAdmins: 0,
+    activeAdmins: 0,
+    inactiveAdmins: 0
+  })
+
+  // Fetch all admins
+  const fetchAdmins = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      const adminList = await AdminService.getAdmins()
+      admins.value = adminList.map(admin => ({
+        ...admin,
+        createdAt: admin.createdAt || new Date().toISOString(),
+        lastLoginAt: admin.lastLoginAt || new Date().toISOString()
+      }))
+      
+      // Update stats
+      updateStats()
+    } catch (err: any) {
+      error.value = err.message || 'Failed to fetch admins'
+      console.error('Error fetching admins:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Create new admin
+  const createAdmin = async (adminData: CreateAdminDto) => {
+    loading.value = true
+    error.value = null
+    try {
+      const newAdmin = await AdminService.createAdmin(adminData)
+      admins.value.unshift(newAdmin)
+      updateStats()
+      return newAdmin
+    } catch (err: any) {
+      error.value = err.message || 'Failed to create admin'
+      console.error('Error creating admin:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Update admin
+  const updateAdmin = async (uid: string, updateData: UpdateAdminDto) => {
+    loading.value = true
+    error.value = null
+    try {
+      await AdminService.updateAdmin(uid, updateData)
+      
+      // Update local state
+      const index = admins.value.findIndex(admin => admin.uid === uid)
+      if (index !== -1) {
+        admins.value[index] = {
+          ...admins.value[index],
+          ...updateData
+        }
+      }
+      
+      updateStats()
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update admin'
+      console.error('Error updating admin:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Delete admin
+  const deleteAdmin = async (uid: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      await AdminService.deleteAdmin(uid)
+      
+      // Remove from local state
+      admins.value = admins.value.filter(admin => admin.uid !== uid)
+      updateStats()
+    } catch (err: any) {
+      error.value = err.message || 'Failed to delete admin'
+      console.error('Error deleting admin:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Reset admin password
+  const resetAdminPassword = async (email: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      await AdminService.resetAdminPassword(email)
+    } catch (err: any) {
+      error.value = err.message || 'Failed to reset password'
+      console.error('Error resetting password:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Get admin stats
+  const fetchAdminStats = async () => {
+    try {
+      const adminStats = await AdminService.getAdminStats()
+      stats.value = adminStats
+    } catch (err: any) {
+      console.error('Error fetching admin stats:', err)
+    }
+  }
+
+  // Search admins
+  const searchAdmins = async (searchTerm: string) => {
+    try {
+      return await AdminService.searchAdmins(searchTerm)
+    } catch (err: any) {
+      console.error('Error searching admins:', err)
+      return []
+    }
+  }
+
+  // Update last login
+  const updateLastLogin = async (uid: string) => {
+    try {
+      await AdminService.updateLastLogin(uid)
+      
+      // Update local state
+      const index = admins.value.findIndex(admin => admin.uid === uid)
+      if (index !== -1) {
+        admins.value[index].lastLoginAt = new Date().toISOString()
+      }
+    } catch (err) {
+      console.error('Error updating last login:', err)
+    }
+  }
+
+  // Helper function to update local stats
+  const updateStats = () => {
+    stats.value = {
+      total: admins.value.length,
+      superAdmins: admins.value.filter(admin => admin.role === 'super-admin').length,
+      activeAdmins: admins.value.filter(admin => admin.isActive).length,
+      inactiveAdmins: admins.value.filter(admin => !admin.isActive).length
+    }
+  }
+
+  // Get admin by ID
+  const getAdminById = (uid: string) => {
+    return admins.value.find(admin => admin.uid === uid) || null
+  }
+
+  return {
+    // State
+    admins,
+    loading,
+    error,
+    stats,
+    
+    // Actions
+    fetchAdmins,
+    createAdmin,
+    updateAdmin,
+    deleteAdmin,
+    resetAdminPassword,
+    fetchAdminStats,
+    searchAdmins,
+    updateLastLogin,
+    getAdminById
+  }
+})

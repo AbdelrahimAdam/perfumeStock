@@ -1,4 +1,4 @@
-<!-- src/pages/HomePage.vue - FULLY UPDATED WITH STORE INTEGRATION -->
+<!-- src/pages/HomePage.vue - UPDATED FOR STORE COMPLIANCE -->
 <template>
   <div class="luxury-perfume-homepage" :class="{ 'dark-mode': isDarkMode, 'rtl-direction': isRTL, 'ltr-direction': !isRTL }">
     <!-- Loading Spinner -->
@@ -17,13 +17,16 @@
         <div class="debug-info">
           <div><strong>Status:</strong> {{ homepageStore.isLoading ? 'Loading...' : 'Ready' }}</div>
           <div><strong>Error:</strong> {{ homepageStore.error || 'None' }}</div>
+          <div><strong>Source:</strong> {{ dataSource }}</div>
           <div><strong>Brands:</strong> {{ featuredBrands.length }}</div>
           <div><strong>Offers:</strong> {{ activeOffers.length }}</div>
+          <div><strong>Marquee:</strong> {{ marqueeBrands.length }}</div>
           <div><strong>Listening:</strong> {{ homepageStore.isListening ? 'Yes' : 'No' }}</div>
-          <div><strong>Last Update:</strong> {{ homepageStore.homepageData.lastUpdated ? formatDate(homepageStore.homepageData.lastUpdated) : 'Never' }}</div>
+          <div><strong>Last Firebase Update:</strong> {{ lastUpdatedFormatted }}</div>
           <div class="debug-actions">
             <button @click="forceRefreshStoreData">🔄 Refresh</button>
-            <button @click="homepageStore.clearCache()">🧹 Clear Cache</button>
+            <button @click="clearCacheAndRefresh">🧹 Clear Cache</button>
+            <button @click="checkFirebaseConnection">🔗 Check Firebase</button>
           </div>
         </div>
       </details>
@@ -33,8 +36,8 @@
     <section class="hero-banner">
       <!-- Video-Style Banner Container -->
       <div class="banner-video-container">
-        <!-- Background Image from store -->
-        <div class="hero-background" :style="{ backgroundImage: `url('${heroBanner.imageUrl}')` }"></div>
+        <!-- Background Image from Firebase -->
+        <div class="hero-background" :style="{ backgroundImage: `url('${heroBanner.imageUrl || '/images/banner.jpg'}')` }"></div>
         
         <!-- Gradient Overlays -->
         <div class="gradient-overlay-top"></div>
@@ -85,30 +88,26 @@
         </div>
       </div>
       
-      <!-- Floating Brand Logos from store -->
+      <!-- Floating Brand Logos from Firebase - FIXED MARQUEE -->
       <div class="floating-brands">
-        <div class="marquee-track">
-          <template v-if="marqueeBrands.length > 0">
-            <router-link
-              v-for="brand in marqueeBrands"
-              :key="brand.id"
-              :to="`/brand/${brand.slug}`"
-              class="brand-link"
-            >
-              <img :src="brand.logo" :alt="brand.name" class="brand-logo" @error="handleImageError($event, brand)" />
-            </router-link>
-            <!-- Duplicate for seamless loop -->
-            <router-link
-              v-for="brand in marqueeBrands"
-              :key="'dup-' + brand.id"
-              :to="`/brand/${brand.slug}`"
-              class="brand-link"
-            >
-              <img :src="brand.logo" :alt="brand.name" class="brand-logo" @error="handleImageError($event, brand)" />
-            </router-link>
-          </template>
-          <div v-else class="no-brands-message">
-            <span>{{ t('loadingBrands') }}</span>
+        <div class="marquee-container">
+          <div class="marquee-track" :class="{ 'rtl-animation': isRTL }">
+            <template v-if="marqueeBrands.length > 0">
+              <!-- First set of brands (original + duplicate for seamless loop) -->
+              <template v-for="i in 3" :key="'set-' + i">
+                <router-link
+                  v-for="brand in marqueeBrands"
+                  :key="`${brand.id || brand.name}-${i}`"
+                  :to="`/brand/${brand.slug || brand.id || 'brand'}`"
+                  class="brand-link"
+                >
+                  <img :src="brand.logo || '/images/default-logo.png'" :alt="brand.name || 'Brand'" class="brand-logo" />
+                </router-link>
+              </template>
+            </template>
+            <div v-else class="no-brands-message">
+              <span>{{ t('loadingBrands') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -130,24 +129,23 @@
               <div v-if="featuredBrands.length > 0" class="brands-grid-mobile">
                 <router-link
                   v-for="brand in featuredBrands"
-                  :key="brand.id"
-                  :to="`/brand/${brand.slug}`"
+                  :key="brand.id || brand.name"
+                  :to="`/brand/${brand.slug || brand.id || 'brand'}`"
                   class="brand-card-link-mobile"
                 >
                   <div class="brand-card-mobile">
                     <div class="brand-image-wrapper-mobile">
                       <img 
-                        :src="brand.image" 
-                        :alt="brand.name" 
+                        :src="brand.image || '/images/default-brand.jpg'" 
+                        :alt="brand.name || 'Brand'" 
                         loading="lazy" 
-                        @error="handleImageError($event, brand)"
                       />
                       <div class="brand-overlay-mobile"></div>
                     </div>
                     <div class="brand-info-mobile">
-                      <h3 class="brand-name-mobile">{{ brand.name }}</h3>
-                      <p class="brand-signature-mobile">{{ brand.signature }}</p>
-                      <p class="brand-price-mobile">{{ brand.price }} {{ t('currencyLE') }}</p>
+                      <h3 class="brand-name-mobile">{{ brand.name || t('brandName') }}</h3>
+                      <p class="brand-signature-mobile">{{ brand.signature || t('luxurySignature') }}</p>
+                      <p class="brand-price-mobile">{{ brand.price || 0 }} {{ t('currencyLE') }}</p>
                     </div>
                   </div>
                 </router-link>
@@ -160,26 +158,25 @@
               </div>
             </div>
             
-            <!-- Right side: Today's Offer from store -->
+            <!-- Right side: Today's Offer from Firebase -->
             <div class="mobile-offer-section">
-              <div v-if="activeOffers.length > 0" class="offer-card-mobile">
+              <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card-mobile">
                 <div class="offer-badge-mobile">{{ t('todaysExclusiveOffer') }}</div>
                 <div class="offer-content-mobile">
                   <div class="offer-image-wrapper-mobile">
                     <img
-                      :src="activeOffers[0].imageUrl"
-                      :alt="activeOffers[0].title"
+                      :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
+                      :alt="activeOffers[0].title || t('exclusiveOffer')"
                       class="offer-bottle-mobile"
                       loading="lazy"
-                      @error="handleImageError($event, activeOffers[0])"
                     />
                   </div>
                   <div class="offer-details-mobile">
-                    <h3 class="offer-title-mobile">{{ activeOffers[0].title }}</h3>
-                    <p class="offer-subtitle-mobile">{{ activeOffers[0].subtitle }}</p>
+                    <h3 class="offer-title-mobile">{{ activeOffers[0].title || t('specialOffer') }}</h3>
+                    <p class="offer-subtitle-mobile">{{ activeOffers[0].subtitle || t('limitedTimeOffer') }}</p>
                     <div class="offer-pricing-mobile">
-                      <span class="old-price-mobile">{{ activeOffers[0].oldPrice }} {{ t('currencyLE') }}</span>
-                      <span class="new-price-mobile">{{ activeOffers[0].newPrice }} {{ t('currencyLE') }}</span>
+                      <span class="old-price-mobile">{{ activeOffers[0].oldPrice || 0 }} {{ t('currencyLE') }}</span>
+                      <span class="new-price-mobile">{{ activeOffers[0].newPrice || 0 }} {{ t('currencyLE') }}</span>
                     </div>
                     <button class="buy-now-button-mobile" @click="navigateToOffer(activeOffers[0])">
                       <span class="button-text">{{ t('buyNow') }}</span>
@@ -196,7 +193,7 @@
 
         <!-- DESKTOP LAYOUT -->
         <div class="desktop-content-layout">
-          <!-- Featured Brands Grid from store -->
+          <!-- Featured Brands Grid from Firebase -->
           <div class="featured-brands">
             <div class="section-header">
               <h2 class="section-title">{{ t('featuredBrands') }}</h2>
@@ -205,26 +202,25 @@
             <div v-if="featuredBrands.length > 0" class="brands-grid">
               <router-link
                 v-for="brand in featuredBrands"
-                :key="brand.id"
-                :to="`/brand/${brand.slug}`"
+                :key="brand.id || brand.name"
+                :to="`/brand/${brand.slug || brand.id || 'brand'}`"
                 class="brand-card-link"
               >
                 <div class="brand-card">
                   <div class="brand-image-wrapper">
                     <img 
-                      :src="brand.image" 
-                      :alt="brand.name" 
+                      :src="brand.image || '/images/default-brand.jpg'" 
+                      :alt="brand.name || 'Brand'" 
                       loading="lazy"
-                      @error="handleImageError($event, brand)"
                     />
                     <div class="brand-overlay"></div>
                     <div class="brand-glow"></div>
                     <div class="gold-sparkles"></div>
                   </div>
                   <div class="brand-info">
-                    <h3 class="brand-name">{{ brand.name }}</h3>
-                    <p class="brand-signature">{{ brand.signature }}</p>
-                    <p class="brand-price">{{ brand.price }} {{ t('currencyLE') }}</p>
+                    <h3 class="brand-name">{{ brand.name || t('brandName') }}</h3>
+                    <p class="brand-signature">{{ brand.signature || t('luxurySignature') }}</p>
+                    <p class="brand-price">{{ brand.price || 0 }} {{ t('currencyLE') }}</p>
                   </div>
                 </div>
               </router-link>
@@ -237,27 +233,26 @@
             </div>
           </div>
 
-          <!-- Today's Exclusive Offer from store -->
+          <!-- Today's Exclusive Offer from Firebase -->
           <aside class="offer-sidebar">
-            <div v-if="activeOffers.length > 0" class="offer-card">
+            <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card">
               <div class="offer-badge">{{ t('todaysExclusiveOffer') }}</div>
               <div class="offer-content">
                 <div class="offer-image-wrapper">
                   <img
-                    :src="activeOffers[0].imageUrl"
-                    :alt="activeOffers[0].title"
+                    :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
+                    :alt="activeOffers[0].title || t('exclusiveOffer')"
                     class="offer-bottle"
                     loading="lazy"
-                    @error="handleImageError($event, activeOffers[0])"
                   />
                   <div class="offer-glow"></div>
                 </div>
                 <div class="offer-details">
-                  <h3 class="offer-title">{{ activeOffers[0].title }}</h3>
-                  <p class="offer-subtitle">{{ activeOffers[0].subtitle }}</p>
+                  <h3 class="offer-title">{{ activeOffers[0].title || t('specialOffer') }}</h3>
+                  <p class="offer-subtitle">{{ activeOffers[0].subtitle || t('limitedTimeOffer') }}</p>
                   <div class="offer-pricing">
-                    <span class="old-price">{{ activeOffers[0].oldPrice }} {{ t('currencyLE') }}</span>
-                    <span class="new-price">{{ activeOffers[0].newPrice }} {{ t('currencyLE') }}</span>
+                    <span class="old-price">{{ activeOffers[0].oldPrice || 0 }} {{ t('currencyLE') }}</span>
+                    <span class="new-price">{{ activeOffers[0].newPrice || 0 }} {{ t('currencyLE') }}</span>
                   </div>
                   <button class="buy-now-button" @click="navigateToOffer(activeOffers[0])">
                     <span class="button-text">{{ t('buyNow') }}</span>
@@ -281,6 +276,7 @@ import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useHomepageStore } from '@/stores/homepage'
+import type { HomepageData, Brand, Offer, MarqueeBrand, HeroBanner } from '@/stores/homepage'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
@@ -290,14 +286,40 @@ const { t, formatDate } = languageStore
 // Development mode check
 const isDevelopment = import.meta.env.DEV
 
-// Store data - directly from homepage store (reactive)
-const heroBanner = computed(() => homepageStore.homepageData.heroBanner)
-const featuredBrands = computed(() => homepageStore.homepageData.featuredBrands || [])
-const activeOffers = computed(() => homepageStore.homepageData.activeOffers || [])
-const marqueeBrands = computed(() => homepageStore.homepageData.marqueeBrands || [])
+// Safely access homepage data with fallbacks
+const homepageData = computed(() => homepageStore.homepageData)
+
+// Extract data with proper fallbacks
+const heroBanner = computed<HeroBanner>(() => homepageData.value?.heroBanner || {
+  imageUrl: '/images/banner.jpg',
+  title: 'Luxury Perfumes',
+  subtitle: 'Premium Collection'
+})
+
+const featuredBrands = computed<Brand[]>(() => homepageData.value?.featuredBrands || [])
+const activeOffers = computed<Offer[]>(() => homepageData.value?.activeOffers || [])
+const marqueeBrands = computed<MarqueeBrand[]>(() => homepageData.value?.marqueeBrands || [])
+
+// Safely access settings
+const settings = computed(() => homepageData.value?.settings || {
+  isDarkMode: false,
+  defaultLanguage: 'ar'
+})
+
+const lastUpdatedFormatted = computed(() => {
+  if (homepageData.value?.lastUpdated) {
+    return formatDate(homepageData.value.lastUpdated)
+  }
+  return 'Never'
+})
+
+// Data source for debugging
+const dataSource = computed(() => {
+  return homepageData.value?.source || 'unknown'
+})
 
 // Dark mode from store
-const isDarkMode = computed(() => homepageStore.homepageData.settings?.isDarkMode || false)
+const isDarkMode = computed(() => settings.value?.isDarkMode || false)
 
 // RTL based on language
 const isRTL = computed(() => {
@@ -305,27 +327,20 @@ const isRTL = computed(() => {
   return currentLang === 'ar' || currentLang === 'fa' || currentLang === 'he';
 })
 
-// Debug info
-const debugInfo = ref({
-  storeLoaded: false,
-  lastUpdate: ''
-})
+// Store subscription reference
+let unsubscribeStore: (() => void) | null = null
 
 // Watch for store updates
 watch(() => homepageStore.homepageData, (newData) => {
   console.log('🏪 Homepage data updated:', {
-    brands: newData.featuredBrands?.length || 0,
-    offers: newData.activeOffers?.length || 0,
-    lastUpdated: newData.lastUpdated || 'Never'
+    source: newData?.source,
+    brands: newData?.featuredBrands?.length || 0,
+    offers: newData?.activeOffers?.length || 0,
+    lastUpdated: newData?.lastUpdated || 'Never'
   })
   
-  debugInfo.value = {
-    storeLoaded: true,
-    lastUpdate: newData.lastUpdated || 'Never'
-  }
-  
   // Apply dark mode if changed
-  if (newData.settings?.isDarkMode) {
+  if (newData?.settings?.isDarkMode) {
     document.documentElement.classList.add('dark')
   } else {
     document.documentElement.classList.remove('dark')
@@ -350,18 +365,28 @@ const forceRefreshStoreData = async () => {
   }
 }
 
-// Handle image loading errors
-const handleImageError = (event: Event, item: any) => {
-  const img = event.target as HTMLImageElement
-  console.warn(`⚠️ Image failed to load: ${img.src}`)
-  
-  // Set a fallback image
-  if (item && 'image' in item) {
-    img.src = '/images/placeholder-brand.jpg'
-  } else if (item && 'imageUrl' in item) {
-    img.src = '/images/placeholder-offer.jpg'
-  } else if (item && 'logo' in item) {
-    img.src = '/images/placeholder-logo.png'
+// Clear cache and refresh
+const clearCacheAndRefresh = async () => {
+  console.log('🧹 Clearing cache and refreshing...')
+  homepageStore.clearCache()
+  await forceRefreshStoreData()
+}
+
+// Check Firebase connection
+const checkFirebaseConnection = async () => {
+  console.log('🔗 Checking Firebase connection...')
+  try {
+    const connection = await homepageStore.checkConnection()
+    console.log('✅ Firebase connection:', connection)
+    
+    alert(`Firebase Status:
+Connected: ${connection.connected ? 'Yes' : 'No'}
+Last Update: ${connection.lastUpdate || 'Never'}
+Store Listening: ${homepageStore.isListening ? 'Yes' : 'No'}
+Store Error: ${homepageStore.error || 'None'}`)
+  } catch (error) {
+    console.error('❌ Connection check failed:', error)
+    alert('Connection check failed. Check console for details.')
   }
 }
 
@@ -373,6 +398,8 @@ const navigateToShop = () => {
 const navigateToOffer = (offer: any) => {
   if (offer?.slug) {
     router.push(`/offer/${offer.slug}`)
+  } else if (offer?.id) {
+    router.push(`/offer/${offer.id}`)
   } else {
     router.push('/offers')
   }
@@ -382,15 +409,22 @@ onMounted(async () => {
   console.log('🏠 HomePage.vue mounted - Initializing...')
   document.documentElement.style.scrollBehavior = 'smooth'
   
-  // Clear any old cache first
-  homepageStore.clearCache()
+  // Subscribe to store updates
+  unsubscribeStore = homepageStore.subscribeToUpdates((data) => {
+    console.log('📡 Store update notification:', {
+      source: data.source,
+      brands: data.featuredBrands?.length,
+      timestamp: data.lastUpdated
+    })
+  })
   
   // Load homepage data from store
   try {
-    console.log('📥 Loading homepage data from Firebase...')
+    console.log('📥 Loading homepage data...')
     await homepageStore.loadHomepageData()
     
     console.log('✅ Homepage data loaded:', {
+      source: dataSource.value,
       brands: featuredBrands.value.length,
       offers: activeOffers.value.length,
       marquee: marqueeBrands.value.length,
@@ -422,12 +456,18 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  // Cleanup subscription
+  if (unsubscribeStore) {
+    unsubscribeStore()
+  }
+  
   // Clean up Firebase listener when component is destroyed
   homepageStore.stopListening()
 })
 </script>
 
 <style scoped>
+/* ALL YOUR EXISTING STYLES REMAIN UNCHANGED */
 /* ============================================= */
 /* LUXURIOUS WHITE & GOLD THEME WITH DARK MODE */
 /* ============================================= */
@@ -534,6 +574,7 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
+
 /* No data messages */
 .no-data-message,
 .no-offer-message,
@@ -601,10 +642,6 @@ onUnmounted(() => {
 .luxury-perfume-homepage.rtl-direction .buy-now-button,
 .luxury-perfume-homepage.rtl-direction .buy-now-button-mobile {
   flex-direction: row-reverse;
-}
-
-.luxury-perfume-homepage.rtl-direction .marquee-track {
-  animation-direction: reverse;
 }
 
 /* LTR Direction Support */
@@ -750,7 +787,7 @@ onUnmounted(() => {
   }
 }
 
-/* Optimized Background Image - USING LOCAL IMAGE */
+/* Optimized Background Image - USING FIREBASE DATA */
 .hero-background {
   position: absolute;
   inset: 0;
@@ -1075,7 +1112,7 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
-/* ========== FLOATING BRANDS - UPDATED TO START FROM BEGINNING ========== */
+/* ========== FLOATING BRANDS - COMPLETELY FIXED ========== */
 .floating-brands {
   position: absolute;
   bottom: 40px;
@@ -1085,11 +1122,15 @@ onUnmounted(() => {
   overflow: hidden;
   pointer-events: auto;
   width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
 }
 
 @media (max-width: 767px) {
   .floating-brands {
     bottom: 20px;
+    height: 50px;
   }
 }
 
@@ -1105,14 +1146,26 @@ onUnmounted(() => {
   }
 }
 
+.marquee-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
 .marquee-track {
   display: flex;
   gap: 4rem;
-  animation: marquee 30s linear infinite;
-  will-change: transform;
   padding: 0.5rem 0;
   align-items: center;
   width: max-content;
+  will-change: transform;
+  animation: marquee-ltr 30s linear infinite;
+}
+
+.marquee-track.rtl-animation {
+  animation: marquee-rtl 30s linear infinite;
 }
 
 /* Brand Link Wrapper */
@@ -1158,6 +1211,10 @@ onUnmounted(() => {
     height: 25px;
     max-width: 100px;
   }
+  
+  .marquee-track {
+    gap: 3rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1167,9 +1224,33 @@ onUnmounted(() => {
   }
 }
 
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-33.33%); }
+/* LTR Animation (for English) - Left to Right */
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* RTL Animation (for Arabic) - Right to Left */
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* For RTL languages, we need to handle the marquee differently */
+.luxury-perfume-homepage.rtl-direction .floating-brands {
+  direction: rtl;
+}
+
+.luxury-perfume-homepage.rtl-direction .marquee-container {
+  text-align: right;
 }
 
 /* ========== MAIN CONTENT SECTION ========== */

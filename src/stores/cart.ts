@@ -3,15 +3,16 @@ import { ref, computed } from 'vue'
 import type { CartItem, Product } from '@/types'
 import { useLocalStorage } from '@vueuse/core'
 import { showNotification } from '@/utils/notifications'
+import { showConfirmation } from '@/utils/confirmation'
 
 export const useCartStore = defineStore('cart', () => {
-  // Luxury Cart State
+  // State
   const items = useLocalStorage<CartItem[]>('luxury_perfume_cart', [])
   const isOpen = ref(false)
   const isLoading = ref(false)
   const lastAddedItem = ref<string | null>(null)
 
-  // Luxury Getters
+  // Getters
   const totalItems = computed(() => 
     items.value.reduce((sum, item) => sum + item.quantity, 0)
   )
@@ -25,7 +26,7 @@ export const useCartStore = defineStore('cart', () => {
   )
 
   const tax = computed(() => 
-    subtotal.value * 0.08 // 8% tax for luxury goods
+    subtotal.value * 0.08
   )
 
   const total = computed(() => 
@@ -47,7 +48,7 @@ export const useCartStore = defineStore('cart', () => {
     }))
   )
 
-  // Luxury Actions
+  // Actions
   const addToCart = (product: Product, quantity: number = 1) => {
     const existingItem = items.value.find(item => item.id === product.id)
 
@@ -80,8 +81,6 @@ export const useCartStore = defineStore('cart', () => {
 
     lastAddedItem.value = product.id
     openCart()
-    
-    // Trigger luxury animation
     triggerLuxuryEffect()
   }
 
@@ -102,8 +101,7 @@ export const useCartStore = defineStore('cart', () => {
     const item = items.value.find(item => item.id === id)
     if (item) {
       const oldQuantity = item.quantity
-      item.quantity = Math.max(1, Math.min(quantity, 10)) // Limit to 10 per item
-      
+      item.quantity = Math.max(1, Math.min(quantity, 10))
       if (oldQuantity !== item.quantity) {
         showNotification({
           title: 'Quantity Updated',
@@ -135,64 +133,45 @@ export const useCartStore = defineStore('cart', () => {
 
   const openCart = () => {
     isOpen.value = true
-    // Add body class to prevent scrolling
     document.body.classList.add('cart-open')
   }
 
   const closeCart = () => {
     isOpen.value = false
-    // Remove body class
     document.body.classList.remove('cart-open')
   }
 
   const toggleCart = () => {
-    if (isOpen.value) {
-      closeCart()
-    } else {
-      openCart()
-    }
+    isOpen.value ? closeCart() : openCart()
   }
 
-  // Luxury Helper Functions
+  // Helper functions
   const triggerLuxuryEffect = () => {
-    // Add a luxury animation effect
     const event = new CustomEvent('luxury-effect', {
       detail: { type: 'cart-add', itemId: lastAddedItem.value }
     })
     window.dispatchEvent(event)
   }
 
-  const getItem = (id: string) => {
-    return items.value.find(item => item.id === id)
-  }
-
-  const hasItem = (id: string) => {
-    return items.value.some(item => item.id === id)
-  }
-
-  const getCartSummary = () => {
-    return {
-      totalItems: totalItems.value,
-      subtotal: subtotal.value,
-      shipping: shipping.value,
-      tax: tax.value,
-      total: total.value,
-      items: luxuryItems.value
-    }
-  }
+  const getItem = (id: string) => items.value.find(item => item.id === id)
+  const hasItem = (id: string) => items.value.some(item => item.id === id)
+  const getCartSummary = () => ({
+    totalItems: totalItems.value,
+    subtotal: subtotal.value,
+    shipping: shipping.value,
+    tax: tax.value,
+    total: total.value,
+    items: luxuryItems.value
+  })
 
   const calculateSavings = () => {
-    // Calculate any discounts or savings
-    const discount = items.value.reduce((sum, item) => {
+    return items.value.reduce((sum, item) => {
       return item.originalPrice ? sum + ((item.originalPrice - item.price) * item.quantity) : sum
     }, 0)
-    
-    return discount
   }
 
-  // Initialize
-  const initialize = () => {
-    // Restore cart state
+  // ✅ Restore cart method (for main.ts)
+  const restoreCart = () => {
     const saved = localStorage.getItem('luxury_perfume_cart')
     if (saved) {
       try {
@@ -203,14 +182,15 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
+  // Initialize automatically if needed
+  const initialize = () => restoreCart()
+
   return {
-    // State
     items,
     isOpen,
     isLoading,
     lastAddedItem,
 
-    // Getters
     totalItems,
     subtotal,
     shipping,
@@ -220,7 +200,6 @@ export const useCartStore = defineStore('cart', () => {
     itemCount,
     luxuryItems,
 
-    // Actions
     addToCart,
     removeFromCart,
     updateQuantity,
@@ -232,6 +211,9 @@ export const useCartStore = defineStore('cart', () => {
     hasItem,
     getCartSummary,
     calculateSavings,
-    initialize
+
+    // Initialization methods
+    initialize,
+    restoreCart // <— now available for main.ts
   }
 })

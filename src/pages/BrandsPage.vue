@@ -34,11 +34,27 @@
         <span class="text-gray-900 font-medium">{{ currentLanguage === 'en' ? 'Brands' : 'الماركات' }}</span>
       </nav>
 
+      <!-- Loading State -->
+      <div v-if="brandsStore.isLoading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <p class="mt-4 text-gray-600">{{ t('Loading brands...') }}</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="brandsStore.error" class="text-center py-12">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p class="text-red-600">{{ brandsStore.error }}</p>
+          <button @click="loadBrands" class="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+            {{ t('Try Again') }}
+          </button>
+        </div>
+      </div>
+
       <!-- Brands Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <div
-          v-for="brand in brands"
-          :key="brand.slug"
+          v-for="brand in displayBrands"
+          :key="brand.id"
           class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-primary-300"
         >
           <router-link :to="`/brand/${brand.slug}`" class="block">
@@ -46,34 +62,41 @@
             <div class="relative h-48 overflow-hidden">
               <img 
                 :src="brand.image" 
-                :alt="brand.nameKey"
+                :alt="brand.name"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                @error="handleImageError($event, brand)"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-              <!-- Brand Logo Overlay -->
-              <div class="absolute top-4 right-4 w-16 h-16 bg-white rounded-full p-2 shadow-lg">
-                <img 
-                  :src="brand.logo" 
-                  :alt="brand.nameKey + ' Logo'"
-                  class="w-full h-full object-contain"
-                />
+              <!-- Status Badge -->
+              <div class="absolute top-4 left-4">
+                <span :class="[
+                  'px-3 py-1 rounded-full text-xs font-medium',
+                  brand.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                ]">
+                  {{ brand.isActive ? t('Active') : t('Inactive') }}
+                </span>
               </div>
             </div>
 
             <!-- Brand Info -->
             <div class="p-6">
               <h3 class="text-xl font-display-en font-bold text-gray-900 mb-2">
-                {{ t(brand.nameKey) }}
+                {{ brand.name }}
               </h3>
               <p class="text-gray-600 mb-4 line-clamp-2">
-                {{ t(brand.signatureKey) }}
+                {{ brand.signature || brand.description || `${brand.name} Collection` }}
               </p>
               
-              <!-- Brand Products Count -->
               <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-primary-600">
-                  {{ currentLanguage === 'en' ? 'Products' : 'المنتجات' }}: {{ getBrandProductsCount(brand.slug) }}
-                </span>
+                <div>
+                  <span class="text-sm font-medium text-primary-600">
+                    {{ t('Products') }}: {{ getBrandProductsCount(brand.slug) }}
+                  </span>
+                  <span class="mx-2 text-gray-300">•</span>
+                  <span class="text-sm text-gray-500">
+                    {{ brand.category }}
+                  </span>
+                </div>
                 <span class="text-primary-500 group-hover:text-primary-600 transition-colors">
                   {{ currentLanguage === 'en' ? 'Explore →' : 'استكشف →' }}
                 </span>
@@ -84,7 +107,7 @@
       </div>
 
       <!-- No Brands Message -->
-      <div v-if="brands.length === 0" class="text-center py-20">
+      <div v-if="!brandsStore.isLoading && !brandsStore.error && displayBrands.length === 0" class="text-center py-20">
         <div class="text-gray-400 mb-4">
           <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -108,82 +131,66 @@
 import { computed, onMounted } from 'vue'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
+import { useBrandsStore } from '@/stores/brands' // Import brands store
 import SEOHead from '@/components/UI/SEOHead.vue'
 
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
+const brandsStore = useBrandsStore() // Use brands store
 
 const { currentLanguage, isRTL, t } = languageStore
 
-// Brand data from your BrandPage
-const brands = [
-  { 
-    id: 1, 
-    slug: 'tom-ford', 
-    nameKey: 'brandTomFord',
-    signatureKey: 'noirExtreme',
-    image: '/images/GURLAND.png', 
-    logo: '/images/tomford.png',
-    descriptionKey: 'tomFordDescription'
-  },
-  { 
-    id: 2, 
-    slug: 'saint-laurent', 
-    nameKey: 'brandYsl',
-    signatureKey: 'blackOpium',
-    image: '/images/santlaurent.jpg', 
-    logo: '/images/saintlaurent.jpg',
-    descriptionKey: 'yslDescription'
-  },
-  { 
-    id: 3, 
-    slug: 'versace', 
-    nameKey: 'brandVersace',
-    signatureKey: 'erosFlame',
-    image: '/images/versacee.jpg', 
-    logo: '/images/versace.jpeg',
-    descriptionKey: 'versaceDescription'
-  },
-  { 
-    id: 4, 
-    slug: 'chanel', 
-    nameKey: 'brandChanel',
-    signatureKey: 'cocoMademoiselle',
-    image: '/images/chanceshaneal.jpeg', 
-    logo: '/images/shaneal.jpg',
-    descriptionKey: 'chanelDescription'
-  },
-  { 
-    id: 5, 
-    slug: 'dior', 
-    nameKey: 'brandDior',
-    signatureKey: 'sauvageElixir',
-    image: '/images/DIOUR.jpg', 
-    logo: '/images/dior.jpg',
-    descriptionKey: 'diorDescription'
-  },
-  { 
-    id: 6, 
-    slug: 'gucci', 
-    nameKey: 'brandGucci',
-    signatureKey: 'bloom',
-    image: '/images/GUCCI.jpg', 
-    logo: '/images/goochi.jpg',
-    descriptionKey: 'gucciDescription'
-  },
-]
+// COMPUTED: Get brands from brands store
+const displayBrands = computed(() => {
+  console.log('🔄 Getting brands from brands store:', brandsStore.brands.length)
+  
+  return brandsStore.brands.map(brand => ({
+    id: brand.id,
+    name: brand.name,
+    slug: brand.slug,
+    signature: brand.signature,
+    image: brand.image || '/images/brand-default.jpg',
+    description: brand.description,
+    category: brand.category,
+    isActive: brand.isActive !== false,
+    productCount: brand.productIds?.length || 0
+  }))
+})
 
 // Methods
 const getBrandProductsCount = (brandSlug: string) => {
-  return productsStore.getProductsByBrand(brandSlug).length
+  const count = productsStore.getProductsByBrand(brandSlug).length
+  console.log(`📊 Products count for ${brandSlug}:`, count)
+  return count
+}
+
+const handleImageError = (event: Event, brand: any) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/brand-default.jpg'
+}
+
+const loadBrands = async () => {
+  await brandsStore.loadBrands()
 }
 
 // On mounted
-onMounted(() => {
-  // Load products if not already loaded
-  if (productsStore.products.length === 0) {
-    productsStore.fetchProducts()
+onMounted(async () => {
+  console.log('🏠 BrandsPage mounted - Loading data...')
+  
+  // Load brands from brands store
+  if (brandsStore.brands.length === 0) {
+    console.log('📥 Loading brands from brands store...')
+    await brandsStore.loadBrands()
+    console.log('✅ Brands loaded:', brandsStore.brands.length)
   }
+  
+  // Load products if needed
+  if (productsStore.products.length === 0) {
+    console.log('📦 Loading products...')
+    await productsStore.fetchProducts()
+  }
+  
+  console.log('🎉 BrandsPage ready with', displayBrands.value.length, 'brands')
 })
 </script>
 

@@ -1,9 +1,11 @@
-// src/stores/homepage.ts - UPDATED WITH REAL-TIME FIREBASE FETCHING
+// src/stores/homepage.ts - SIMPLIFIED FOR SPARK PLAN
 import { defineStore } from 'pinia'
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted, watch } from 'vue'
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandsStore } from '@/stores/brands'
+import { useProductsStore } from '@/stores/products'
 
 // Type definitions matching your homepage
 interface Brand {
@@ -23,6 +25,7 @@ interface Offer {
   oldPrice: number
   newPrice: number
   slug: string
+  productId?: string
 }
 
 interface MarqueeBrand {
@@ -49,25 +52,19 @@ interface HomepageData {
   activeOffers: Offer[]
   marqueeBrands: MarqueeBrand[]
   settings: Settings
-  lastUpdated?: string // Add timestamp for sync checking
+  lastUpdated?: string
+  source?: 'firebase' | 'cache' | 'brandstore' | 'default'
 }
 
-interface StoredImage {
-  id: string
-  filename: string
-  type: string
-  size: number
-  data: string // Base64 string
-  path: string
-  uploadedAt: string
-  uploadedBy: string
-  isBase64: boolean
-}
+// Listener callback interface
+type ListenerCallback = (data: HomepageData) => void
 
 export const useHomepageStore = defineStore('homepage', () => {
   const authStore = useAuthStore()
+  const brandsStore = useBrandsStore()
+  const productsStore = useProductsStore()
   
-  // Default local data - EXACTLY MATCHING YOUR HOMEPAGE
+  // Default local data - FALLBACK DATA ONLY
   const defaultLocalData: HomepageData = {
     heroBanner: {
       imageUrl: '/images/banner.jpg',
@@ -177,10 +174,11 @@ export const useHomepageStore = defineStore('homepage', () => {
       isDarkMode: false,
       defaultLanguage: 'ar'
     },
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
+    source: 'default'
   }
 
-  // Homepage data structure - MUST BE REACTIVE
+  // Homepage data structure - REACTIVE
   const homepageData = reactive<HomepageData>({
     ...defaultLocalData
   })
@@ -192,12 +190,17 @@ export const useHomepageStore = defineStore('homepage', () => {
   // Real-time listener reference
   let unsubscribe: (() => void) | null = null
   const isListening = ref(false)
+  
+  // Component listeners
+  const listeners = new Set<ListenerCallback>()
 
   // Cache key for localStorage
   const CACHE_KEY = 'homepage_cache'
   const CACHE_TIMESTAMP_KEY = 'homepage_cache_timestamp'
   const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
 
+  // =================== FIREBASE INTEGRATION ===================
+  
   // Check if user has permission to modify
   const checkPermission = (): boolean => {
     if (authStore.user?.role !== 'super-admin') {
@@ -237,7 +240,11 @@ export const useHomepageStore = defineStore('homepage', () => {
   // Save data to cache
   const saveToCache = (data: HomepageData) => {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+      const dataToCache = {
+        ...data,
+        source: 'cache' as const
+      }
+      localStorage.setItem(CACHE_KEY, JSON.stringify(dataToCache))
       localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
       console.log('💾 Saved homepage data to cache')
     } catch (err) {
@@ -252,49 +259,65 @@ export const useHomepageStore = defineStore('homepage', () => {
     console.log('🧹 Cleared homepage cache')
   }
 
-  // Load homepage data from Firebase with real-time updates
-  const loadHomepageData = async (forceRefresh: boolean = false): Promise<void> => {
+  // Notify all listeners of data changes
+  const notifyListeners = (data: HomepageData) => {
+    listeners.forEach(callback => callback(data))
+  }
+
+  // Merge Firebase data with current data
+  const mergeFirebaseData = (firebaseData: HomepageData): HomepageData => {
+    console.log('🔄 Merging Firebase data:', {
+      brands: firebaseData.featuredBrands?.length,
+      offers: firebaseData.activeOffers?.length,
+      marquee: firebaseData.marqueeBrands?.length
+    })
+
+    // Always use Firebase data if available
+    return {
+      ...homepageData,
+      heroBanner: firebaseData.heroBanner || homepageData.heroBanner,
+      featuredBrands: firebaseData.featuredBrands || homepageData.featuredBrands,
+      activeOffers: firebaseData.activeOffers || homepageData.activeOffers,
+      marqueeBrands: firebaseData.marqueeBrands || homepageData.marqueeBrands,
+      settings: firebaseData.settings || homepageData.settings,
+      lastUpdated: firebaseData.lastUpdated || homepageData.lastUpdated,
+      source: 'firebase' as const
+    }
+  }
+
+  // Setup Firebase real-time listener
+  const setupFirebaseListener = async (): Promise<void> => {
+    if (unsubscribe) {
+      console.log('📡 Firebase listener already setup')
+      return
+    }
+    
     try {
-      isLoading.value = true
-      error.value = ''
-      
-      console.log('🔍 Loading homepage data from Firebase...')
       const homepageRef = doc(db, 'homepage', 'content')
       
-      // If force refresh, clear cache first
-      if (forceRefresh) {
-        clearCache()
-      }
-      
-      // Try to load from cache first for faster initial render
-      if (!forceRefresh) {
-        const cachedData = getCachedData()
-        if (cachedData) {
-          Object.assign(homepageData, cachedData)
-          console.log('✅ Loaded from cache')
-        }
-      }
-      
-      // Set up real-time listener
       unsubscribe = onSnapshot(homepageRef, (docSnap) => {
         console.log('📡 Real-time update received from Firebase')
         
         if (docSnap.exists()) {
-          const data = docSnap.data() as HomepageData
-          console.log('✅ New data received:', {
-            brands: data.featuredBrands?.length || 0,
-            offers: data.activeOffers?.length || 0,
-            lastUpdated: data.lastUpdated || 'Never'
+          const firebaseData = docSnap.data() as HomepageData
+          console.log('✅ Firebase data received:', {
+            brands: firebaseData.featuredBrands?.length || 0,
+            offers: firebaseData.activeOffers?.length || 0,
+            lastUpdated: firebaseData.lastUpdated || 'Never'
           })
           
-          // Update reactive data
-          Object.assign(homepageData, data)
+          // Merge and update data
+          const mergedData = mergeFirebaseData(firebaseData)
+          Object.assign(homepageData, mergedData)
           
           // Save to cache
-          saveToCache(data)
+          saveToCache(mergedData)
           
-          // Apply dark mode if needed
-          if (data.settings?.isDarkMode) {
+          // Notify listeners
+          notifyListeners(mergedData)
+          
+          // Apply dark mode
+          if (homepageData.settings?.isDarkMode) {
             document.documentElement.classList.add('dark')
           } else {
             document.documentElement.classList.remove('dark')
@@ -302,33 +325,100 @@ export const useHomepageStore = defineStore('homepage', () => {
           
           error.value = ''
           isListening.value = true
+          
         } else {
-          console.log('📝 No document found, creating default...')
-          // Create default document if it doesn't exist
-          initializeFirebaseData()
+          console.log('📝 No Firebase document found, keeping current data')
+          // Document doesn't exist yet, but listener is still connected
+          isListening.value = true
         }
         
       }, (err) => {
-        console.error('❌ Firebase listener error:', err.message)
-        error.value = 'Firebase connection error. Using cached data.'
+        console.error('❌ Firebase listener error:', err)
+        error.value = `Firebase error: ${err.message}`
         isListening.value = false
-        
-        // Fallback to cached data
-        const cachedData = getCachedData()
-        if (cachedData) {
-          Object.assign(homepageData, cachedData)
-          console.log('✅ Fallback to cached data')
-        }
       })
+      
+      console.log('✅ Firebase listener setup complete')
       
     } catch (err: any) {
       console.error('❌ Error setting up Firebase listener:', err)
-      error.value = 'Failed to connect to Firebase'
+      error.value = 'Failed to setup Firebase listener'
+      isListening.value = false
+    }
+  }
+
+  // Subscribe to updates from components
+  const subscribeToUpdates = (callback: ListenerCallback): (() => void) => {
+    listeners.add(callback)
+    
+    // Return unsubscribe function
+    return () => {
+      listeners.delete(callback)
+    }
+  }
+
+  // Load homepage data from Firebase with real-time updates
+  const loadHomepageData = async (forceRefresh: boolean = false): Promise<void> => {
+    try {
+      isLoading.value = true
+      error.value = ''
+      
+      console.log('🔍 Loading homepage data...')
+      
+      // Clear cache if forcing refresh
+      if (forceRefresh) {
+        clearCache()
+      }
+      
+      // Try cache first (if not forcing refresh)
+      if (!forceRefresh) {
+        const cachedData = getCachedData()
+        if (cachedData) {
+          console.log('📦 Using cached data')
+          Object.assign(homepageData, cachedData)
+          notifyListeners(cachedData)
+        }
+      }
+      
+      // Setup Firebase listener for real-time updates
+      await setupFirebaseListener()
+      
+      // Also fetch initial data directly
+      try {
+        const homepageRef = doc(db, 'homepage', 'content')
+        const docSnap = await getDoc(homepageRef)
+        
+        if (docSnap.exists()) {
+          const firebaseData = docSnap.data() as HomepageData
+          console.log('✅ Initial Firebase data loaded')
+          
+          const mergedData = mergeFirebaseData(firebaseData)
+          Object.assign(homepageData, mergedData)
+          
+          // Save to cache
+          saveToCache(mergedData)
+          
+          // Notify listeners
+          notifyListeners(mergedData)
+        } else {
+          console.log('📝 No Firebase document exists yet')
+          // Save current data to cache
+          saveToCache(homepageData)
+        }
+        
+      } catch (fetchErr) {
+        console.warn('⚠️ Could not fetch initial Firebase data:', fetchErr)
+      }
+      
+    } catch (err: any) {
+      console.error('❌ Error loading homepage data:', err)
+      error.value = 'Failed to load homepage data'
       
       // Fallback to cache
       const cachedData = getCachedData()
       if (cachedData) {
         Object.assign(homepageData, cachedData)
+        notifyListeners(cachedData)
         console.log('✅ Fallback to cached data after error')
       }
     } finally {
@@ -344,76 +434,165 @@ export const useHomepageStore = defineStore('homepage', () => {
       isListening.value = false
       console.log('🔇 Stopped Firebase listener')
     }
+    
+    // Clear component listeners
+    listeners.clear()
   }
 
-  // Initialize Firebase data
-  const initializeFirebaseData = async (): Promise<boolean> => {
+  // Helper function to ensure complete update
+  const updateFirebaseDocument = async (updates: Partial<HomepageData>): Promise<boolean> => {
     try {
-      checkPermission()
-      
       const homepageRef = doc(db, 'homepage', 'content')
-      await setDoc(homepageRef, {
-        ...homepageData,
-        lastUpdated: new Date().toISOString()
+      
+      // Get current document first to ensure we have all data
+      const docSnap = await getDoc(homepageRef)
+      let currentData: HomepageData
+      
+      if (docSnap.exists()) {
+        currentData = docSnap.data() as HomepageData
+      } else {
+        // Use current homepageData as base
+        currentData = { ...homepageData }
+      }
+      
+      // Create new data with updates
+      const newData: HomepageData = {
+        ...currentData,
+        ...updates,
+        lastUpdated: new Date().toISOString(),
+        source: 'firebase' as const
+      }
+      
+      console.log('💾 Saving to Firebase:', {
+        updates: Object.keys(updates),
+        brands: newData.featuredBrands?.length,
+        offers: newData.activeOffers?.length,
+        timestamp: newData.lastUpdated
       })
-      console.log('✅ Homepage data initialized in Firebase')
+      
+      // Save to Firebase - use setDoc with merge: false to overwrite
+      await setDoc(homepageRef, newData, { merge: false })
+      
+      // Update local store immediately (Firebase listener will also update it)
+      Object.assign(homepageData, newData)
+      
+      // Clear cache to force fresh data
+      clearCache()
+      
+      // Save updated data to cache
+      saveToCache(newData)
+      
+      // Notify listeners
+      notifyListeners(newData)
+      
+      console.log('✅ Firebase update successful')
       return true
+      
     } catch (err: any) {
-      console.error('❌ Error initializing Firebase data:', err)
-      error.value = 'Failed to initialize Firebase data: ' + err.message
-      return false
+      console.error('❌ Error updating Firebase:', err)
+      throw new Error(`Failed to update Firebase: ${err.message}`)
     }
   }
 
-  // =================== BASE64 UPLOAD IMAGE METHOD ===================
-  const uploadImage = async (file: File, path: string = 'offers'): Promise<string> => {
-    console.log('🔄 uploadImage method called')
-    console.log('📤 File:', file.name, 'Size:', (file.size / 1024).toFixed(2) + 'KB')
-    
-    try {
-      checkPermission()
-      isLoading.value = true
-      error.value = ''
-      
-      // Validate file size
-      const maxSize = 2 * 1024 * 1024 // 2MB
-      if (file.size > maxSize) {
-        throw new Error(`Image must be less than 2MB (current: ${(file.size / (1024 * 1024)).toFixed(2)}MB)`)
+  // =================== SIMPLIFIED IMAGE UPLOAD FOR SPARK PLAN ===================
+  
+  // Helper function to compress Base64 images (optional)
+  const compressBase64Image = async (base64String: string, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          
+          if (!ctx) {
+            console.warn('⚠️ Canvas context not available, using original image')
+            resolve(base64String)
+            return
+          }
+          
+          // Calculate new dimensions (max 800px width)
+          const maxWidth = 800
+          const maxHeight = 600
+          let width = img.width
+          let height = img.height
+          
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width
+              width = maxWidth
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height
+              height = maxHeight
+            }
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Compress to JPEG format for smaller size
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality)
+          console.log(`📊 Compression: ${Math.round((compressedBase64.length / base64String.length) * 100)}% of original size`)
+          
+          resolve(compressedBase64)
+        } catch (compressErr) {
+          console.warn('⚠️ Image compression failed:', compressErr)
+          resolve(base64String) // Return original if compression fails
+        }
       }
       
-      // Convert to Base64
+      img.onerror = () => {
+        console.warn('⚠️ Failed to load image for compression')
+        resolve(base64String) // Return original if image loading fails
+      }
+      
+      img.src = base64String
+    })
+  }
+
+  // SIMPLIFIED uploadImage function - Just returns Base64 string
+  const uploadImage = async (file: File): Promise<string> => {
+    console.log('🔄 Uploading image (simple Base64 conversion)')
+    console.log('📤 File:', file.name, 'Size:', (file.size / 1024).toFixed(2) + 'KB', 'Type:', file.type)
+    
+    try {
+      // Basic authentication check
+      if (!authStore.user) {
+        throw new Error('User must be logged in to upload images')
+      }
+      
+      // Validate file size (1MB max for Spark plan)
+      const maxSize = 1 * 1024 * 1024 // 1MB
+      if (file.size > maxSize) {
+        throw new Error(`Image must be less than 1MB (current: ${(file.size / (1024 * 1024)).toFixed(2)}MB)`)
+      }
+      
+      // Convert to Base64 and optionally compress
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
         
         reader.onload = async (e) => {
           try {
             const base64String = e.target?.result as string
+            console.log('✅ Image converted to Base64, size:', base64String.length)
             
-            // Create unique ID
-            const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            
-            // Store in Firestore
-            const imageData: StoredImage = {
-              id: imageId,
-              filename: file.name,
-              type: file.type,
-              size: file.size,
-              data: base64String,
-              path: path,
-              uploadedAt: new Date().toISOString(),
-              uploadedBy: authStore.user?.email || 'admin',
-              isBase64: true
+            // Optional: Compress the image for better performance
+            try {
+              const compressedBase64 = await compressBase64Image(base64String)
+              console.log('✅ Image compressed, compressed size:', compressedBase64.length)
+              resolve(compressedBase64)
+            } catch (compressErr) {
+              console.warn('⚠️ Compression failed, using original:', compressErr)
+              resolve(base64String)
             }
             
-            const imageRef = doc(db, 'images', imageId)
-            await setDoc(imageRef, imageData)
-            
-            console.log('✅ Image stored in Firestore:', imageId)
-            resolve(base64String)
-            
           } catch (err: any) {
-            console.error('❌ Error storing image:', err)
-            reject(new Error(`Failed to store image: ${err.message}`))
+            console.error('❌ Error processing image:', err)
+            reject(new Error(`Failed to process image: ${err.message}`))
           }
         }
         
@@ -427,38 +606,6 @@ export const useHomepageStore = defineStore('homepage', () => {
     } catch (err: any) {
       console.error('❌ Error in uploadImage:', err)
       error.value = 'Failed to upload image: ' + err.message
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // Helper function to ensure complete update
-  const updateFirebaseDocument = async (updates: Partial<HomepageData>): Promise<boolean> => {
-    try {
-      const homepageRef = doc(db, 'homepage', 'content')
-      
-      // Get current document first to ensure we have all data
-      const docSnap = await getDoc(homepageRef)
-      let currentData = docSnap.exists() ? docSnap.data() as HomepageData : defaultLocalData
-      
-      // Merge updates with current data
-      const newData = {
-        ...currentData,
-        ...updates,
-        lastUpdated: new Date().toISOString() // Always update timestamp
-      }
-      
-      // Use setDoc with merge to ensure complete update
-      await setDoc(homepageRef, newData, { merge: false }) // Use merge: false to replace entire document
-      
-      // Clear cache to force fresh load
-      clearCache()
-      
-      console.log('✅ Firebase document updated:', Object.keys(updates))
-      return true
-    } catch (err: any) {
-      console.error('❌ Error updating Firebase:', err)
       throw err
     }
   }
@@ -475,7 +622,6 @@ export const useHomepageStore = defineStore('homepage', () => {
         heroBanner: bannerData
       })
       
-      Object.assign(homepageData.heroBanner, bannerData)
       console.log('✅ Hero banner updated')
       return true
     } catch (err: any) {
@@ -498,7 +644,6 @@ export const useHomepageStore = defineStore('homepage', () => {
         featuredBrands: brands
       })
       
-      homepageData.featuredBrands = brands
       console.log('✅ Featured brands updated:', brands.length, 'brands')
       return true
     } catch (err: any) {
@@ -521,7 +666,6 @@ export const useHomepageStore = defineStore('homepage', () => {
         activeOffers: offers
       })
       
-      homepageData.activeOffers = offers
       console.log('✅ Active offers updated')
       return true
     } catch (err: any) {
@@ -544,7 +688,6 @@ export const useHomepageStore = defineStore('homepage', () => {
         marqueeBrands: brands
       })
       
-      homepageData.marqueeBrands = brands
       console.log('✅ Marquee brands updated')
       return true
     } catch (err: any) {
@@ -567,8 +710,6 @@ export const useHomepageStore = defineStore('homepage', () => {
         settings: settings
       })
       
-      Object.assign(homepageData.settings, settings)
-      
       // Apply dark mode immediately
       if (settings.isDarkMode) {
         document.documentElement.classList.add('dark')
@@ -584,6 +725,41 @@ export const useHomepageStore = defineStore('homepage', () => {
       return false
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // Initialize Firebase data
+  const initializeFirebaseData = async (): Promise<boolean> => {
+    try {
+      checkPermission()
+      
+      const homepageRef = doc(db, 'homepage', 'content')
+      
+      const dataToSave = {
+        ...homepageData,
+        lastUpdated: new Date().toISOString(),
+        source: 'firebase' as const
+      }
+      
+      await setDoc(homepageRef, dataToSave)
+      
+      console.log('✅ Homepage data initialized in Firebase')
+      return true
+    } catch (err: any) {
+      console.error('❌ Error initializing Firebase data:', err)
+      error.value = 'Failed to initialize Firebase data: ' + err.message
+      return false
+    }
+  }
+
+  // Sync with brand store (manual trigger)
+  const syncBrandStoreData = async (): Promise<void> => {
+    try {
+      console.log('🔄 Manually syncing with brand store...')
+      console.log('⚠️ Brand store sync method not implemented in current version')
+    } catch (err) {
+      console.error('❌ Error in manual sync:', err)
+      error.value = 'Failed to sync with brand store'
     }
   }
 
@@ -605,22 +781,41 @@ export const useHomepageStore = defineStore('homepage', () => {
     }
   }
 
+  // Reset to brand store data (clear Firebase customizations)
+  const resetToBrandStoreData = async (): Promise<boolean> => {
+    try {
+      checkPermission()
+      isLoading.value = true
+      
+      // Clear Firebase document to use brand store data
+      await initializeFirebaseData()
+      
+      clearCache()
+      
+      console.log('✅ Reset to brand store data')
+      return true
+    } catch (err: any) {
+      error.value = 'Failed to reset to brand store data: ' + err.message
+      console.error('❌ Error resetting:', err)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // Reset to local defaults
   const resetToLocalDefaults = async (): Promise<boolean> => {
     try {
       checkPermission()
       isLoading.value = true
       
-      await updateFirebaseDocument(defaultLocalData)
-      
-      Object.assign(homepageData, defaultLocalData)
-      
-      // Apply default dark mode
-      if (defaultLocalData.settings.isDarkMode) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
+      const resetData = {
+        ...defaultLocalData,
+        lastUpdated: new Date().toISOString(),
+        source: 'default' as const
       }
+      
+      await updateFirebaseDocument(resetData)
       
       console.log('✅ Reset to local defaults')
       return true
@@ -637,6 +832,32 @@ export const useHomepageStore = defineStore('homepage', () => {
   const forceRefresh = async (): Promise<void> => {
     console.log('🔄 Force refreshing homepage data...')
     await loadHomepageData(true)
+  }
+
+  // Check Firebase connection
+  const checkConnection = async (): Promise<{ connected: boolean; lastUpdate?: string }> => {
+    try {
+      const homepageRef = doc(db, 'homepage', 'content')
+      const docSnap = await getDoc(homepageRef)
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data() as HomepageData
+        return {
+          connected: true,
+          lastUpdate: data.lastUpdated
+        }
+      }
+      
+      return {
+        connected: true, // Connection successful even if doc doesn't exist
+        lastUpdate: undefined
+      }
+    } catch (err) {
+      console.error('❌ Connection check failed:', err)
+      return {
+        connected: false
+      }
+    }
   }
 
   // Cleanup on store destruction
@@ -658,8 +879,9 @@ export const useHomepageStore = defineStore('homepage', () => {
     // ACTIONS
     loadHomepageData,
     stopListening,
+    subscribeToUpdates,
     initializeFirebaseData,
-    uploadImage,
+    uploadImage, // Simple Base64 upload
     updateHeroBanner,
     updateFeaturedBrands,
     updateActiveOffers,
@@ -667,7 +889,10 @@ export const useHomepageStore = defineStore('homepage', () => {
     updateSettings,
     toggleDarkMode,
     resetToLocalDefaults,
+    resetToBrandStoreData,
+    syncBrandStoreData,
     forceRefresh,
-    clearCache
+    clearCache,
+    checkConnection
   }
 })

@@ -1,7 +1,7 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// Auth guard for protected routes
+// Auth guard for protected routes (requires authentication)
 export const authGuard = async (
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
@@ -11,44 +11,60 @@ export const authGuard = async (
 
   console.log('🛡️ Auth guard triggered for:', to.path)
   console.log('🔍 Current auth state:', {
-    isAuthenticated: authStore.isAuthenticated,
-    isAdmin: authStore.isAdmin,
-    isSuperAdmin: authStore.isSuperAdmin,
+    isAuthenticated: authStore.isAuthenticated.value,
+    isSuperAdmin: authStore.isSuperAdmin.value,
     user: authStore.user
   })
 
-  // Check if user is authenticated
-  if (!authStore.isAuthenticated) {
+  // Check authentication status
+  if (!authStore.isAuthenticated.value) {
     console.log('🔐 Not authenticated, checking auth...')
     await authStore.checkAuth()
   }
 
-  const userHasAccess = authStore.isAuthenticated && authStore.isAdmin
-  
-  console.log('✅ Access check result:', {
-    userHasAccess,
-    isAuthenticated: authStore.isAuthenticated,
-    isAdmin: authStore.isAdmin,
-    isSuperAdmin: authStore.isSuperAdmin
-  })
-
-  if (userHasAccess) {
-    console.log('🎉 Access granted, proceeding to:', to.path)
-    next()
-  } else {
-    console.log('🚫 Access denied, redirecting to login')
-    // Redirect to login with return URL
+  // If still not authenticated, redirect to login
+  if (!authStore.isAuthenticated.value) {
+    console.log('🚫 Not authenticated, redirecting to login')
     next({
       name: 'admin-login',
-      query: { 
+      query: {
         redirect: to.fullPath,
-        error: 'access_denied'
+        error: 'authentication_required'
       }
     })
+    return
   }
+
+  // Check if route requires admin access
+  if (to.meta.requiresAdmin && !authStore.isAdmin.value && !authStore.isSuperAdmin.value) {
+    console.log('🚫 Admin access required but user is not admin')
+    next({
+      name: 'admin-login',
+      query: {
+        redirect: to.fullPath,
+        error: 'admin_access_required'
+      }
+    })
+    return
+  }
+
+  // Check if route requires super admin access
+  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin.value) {
+    console.log('🚫 Super admin access required but user is not super admin')
+    next({
+      name: 'admin-dashboard',
+      query: {
+        error: 'superadmin_required'
+      }
+    })
+    return
+  }
+
+  console.log('✅ Access granted, proceeding to:', to.path)
+  next()
 }
 
-// Guest guard for login/register pages
+// Guest guard for login page (prevent access if already logged in)
 export const guestGuard = async (
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
@@ -58,14 +74,14 @@ export const guestGuard = async (
 
   console.log('🛡️ Guest guard triggered for:', to.path)
   
-  // Check if user is authenticated
-  if (!authStore.isAuthenticated) {
+  // Check current authentication status
+  if (!authStore.isAuthenticated.value) {
     await authStore.checkAuth()
   }
 
-  if (authStore.isAuthenticated && authStore.isAdmin) {
+  // If already authenticated as admin or super admin, redirect to dashboard
+  if (authStore.isAuthenticated.value && (authStore.isAdmin.value || authStore.isSuperAdmin.value)) {
     console.log('✅ Already logged in as admin, redirecting to dashboard')
-    // Already logged in, redirect to admin dashboard
     next({ name: 'admin-dashboard' })
   } else {
     console.log('👤 Not logged in or not admin, allowing access to login')
@@ -73,7 +89,7 @@ export const guestGuard = async (
   }
 }
 
-// Admin-only guard (requires admin role)
+// Admin guard (super-admin only) - kept for backward compatibility
 export const adminGuard = async (
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
@@ -83,46 +99,15 @@ export const adminGuard = async (
 
   console.log('🛡️ Admin guard triggered for:', to.path)
   
-  // Check if user is authenticated
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated.value) {
     await authStore.checkAuth()
   }
 
-  if (authStore.isAuthenticated && authStore.isAdmin) {
-    console.log('✅ Admin access granted')
+  if (authStore.isAuthenticated.value && authStore.isSuperAdmin.value) {
+    console.log('✅ Super-admin access granted')
     next()
   } else {
-    console.log('🚫 Admin access denied')
-    next({
-      name: 'admin-login',
-      query: { 
-        redirect: to.fullPath,
-        error: 'admin_required'
-      }
-    })
-  }
-}
-
-// Super-admin-only guard (requires super-admin role)
-export const superAdminGuard = async (
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: NavigationGuardNext
-) => {
-  const authStore = useAuthStore()
-
-  console.log('🛡️ SuperAdmin guard triggered for:', to.path)
-  
-  // Check if user is authenticated
-  if (!authStore.isAuthenticated) {
-    await authStore.checkAuth()
-  }
-
-  if (authStore.isAuthenticated && authStore.isSuperAdmin) {
-    console.log('✅ SuperAdmin access granted')
-    next()
-  } else {
-    console.log('🚫 SuperAdmin access denied')
+    console.log('🚫 Super-admin access denied')
     next({
       name: 'admin-login',
       query: { 
@@ -139,21 +124,18 @@ export const seoGuard = (
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) => {
-  // Update meta tags based on route
   updateMetaTags(to)
   next()
 }
 
-// Helper function to update meta tags
+// Helper functions for meta tags
 const updateMetaTags = (to: RouteLocationNormalized) => {
   const meta = to.meta
   const title = getLocalizedTitle(meta)
   const description = getLocalizedDescription(meta)
 
-  // Update document title
   document.title = title
 
-  // Update meta description
   let metaDescription = document.querySelector('meta[name="description"]')
   if (!metaDescription) {
     metaDescription = document.createElement('meta')
@@ -162,13 +144,11 @@ const updateMetaTags = (to: RouteLocationNormalized) => {
   }
   metaDescription.setAttribute('content', description)
 
-  // Update Open Graph tags
   updateOgTag('og:title', title)
   updateOgTag('og:description', description)
   updateOgTag('og:url', window.location.href)
 }
 
-// Helper to update Open Graph tags
 const updateOgTag = (property: string, content: string) => {
   let tag = document.querySelector(`meta[property="${property}"]`)
   if (!tag) {
@@ -179,26 +159,18 @@ const updateOgTag = (property: string, content: string) => {
   tag.setAttribute('content', content)
 }
 
-// Helper to get localized title
 const getLocalizedTitle = (meta: any): string => {
   const title = meta?.title
   if (!title) return 'Luxury Perfume Store'
-
   if (typeof title === 'string') return title
-  
-  // Get browser language or default to English
   const browserLang = navigator.language.startsWith('ar') ? 'ar' : 'en'
   return title[browserLang] || title.en || 'Luxury Perfume Store'
 }
 
-// Helper to get localized description
 const getLocalizedDescription = (meta: any): string => {
   const description = meta?.description
   if (!description) return 'Luxury perfume store with exclusive fragrances collection'
-
   if (typeof description === 'string') return description
-  
-  // Get browser language or default to English
   const browserLang = navigator.language.startsWith('ar') ? 'ar' : 'en'
   return description[browserLang] || description.en || 'Luxury perfume store with exclusive fragrances collection'
 }

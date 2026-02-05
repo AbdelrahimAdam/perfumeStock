@@ -1,4 +1,3 @@
-// src/router/routes.ts
 import type { RouteRecordRaw } from 'vue-router'
 import type { Language } from '@/types'
 
@@ -205,7 +204,6 @@ export const routes: Array<RouteRecordRaw> = [
     }
   },
 
-
   {
     path: '/orders',
     name: 'orders',
@@ -251,6 +249,7 @@ export const routes: Array<RouteRecordRaw> = [
     }
   },
 
+  // ========== ADMIN DASHBOARD ROUTES ==========
   // Admin Dashboard
   {
     path: '/admin',
@@ -271,8 +270,8 @@ export const routes: Array<RouteRecordRaw> = [
     path: '/admin/dashboard',
     redirect: { name: 'admin-dashboard' }
   },
-  
-  // Products Management
+
+  // ========== PRODUCTS MANAGEMENT ROUTES ==========
   {
     path: '/admin/products',
     name: 'admin-products',
@@ -318,8 +317,8 @@ export const routes: Array<RouteRecordRaw> = [
       layout: 'admin'
     }
   },
-  
-  // Orders Management
+
+  // ========== ORDERS MANAGEMENT ROUTES ==========
   {
     path: '/admin/orders',
     name: 'admin-orders',
@@ -335,7 +334,7 @@ export const routes: Array<RouteRecordRaw> = [
     }
   },
 
-  // Customers Management
+  // ========== CUSTOMERS MANAGEMENT ROUTES ==========
   {
     path: '/admin/customers',
     name: 'admin-customers',
@@ -344,6 +343,85 @@ export const routes: Array<RouteRecordRaw> = [
       title: {
         en: 'Manage Customers | Admin Dashboard',
         ar: 'إدارة العملاء | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== BRANDS MANAGEMENT ROUTES ==========
+  {
+    path: '/admin/brands',
+    name: 'admin-brands',
+    component: () => import('@/pages/Admin/BrandsPage.vue'),
+    meta: {
+      title: {
+        en: 'Manage Brands | Admin Dashboard',
+        ar: 'إدارة الماركات | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+  
+  {
+    path: '/admin/brands/new',
+    name: 'admin-brand-new',
+    component: () => import('@/pages/Admin/BrandFormPage.vue'),
+    meta: {
+      title: {
+        en: 'Add New Brand | Admin Dashboard',
+        ar: 'إضافة ماركة جديدة | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+  
+  {
+    path: '/admin/brands/edit/:id',
+    name: 'admin-brand-edit',
+    component: () => import('@/pages/Admin/BrandFormPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Edit Brand | Admin Dashboard',
+        ar: 'تعديل الماركة | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== ADMIN PROFILE ROUTES ==========
+  {
+    path: '/admin/profile',
+    name: 'admin-profile',
+    component: () => import('@/pages/Admin/ProfilePage.vue'),
+    meta: {
+      title: {
+        en: 'Admin Profile | Luxury Perfume Store',
+        ar: 'ملف المسؤول | متجر العطور الفاخرة'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      layout: 'admin'
+    }
+  },
+
+  // ========== SETTINGS ROUTES (ADMIN ONLY) ==========
+  {
+    path: '/admin/settings',
+    name: 'admin-settings',
+    component: () => import('@/pages/Admin/SettingsPage.vue'),
+    meta: {
+      title: {
+        en: 'Settings | Admin Dashboard',
+        ar: 'الإعدادات | لوحة تحكم المسؤول'
       },
       requiresAuth: true,
       requiresAdmin: true,
@@ -388,6 +466,23 @@ export const routes: Array<RouteRecordRaw> = [
     }
   },
 
+  // ========== ADMIN USERS MANAGEMENT ROUTES (SUPER ADMIN ONLY) ==========
+  {
+    path: '/admin/admins',
+    name: 'admin-admins',
+    component: () => import('@/pages/Admin/AdminsPage.vue'),
+    meta: {
+      title: {
+        en: 'Manage Admins | Admin Dashboard',
+        ar: 'إدارة المسؤولين | لوحة تحكم المسؤول'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      requiresSuperAdmin: true,
+      layout: 'admin'
+    }
+  },
+
   // ========== SUPER ADMIN ROUTES ==========
   {
     path: '/admin/superadmin',
@@ -401,22 +496,6 @@ export const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       requiresAdmin: true,
       requiresSuperAdmin: true,
-      layout: 'admin'
-    }
-  },
-
-  // ========== PROFILE ROUTES ==========
-  {
-    path: '/admin/profile',
-    name: 'admin-profile',
-    component: () => import('@/pages/Admin/ProfilePage.vue'),
-    meta: {
-      title: {
-        en: 'Admin Profile | Luxury Perfume Store',
-        ar: 'ملف المسؤول | متجر العطور الفاخرة'
-      },
-      requiresAuth: true,
-      requiresAdmin: true,
       layout: 'admin'
     }
   },

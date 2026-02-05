@@ -16,7 +16,7 @@
     <SEOHead 
       :title="product.name[currentLanguage]"
       :description="productDescription"
-      :image="product.imageUrl"
+      :image="productImage"
       type="product"
     />
 
@@ -29,11 +29,15 @@
         </router-link>
         <span class="mx-3">/</span>
         <router-link 
-          :to="`/brand/${product.brand}`" 
+          v-if="brandSlug"
+          :to="`/brand/${brandSlug}`" 
           class="hover:text-primary-600 transition-colors"
         >
-          {{ getBrandName(product.brand) }}
+          {{ brandName }}
         </router-link>
+        <span v-else class="text-gray-500">
+          {{ brandName }}
+        </span>
         <span class="mx-3">/</span>
         <span class="text-gray-900 font-medium">{{ product.name[currentLanguage] }}</span>
       </nav>
@@ -47,7 +51,7 @@
           <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl overflow-hidden 
                       shadow-luxury-lg">
             <img 
-              :src="product.imageUrl" 
+              :src="productImage" 
               :alt="product.name[currentLanguage]"
               class="w-full h-auto object-cover"
               loading="eager"
@@ -81,7 +85,7 @@
           <!-- Brand & Badges -->
           <div class="flex items-center gap-3 mb-6" :class="{ 'flex-row-reverse': isRTL }">
             <span class="px-4 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
-              {{ getBrandName(product.brand) }}
+              {{ brandName }}
             </span>
             <span 
               v-if="product.isBestSeller"
@@ -105,7 +109,7 @@
           <!-- Price -->
           <div class="flex items-center gap-4 mb-6">
             <span class="text-3xl font-bold text-primary-600">
-              ${{ product.price.toFixed(2) }}
+              {{ t('currencyLE') }} {{ product.price.toFixed(2) }}
             </span>
             <span class="text-gray-500 text-lg">
               {{ product.size }} • {{ product.concentration }}
@@ -120,7 +124,7 @@
               </svg>
             </div>
             <span class="text-gray-600">
-              {{ product.rating.toFixed(1) }} • {{ product.reviewCount }} {{ t('reviews') }}
+              {{ productRating }} • {{ product.reviewCount || 0 }} {{ t('reviews') }}
             </span>
           </div>
 
@@ -132,12 +136,12 @@
           </div>
 
           <!-- Fragrance Notes -->
-          <div class="mb-8">
+          <div class="mb-8" v-if="hasFragranceNotes">
             <h3 class="text-xl font-display-en font-bold mb-4">
               {{ t('Fragrance Notes') }}
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="bg-gray-50 rounded-xl p-5">
+              <div class="bg-gray-50 rounded-xl p-5" v-if="product.notes?.top?.length">
                 <div class="text-primary-600 font-bold mb-2 flex items-center gap-2">
                   <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
                   {{ t('Top Notes') }}
@@ -152,7 +156,7 @@
                   </span>
                 </div>
               </div>
-              <div class="bg-gray-50 rounded-xl p-5">
+              <div class="bg-gray-50 rounded-xl p-5" v-if="product.notes?.heart?.length">
                 <div class="text-primary-600 font-bold mb-2 flex items-center gap-2">
                   <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
                   {{ t('Heart Notes') }}
@@ -167,7 +171,7 @@
                   </span>
                 </div>
               </div>
-              <div class="bg-gray-50 rounded-xl p-5">
+              <div class="bg-gray-50 rounded-xl p-5" v-if="product.notes?.base?.length">
                 <div class="text-primary-600 font-bold mb-2 flex items-center gap-2">
                   <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
                   {{ t('Base Notes') }}
@@ -218,8 +222,14 @@
                 class="w-full bg-primary-500 text-white py-4 rounded-xl font-bold 
                        hover:bg-primary-600 transition-all duration-300 transform 
                        hover:-translate-y-0.5 shadow-gold-lg"
+                :disabled="!product.isActive"
               >
-                {{ t('Add to Cart') }} • ${{ (product.price * quantity).toFixed(2) }}
+                <template v-if="!product.isActive">
+                  {{ t('Out of Stock') }}
+                </template>
+                <template v-else>
+                  {{ t('Add to Cart') }} • {{ t('currencyLE') }} {{ (product.price * quantity).toFixed(2) }}
+                </template>
               </button>
               
               <button
@@ -284,6 +294,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
 import { useCartStore } from '@/stores/cart'
+import { useBrandsStore } from '@/stores/brands'
 import ProductGrid from '@/components/Products/ProductGrid.vue'
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue'
 import SEOHead from '@/components/UI/SEOHead.vue'
@@ -294,70 +305,110 @@ const router = useRouter()
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
 const cartStore = useCartStore()
+const brandsStore = useBrandsStore()
 
 const { currentLanguage, isRTL, t } = languageStore
-const { getProductById } = productsStore
 
 const product = ref<Product | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const quantity = ref(1)
 const selectedImage = ref('')
+const brandDetails = ref<any>(null)
 
 // Computed properties
+const productImage = computed(() => {
+  return selectedImage.value || product.value?.imageUrl || ''
+})
+
 const productImages = computed(() => {
   if (!product.value) return []
-  // Use images array if available, otherwise use single imageUrl
-  return product.value.images && product.value.images.length > 0 
-    ? product.value.images 
-    : [product.value.imageUrl]
+  
+  // Start with main image
+  const images = [product.value.imageUrl || '']
+  
+  // Add additional images if available
+  if (product.value.images && Array.isArray(product.value.images)) {
+    product.value.images.forEach(img => {
+      if (img && !images.includes(img)) {
+        images.push(img)
+      }
+    })
+  }
+  
+  return images.filter(Boolean)
 })
 
 const productDescription = computed(() => {
   if (!product.value) return ''
-  const desc = product.value.description[currentLanguage]
+  const desc = product.value.description?.[currentLanguage] || ''
   return desc.length > 160 ? desc.substring(0, 160) + '...' : desc
 })
 
 const isNewArrival = computed(() => {
-  if (!product.value?.createdAt) return false
-  const oneMonthAgo = new Date()
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  // Handle both timestamp formats
-  const productDate = product.value.createdAt.seconds 
-    ? new Date(product.value.createdAt.seconds * 1000)
-    : new Date(product.value.createdAt)
-  return productDate > oneMonthAgo
+  if (!product.value?.isNew) return false
+  return product.value.isNew
+})
+
+const productRating = computed(() => {
+  if (!product.value?.rating) return '0.0'
+  return typeof product.value.rating === 'number' ? product.value.rating.toFixed(1) : '0.0'
+})
+
+const hasFragranceNotes = computed(() => {
+  if (!product.value?.notes) return false
+  const notes = product.value.notes
+  return (notes.top && notes.top.length > 0) || 
+         (notes.heart && notes.heart.length > 0) || 
+         (notes.base && notes.base.length > 0)
+})
+
+const brandSlug = computed(() => {
+  return product.value?.brandSlug || product.value?.brand || ''
+})
+
+const brandName = computed(() => {
+  if (brandDetails.value) {
+    return brandDetails.value.name
+  }
+  
+  if (product.value?.brandName) {
+    return product.value.brandName
+  }
+  
+  // Fallback to slug if no name available
+  return brandSlug.value
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 })
 
 const relatedProducts = computed(() => {
-  if (!product.value || !productsStore.products.length) return []
+  if (!product.value) return []
   
-  return productsStore.products
-    .filter(p => 
-      p.id !== product.value!.id && 
-      (p.brand === product.value!.brand || p.category === product.value!.category)
+  // Get products from the same brand
+  const sameBrandProducts = productsStore.products.filter(p => 
+    p.id !== product.value?.id && 
+    p.brandSlug === product.value?.brandSlug &&
+    p.isActive
+  )
+  
+  // If not enough products from same brand, add similar category products
+  if (sameBrandProducts.length < 4) {
+    const similarCategoryProducts = productsStore.products.filter(p => 
+      p.id !== product.value?.id && 
+      p.category === product.value?.category &&
+      p.isActive &&
+      !sameBrandProducts.find(sp => sp.id === p.id)
     )
-    .slice(0, 4)
+    
+    return [...sameBrandProducts, ...similarCategoryProducts].slice(0, 4)
+  }
+  
+  return sameBrandProducts.slice(0, 4)
 })
 
-// Brand data for display
-const brands = [
-  { slug: 'dior', name: { en: 'Dior', ar: 'ديور' } },
-  { slug: 'chanel', name: { en: 'Chanel', ar: 'شانيل' } },
-  { slug: 'tom-ford', name: { en: 'Tom Ford', ar: 'توم فورد' } },
-  { slug: 'gucci', name: { en: 'Gucci', ar: 'غوتشي' } },
-  { slug: 'versace', name: { en: 'Versace', ar: 'فيرساتشي' } },
-  { slug: 'yves-saint-laurent', name: { en: 'Yves Saint Laurent', ar: 'ايف سان لوران' } },
-  { slug: 'saint-laurent', name: { en: 'Saint Laurent', ar: 'سان لوران' } }
-]
-
 // Methods
-const getBrandName = (brandSlug: string) => {
-  const brand = brands.find(b => b.slug === brandSlug)
-  return brand ? brand.name[currentLanguage] : brandSlug
-}
-
 const decreaseQuantity = () => {
   if (quantity.value > 1) {
     quantity.value--
@@ -368,9 +419,16 @@ const increaseQuantity = () => {
   quantity.value++
 }
 
-const addToCart = () => {
-  if (product.value) {
-    cartStore.addToCart(product.value, quantity.value)
+const addToCart = async () => {
+  if (product.value && product.value.isActive) {
+    try {
+      await cartStore.addToCart(product.value, quantity.value)
+      
+      // Show success notification (you can implement a toast notification here)
+      console.log('Added to cart:', product.value.name[currentLanguage])
+    } catch (error) {
+      console.error('Failed to add to cart:', error)
+    }
   }
 }
 
@@ -385,6 +443,19 @@ const viewProduct = (relatedProduct: Product) => {
   router.push(`/product/${relatedProduct.slug}`)
 }
 
+const loadBrandDetails = async () => {
+  if (!brandSlug.value) return
+  
+  try {
+    const brand = await brandsStore.getBrandBySlug(brandSlug.value)
+    if (brand) {
+      brandDetails.value = brand
+    }
+  } catch (error) {
+    console.error('Failed to load brand details:', error)
+  }
+}
+
 // Watch for route changes
 watch(
   () => route.params.slug,
@@ -394,21 +465,19 @@ watch(
       error.value = null
       
       try {
-        // Make sure products are loaded
-        if (productsStore.products.length === 0) {
-          await productsStore.fetchProducts()
-        }
+        // Fetch product by slug from Firebase
+        const fetchedProduct = await productsStore.fetchProductBySlug(newSlug as string)
         
-        // Find product by slug
-        const foundProduct = productsStore.products.find(p => p.slug === newSlug)
-        
-        if (!foundProduct) {
+        if (!fetchedProduct) {
           error.value = t('Product not found')
           product.value = null
         } else {
-          product.value = foundProduct
-          selectedImage.value = product.value.imageUrl
+          product.value = fetchedProduct
+          selectedImage.value = product.value.imageUrl || ''
           quantity.value = 1
+          
+          // Load brand details
+          await loadBrandDetails()
         }
       } catch (err: any) {
         error.value = err.message || t('Failed to load product')
@@ -422,14 +491,73 @@ watch(
 )
 
 // On mounted
-onMounted(() => {
-  // Load products if not already loaded
+onMounted(async () => {
+  // Make sure products are loaded (for related products)
   if (productsStore.products.length === 0) {
-    productsStore.fetchProducts()
+    await productsStore.fetchProducts()
+  }
+  
+  // Make sure brands are loaded
+  if (brandsStore.brands.length === 0) {
+    await brandsStore.loadBrands()
   }
 })
 </script>
 
 <style scoped>
-/* Custom styles if needed */
+/* Custom styles */
+.shadow-luxury-lg {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-gold-lg {
+  box-shadow: 0 10px 40px rgba(245, 158, 11, 0.3);
+}
+
+.font-display-en {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .sticky {
+    position: relative;
+    top: 0;
+  }
+}
+
+/* Loading animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+div[class*="bg-gradient"] {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Custom scrollbar for thumbnails */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
 </style>

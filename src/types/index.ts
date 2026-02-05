@@ -230,6 +230,68 @@ export interface LuxuryTheme {
   }
 }
 
+export interface Brand {
+  id: string
+  name: string
+  slug: string
+  image: string
+  signature?: string
+  description?: string
+  category?: string
+  price?: number
+  isActive: boolean
+  productIds?: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface BrandWithProducts extends Brand {
+  products: Product[]
+}
+
+export interface FeaturedBrand {
+  id: string
+  name: string
+  image: string
+  signature: string
+  price: number
+  slug: string
+  category?: string
+}
+
+// Update Product interface to include brand reference
+export interface Product {
+  id: string
+  slug: string
+  name: Translation
+  brand: string // Brand slug
+  brandId?: string // Brand document ID
+  description: Translation
+  price: number
+  originalPrice?: number
+  size: string
+  concentration: string
+  notes: {
+    top: string[]
+    heart: string[]
+    base: string[]
+  }
+  imageUrl: string
+  images: string[]
+  category: string
+  isBestSeller: boolean
+  inStock: boolean
+  rating?: number
+  reviewCount?: number
+  createdAt?: any
+  updatedAt?: any
+  meta?: {
+    weight?: string
+    dimensions?: string
+    ingredients?: string[]
+    howToUse?: Translation
+  }
+}
 // Export all types
 export type {
   Language,
@@ -249,4 +311,35 @@ export type {
   ContactFormData,
   NewsletterFormData,
   LuxuryTheme
+}
+// Add this interface to your existing index.ts file
+export interface OrderCustomer {
+  name: string
+  email: string
+  phone: string
+  userId?: string
+}
+
+// Also update the Order interface to match the store requirements
+export interface Order {
+  id: string
+  orderNumber: string
+  customer: OrderCustomer
+  items: CartItem[]
+  subtotal: number
+  shippingCost: number
+  tax?: number
+  discount?: number
+  total: number
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  paymentMethod: string
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
+  shippingAddress: string
+  trackingNumber?: string
+  notes?: string
+  createdAt: Date
+  updatedAt: Date
+  shippedAt?: Date
+  deliveredAt?: Date
+  cancelledAt?: Date
 }
