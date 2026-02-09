@@ -11,9 +11,8 @@ import {
   query,
   where,
   orderBy,
-  addDoc,
-  serverTimestamp,
-  arrayUnion
+  writeBatch,
+  serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import type { Brand, BrandWithProducts } from '@/types'
@@ -106,31 +105,33 @@ export const useBrandsStore = defineStore('brands', () => {
       const brandDoc = snapshot.docs[0]
       const brand = transformBrandData(brandDoc.data(), brandDoc.id)
 
-      let products: Product[] = []
+      // Fetch products from brand subcollection
+      const productsRef = collection(db, 'brands', brand.id, 'products')
+      const ps = await getDocs(productsRef)
 
-      if (brand.productIds.length > 0) {
-        const productPromises = brand.productIds.map(async id => {
-          try {
-            const p = await getDoc(doc(db, 'products', id))
-            return p.exists() ? ({ id: p.id, ...p.data() } as Product) : null
-          } catch {
-            return null
-          }
-        })
-
-        products = (await Promise.all(productPromises)).filter(
-          Boolean
-        ) as Product[]
-      } else {
-        const productsRef = collection(db, 'products')
-        const pq = query(productsRef, where('brand', '==', slug))
-        const ps = await getDocs(pq)
-
-        products = ps.docs.map(d => ({
+      const products: Product[] = ps.docs.map(d => {
+        const data = d.data()
+        return {
           id: d.id,
-          ...d.data()
-        })) as Product[]
-      }
+          name: data.name || { en: '', ar: '' },
+          description: data.description || { en: '', ar: '' },
+          price: Number(data.price || 0),
+          size: data.size || '100ml',
+          concentration: data.concentration || 'Eau de Parfum',
+          imageUrl: data.imageUrl || '',
+          images: Array.isArray(data.images) ? data.images : [],
+          inStock: data.inStock !== false,
+          isBestSeller: data.isBestSeller || false,
+          isFeatured: data.isFeatured || false,
+          slug: data.slug || '',
+          brand: data.brand || '',
+          category: data.category || '',
+          ratings: data.ratings || 0,
+          ratingCount: data.ratingCount || 0,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          updatedAt: data.updatedAt?.toDate?.() || new Date()
+        } as Product
+      })
 
       currentBrand.value = {
         ...brand,
@@ -157,66 +158,111 @@ export const useBrandsStore = defineStore('brands', () => {
     isLoading.value = true
     error.value = ''
 
+    const batch = writeBatch(db)
+
     try {
+      console.log('Starting addBrandWithProducts:', { brandData, productsData })
+
       if (!brandData.name || !brandData.slug) {
         throw new Error('Brand name and slug are required')
       }
 
-      const brandsRef = collection(db, 'brands')
+      if (!brandData.category) {
+        throw new Error('Brand category is required')
+      }
 
+      // Check slug uniqueness
+      const brandsRef = collection(db, 'brands')
       const slugCheck = await getDocs(
         query(brandsRef, where('slug', '==', brandData.slug))
       )
       if (!slugCheck.empty) {
-        throw new Error('Brand slug already exists')
+        throw new Error(`Brand slug "${brandData.slug}" already exists`)
       }
 
-      const brandRef = await addDoc(brandsRef, {
-        name: brandData.name,
-        slug: brandData.slug,
-        image: brandData.image || '',
-        signature: brandData.signature || '',
-        description: brandData.description || '',
-        category: brandData.category || '',
+      // Brand document
+      const brandDocRef = doc(collection(db, 'brands'))
+      const brandId = brandDocRef.id
+      const brandPayload = {
+        name: brandData.name.trim(),
+        slug: brandData.slug.trim(),
+        image: brandData.image?.trim() || '',
+        signature: brandData.signature?.trim() || '',
+        description: brandData.description?.trim() || '',
+        category: brandData.category.trim(),
         isActive: brandData.isActive !== false,
-        price: brandData.price || 0,
-        productIds: [],
+        price: Number(brandData.price) || 0,
+        productIds: [], // optional, can fetch from subcollection
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      })
-
-      const productIds: string[] = []
-
-      for (const p of productsData) {
-        if (!p.name?.en) continue
-
-        const productRef = await addDoc(collection(db, 'products'), {
-          ...p,
-          slug:
-            p.slug ||
-            p.name.en.toLowerCase().replace(/\s+/g, '-'),
-          brand: brandData.slug,
-          brandId: brandRef.id,
-          images: Array.isArray(p.images) ? p.images : [],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
-
-        productIds.push(productRef.id)
       }
 
-      await updateDoc(brandRef, {
-        productIds,
-        updatedAt: serverTimestamp()
-      })
+      batch.set(brandDocRef, brandPayload)
 
-      await productsStore.fetchProducts()
-      await loadBrands()
+      const productIds: string[] = []
+      const productSlugs = new Set<string>()
 
-      return brandRef.id
+      // Products as subcollection
+      for (let i = 0; i < productsData.length; i++) {
+        const product = productsData[i]
+        if (!product.name?.en) throw new Error(`Product ${i + 1} must have an English name`)
+
+        let productSlug = product.slug || product.name.en.toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/--+/g, '-')
+          .trim()
+
+        let counter = 1
+        const originalSlug = productSlug
+        while (productSlugs.has(productSlug)) {
+          productSlug = `${originalSlug}-${counter}`
+          counter++
+        }
+        productSlugs.add(productSlug)
+
+        const productDocRef = doc(collection(db, 'brands', brandId, 'products'))
+
+        const productPayload: any = {
+          name: { en: product.name.en.trim(), ar: product.name.ar?.trim() || product.name.en.trim() },
+          description: { en: product.description?.en?.trim() || '', ar: product.description?.ar?.trim() || '' },
+          price: Number(product.price) || 0,
+          size: product.size || '100ml',
+          concentration: product.concentration || 'Eau de Parfum',
+          imageUrl: product.imageUrl || '',
+          images: Array.isArray(product.images) ? product.images : (product.imageUrl ? [product.imageUrl] : []),
+          inStock: product.inStock !== false,
+          isBestSeller: product.isBestSeller || false,
+          isFeatured: product.isFeatured || false,
+          slug: productSlug,
+          brand: brandData.slug?.trim() || '',
+          brandId,
+          category: product.category || brandData.category || '',
+          ratings: product.ratings || 0,
+          ratingCount: product.ratingCount || 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }
+
+        batch.set(productDocRef, productPayload)
+        productIds.push(productDocRef.id)
+      }
+
+      // Optional: update brand with product IDs
+      batch.update(brandDocRef, { productIds, updatedAt: serverTimestamp() })
+
+      console.log('Committing batch with', productIds.length + 1, 'documents')
+      await batch.commit()
+
+      // Refresh stores
+      await Promise.all([loadBrands(), productsStore.fetchProducts()])
+
+      console.log(`✅ Created brand ${brandId} with ${productIds.length} products`)
+      return brandId
     } catch (err: any) {
-      error.value = err?.message || 'Failed to add brand'
+      error.value = err?.message || 'Failed to add brand with products'
       console.error('❌ addBrandWithProducts error:', err)
+      console.error('Failed data:', { brandData, productsData })
       return null
     } finally {
       isLoading.value = false
@@ -230,25 +276,91 @@ export const useBrandsStore = defineStore('brands', () => {
     brandId: string,
     updates: Partial<Brand>
   ): Promise<boolean> => {
+    isLoading.value = true
+    error.value = ''
+
     try {
-      await updateDoc(doc(db, 'brands', brandId), {
-        ...updates,
-        updatedAt: serverTimestamp()
-      })
+      const brandRef = doc(db, 'brands', brandId)
+      const updatePayload: any = { updatedAt: serverTimestamp() }
+
+      if (updates.name !== undefined) updatePayload.name = updates.name.trim()
+      if (updates.slug !== undefined) updatePayload.slug = updates.slug.trim()
+      if (updates.image !== undefined) updatePayload.image = updates.image.trim()
+      if (updates.signature !== undefined) updatePayload.signature = updates.signature.trim()
+      if (updates.description !== undefined) updatePayload.description = updates.description.trim()
+      if (updates.category !== undefined) updatePayload.category = updates.category.trim()
+      if (updates.isActive !== undefined) updatePayload.isActive = updates.isActive
+      if (updates.price !== undefined) updatePayload.price = Number(updates.price)
+      if (updates.productIds !== undefined) updatePayload.productIds = updates.productIds
+
+      await updateDoc(brandRef, updatePayload)
       await loadBrands()
       return true
-    } catch {
+    } catch (err: any) {
+      error.value = err?.message || 'Failed to update brand'
       return false
+    } finally {
+      isLoading.value = false
     }
   }
 
   const deleteBrand = async (brandId: string): Promise<boolean> => {
+    isLoading.value = true
+    error.value = ''
+
     try {
-      await deleteDoc(doc(db, 'brands', brandId))
-      await loadBrands()
+      const brandRef = doc(db, 'brands', brandId)
+      const brandSnap = await getDoc(brandRef)
+      if (!brandSnap.exists()) throw new Error('Brand not found')
+
+      // Delete brand + products batch
+      const batch = writeBatch(db)
+      batch.delete(brandRef)
+
+      const productsRef = collection(db, 'brands', brandId, 'products')
+      const productsSnap = await getDocs(productsRef)
+      productsSnap.docs.forEach(d => batch.delete(d.ref))
+
+      await batch.commit()
+      await Promise.all([loadBrands(), productsStore.fetchProducts()])
       return true
-    } catch {
+    } catch (err: any) {
+      error.value = err?.message || 'Failed to delete brand'
       return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /* =========================
+   * GET BRAND BY ID
+   * ========================= */
+  const getBrandById = async (brandId: string): Promise<Brand | null> => {
+    try {
+      const brandDoc = await getDoc(doc(db, 'brands', brandId))
+      if (brandDoc.exists()) return transformBrandData(brandDoc.data(), brandDoc.id)
+      return null
+    } catch (err: any) {
+      return null
+    }
+  }
+
+  /* =========================
+   * GET BRANDS BY CATEGORY
+   * ========================= */
+  const getBrandsByCategory = async (category: string): Promise<Brand[]> => {
+    try {
+      const brandsRef = collection(db, 'brands')
+      const q = query(
+        brandsRef,
+        where('category', '==', category),
+        where('isActive', '==', true),
+        orderBy('name')
+      )
+      const snapshot = await getDocs(q)
+      return snapshot.docs.map(d => transformBrandData(d.data(), d.id))
+    } catch (err: any) {
+      return []
     }
   }
 
@@ -256,9 +368,7 @@ export const useBrandsStore = defineStore('brands', () => {
    * INIT
    * ========================= */
   const initialize = async () => {
-    if (brands.value.length === 0) {
-      await loadBrands()
-    }
+    if (brands.value.length === 0) await loadBrands()
   }
 
   return {
@@ -273,6 +383,8 @@ export const useBrandsStore = defineStore('brands', () => {
     initialize,
     loadBrands,
     getBrandBySlug,
+    getBrandById,
+    getBrandsByCategory,
     addBrandWithProducts,
     updateBrand,
     deleteBrand

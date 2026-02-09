@@ -7,61 +7,183 @@
       type="website"
     />
 
-    <!-- Hero Section -->
-    <div class="relative bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-      <div class="container mx-auto px-4 py-16 md:py-24">
-        <div class="max-w-3xl" :class="{ 'text-right': isRTL }">
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-display-en font-bold mb-6">
-            {{ currentLanguage === 'en' ? 'Luxury Perfume Collection' : 'مجموعة العطور الفاخرة' }}
-          </h1>
-          <p class="text-lg md:text-xl text-gray-300 mb-8">
-            {{ currentLanguage === 'en' 
-               ? 'Discover our exclusive collection of premium fragrances from the world\'s most prestigious brands. All prices in EGP.' 
-               : 'اكتشف مجموعتنا الحصرية من العطور المميزة من أشهر الماركات العالمية. جميع الأسعار بالجنيه المصري.' }}
-          </p>
-          <div class="flex items-center gap-4 text-sm">
-            <span class="bg-primary-500/20 text-primary-300 px-4 py-2 rounded-full">
-              {{ currentLanguage === 'en' ? 'Free Shipping' : 'شحن مجاني' }}
-            </span>
-            <span class="bg-primary-500/20 text-primary-300 px-4 py-2 rounded-full">
-              {{ currentLanguage === 'en' ? 'Authentic Products' : 'منتجات أصلية' }}
-            </span>
-            <span class="bg-primary-500/20 text-primary-300 px-4 py-2 rounded-full">
-              {{ currentLanguage === 'en' ? 'EGP Prices' : 'أسعار بالجنيه المصري' }}
-            </span>
-          </div>
+    <div class="container mx-auto px-4 py-8">
+      <!-- Loading State -->
+      <div v-if="productsStore.isLoading && productsStore.products.length === 0" class="py-20">
+        <div class="flex flex-col items-center justify-center">
+          <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p class="text-gray-600">{{ currentLanguage === 'en' ? 'Loading luxury perfumes...' : 'جاري تحميل العطور الفاخرة...' }}</p>
         </div>
       </div>
-    </div>
 
-    <div class="container mx-auto px-4 py-8">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-600 mb-8" 
-           :class="{ 'flex-row-reverse': isRTL }">
-        <router-link to="/" class="hover:text-primary-600 transition-colors">
-          {{ currentLanguage === 'en' ? 'Home' : 'الرئيسية' }}
-        </router-link>
-        <span class="mx-3">/</span>
-        <span class="text-gray-900 font-medium">{{ currentLanguage === 'en' ? 'Shop All' : 'تسوق الكل' }}</span>
-      </nav>
+      <!-- Error State -->
+      <div v-else-if="productsStore.error && productsStore.products.length === 0" class="py-20">
+        <div class="text-center">
+          <div class="text-red-500 mb-4">
+            <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-medium text-gray-900 mb-2">
+            {{ currentLanguage === 'en' ? 'Failed to Load Products' : 'فشل في تحميل المنتجات' }}
+          </h3>
+          <p class="text-gray-600 mb-6">{{ productsStore.error }}</p>
+          <button
+            @click="retryLoading"
+            class="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 
+                   transition-colors duration-200 font-medium"
+          >
+            {{ currentLanguage === 'en' ? 'Retry' : 'إعادة المحاولة' }}
+          </button>
+        </div>
+      </div>
 
-      <div class="grid lg:grid-cols-4 gap-8">
-        <!-- Sidebar Filters -->
-        <div class="lg:col-span-1">
-          <div class="sticky top-24">
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h3 class="text-lg font-display-en font-bold mb-4">
+      <!-- Main Content -->
+      <template v-else>
+        <!-- Breadcrumb -->
+        <nav class="flex items-center text-sm text-gray-600 mb-8" 
+             :class="{ 'flex-row-reverse': isRTL }">
+          <router-link to="/" class="hover:text-primary-600 transition-colors">
+            {{ currentLanguage === 'en' ? 'Home' : 'الرئيسية' }}
+          </router-link>
+          <span class="mx-3">/</span>
+          <span class="text-gray-900 font-medium">{{ currentLanguage === 'en' ? 'Shop All' : 'تسوق الكل' }}</span>
+        </nav>
+
+        <!-- Search Bar -->
+        <div class="mb-8">
+          <div class="relative max-w-2xl mx-auto">
+            <div class="relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="currentLanguage === 'en' ? 'Search perfumes by name, brand, or notes...' : 'ابحث عن العطور بالاسم، الماركة، أو النوتات...'"
+                class="w-full px-6 py-4 pl-12 pr-12 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:outline-none transition-all duration-200"
+                @input="handleSearch"
+              />
+              <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <button
+                v-if="searchQuery"
+                @click="clearSearch"
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Search Results Info -->
+            <div v-if="searchQuery && filteredProducts.length > 0" class="mt-3 text-sm text-gray-600">
+              <p>
+                {{ currentLanguage === 'en' 
+                   ? `Found ${filteredProducts.length} products for "${searchQuery}"`
+                   : `تم العثور على ${filteredProducts.length} منتج لـ "${searchQuery}"` }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Filter Toggle and Sort -->
+        <div class="lg:hidden flex items-center justify-between mb-6">
+          <div class="flex items-center gap-4">
+            <button
+              @click="toggleMobileFilters"
+              class="filter-toggle-btn flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              {{ currentLanguage === 'en' ? 'Filters' : 'الفلاتر' }}
+              <span v-if="activeFilters.length > 0" class="bg-primary-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {{ activeFilters.length }}
+              </span>
+            </button>
+            
+            <!-- Active filters badges for mobile -->
+            <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-2">
+              <button
+                @click="clearFilters"
+                class="text-xs text-gray-600 hover:text-primary-600 flex items-center"
+              >
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {{ currentLanguage === 'en' ? 'Clear' : 'مسح' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort dropdown for mobile -->
+          <select
+            v-model="filters.sortBy"
+            class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 
+                   focus:ring-primary-500 focus:border-transparent bg-white"
+            @change="handleSortChange"
+          >
+            <option value="newest">{{ currentLanguage === 'en' ? 'Newest' : 'الأحدث' }}</option>
+            <option value="price-low">{{ currentLanguage === 'en' ? 'Price ↑' : 'السعر ↑' }}</option>
+            <option value="price-high">{{ currentLanguage === 'en' ? 'Price ↓' : 'السعر ↓' }}</option>
+            <option value="rating">{{ currentLanguage === 'en' ? 'Top Rated' : 'الأعلى تقييماً' }}</option>
+            <option value="best-selling">{{ currentLanguage === 'en' ? 'Best Selling' : 'الأفضل مبيعاً' }}</option>
+          </select>
+        </div>
+
+        <div class="flex gap-8">
+          <!-- Sidebar Filters - Desktop & Mobile Overlay -->
+          <div 
+            ref="sidebarRef"
+            :class="[
+              'sidebar-filters lg:block lg:w-1/4',
+              showMobileFilters 
+                ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto lg:static lg:inset-auto lg:z-auto lg:p-0 lg:overflow-visible' 
+                : 'hidden lg:block'
+            ]"
+          >
+            <!-- Mobile filter header -->
+            <div v-if="showMobileFilters" class="flex items-center justify-between mb-6 lg:hidden">
+              <h2 class="text-xl font-bold">{{ currentLanguage === 'en' ? 'Filters' : 'الفلاتر' }}</h2>
+              <button 
+                @click="showMobileFilters = false"
+                class="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Categories -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+              <h3 class="font-medium text-gray-900 mb-3">
                 {{ currentLanguage === 'en' ? 'Categories' : 'الفئات' }}
               </h3>
-              <div class="space-y-2">
+              <div class="space-y-1">
                 <button
-                  v-for="category in categories"
+                  @click="updateFilter('category', undefined)"
+                  :class="[
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
+                    !filters.category
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  ]"
+                  :style="{ direction: isRTL ? 'rtl' : 'ltr' }"
+                >
+                  {{ currentLanguage === 'en' ? 'All Categories' : 'جميع الفئات' }}
+                </button>
+                <button
+                  v-for="category in productsStore.categories"
                   :key="category.id"
                   @click="updateFilter('category', category.id)"
                   :class="[
-                    'w-full text-left px-4 py-3 rounded-lg transition-all duration-200',
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
                     filters.category === category.id
-                      ? 'bg-primary-500 text-white shadow-gold'
+                      ? 'bg-primary-500 text-white'
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                   ]"
                   :style="{ direction: isRTL ? 'rtl' : 'ltr' }"
@@ -71,141 +193,243 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-lg p-6">
-              <h3 class="text-lg font-display-en font-bold mb-4">
-                {{ currentLanguage === 'en' ? 'Price Range (EGP)' : 'نطاق السعر (جنيه مصري)' }}
+            <!-- Price Range -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+              <h3 class="font-medium text-gray-900 mb-3">
+                {{ currentLanguage === 'en' ? 'Price Range' : 'نطاق السعر' }}
               </h3>
-              <div class="space-y-2">
+              <div class="space-y-1">
+                <button
+                  @click="updatePriceRange({ min: undefined, max: undefined })"
+                  :class="[
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
+                    !filters.minPrice && !filters.maxPrice
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  {{ currentLanguage === 'en' ? 'All Prices' : 'جميع الأسعار' }}
+                </button>
                 <button
                   v-for="range in priceRanges"
                   :key="range.label[currentLanguage]"
                   @click="updatePriceRange(range)"
                   :class="[
-                    'w-full text-left px-4 py-3 rounded-lg transition-all duration-200',
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
                     isPriceRangeSelected(range)
-                      ? 'bg-primary-500 text-white shadow-gold'
+                      ? 'bg-primary-500 text-white'
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                   ]"
                 >
                   {{ range.label[currentLanguage] }}
                 </button>
               </div>
+            </div>
 
-              <div class="mt-6 pt-6 border-t border-gray-200">
-                <h3 class="text-lg font-display-en font-bold mb-4">
-                  {{ currentLanguage === 'en' ? 'Brands' : 'الماركات' }}
-                </h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
+            <!-- Additional Filters -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+              <h3 class="font-medium text-gray-900 mb-3">
+                {{ currentLanguage === 'en' ? 'Additional Filters' : 'خيارات إضافية' }}
+              </h3>
+              <div class="space-y-2">
+                <button
+                  @click="updateFilter('bestseller', filters.bestseller ? undefined : true)"
+                  :class="[
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
+                    filters.bestseller
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  {{ currentLanguage === 'en' ? 'Best Sellers' : 'الأفضل مبيعاً' }}
+                </button>
+
+                <button
+                  @click="updateFilter('newArrival', filters.newArrival ? undefined : true)"
+                  :class="[
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
+                    filters.newArrival
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  {{ currentLanguage === 'en' ? 'New Arrivals' : 'الوصلات الجديدة' }}
+                </button>
+
+                <button
+                  @click="updateFilter('isFeatured', filters.isFeatured ? undefined : true)"
+                  :class="[
+                    'w-full text-left px-3 py-2 rounded transition-all duration-200 text-sm',
+                    filters.isFeatured
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  {{ currentLanguage === 'en' ? 'Featured' : 'مميز' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <button
+              @click="clearFilters"
+              class="w-full px-4 py-3 text-gray-600 hover:text-primary-600 
+                     border border-gray-300 rounded-lg hover:border-primary-500 
+                     transition-all duration-200 text-sm font-medium"
+            >
+              {{ currentLanguage === 'en' ? 'Clear All Filters' : 'مسح جميع الفلاتر' }}
+            </button>
+
+            <!-- Close button for mobile -->
+            <div v-if="showMobileFilters" class="mt-6 lg:hidden">
+              <button
+                @click="showMobileFilters = false"
+                class="w-full px-4 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 
+                       transition-colors duration-200 font-medium"
+              >
+                {{ currentLanguage === 'en' ? 'Show Products' : 'عرض المنتجات' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div :class="['w-full', showMobileFilters ? 'hidden lg:block lg:w-3/4' : 'lg:w-3/4']">
+            <!-- Header with counts and sort - Desktop -->
+            <div class="hidden lg:flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-900">
+                  {{ currentLanguage === 'en' ? 'All Products' : 'جميع المنتجات' }}
+                  <span class="text-primary-500">({{ filteredProducts.length }})</span>
+                </h2>
+                <p class="text-gray-600 mt-1">
+                  {{ currentLanguage === 'en' 
+                     ? `Showing ${Math.min(visibleCount, filteredProducts.length)} of ${filteredProducts.length} products` 
+                     : `عرض ${Math.min(visibleCount, filteredProducts.length)} من أصل ${filteredProducts.length} منتج` }}
+                </p>
+                <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-2 mt-2">
+                  <span v-for="filter in activeFilters" :key="filter.label" class="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+                    {{ filter.label }}
+                  </span>
                   <button
-                    v-for="brand in luxuryBrands"
-                    :key="brand"
-                    @click="updateFilter('brand', brand)"
-                    :class="[
-                      'w-full text-left px-4 py-2 rounded-lg transition-all duration-200',
-                      filters.brand === brand
-                        ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                    ]"
+                    @click="clearFilters"
+                    class="text-xs text-gray-600 hover:text-primary-600 flex items-center"
                   >
-                    {{ brand }}
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {{ currentLanguage === 'en' ? 'Clear' : 'مسح' }}
                   </button>
                 </div>
               </div>
 
+              <div class="flex items-center gap-4">
+                <select
+                  v-model="filters.sortBy"
+                  class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 
+                         focus:ring-primary-500 focus:border-transparent bg-white"
+                  @change="handleSortChange"
+                >
+                  <option value="newest">{{ currentLanguage === 'en' ? 'Newest First' : 'الأحدث أولاً' }}</option>
+                  <option value="price-low">{{ currentLanguage === 'en' ? 'Price: Low to High' : 'السعر: منخفض إلى مرتفع' }}</option>
+                  <option value="price-high">{{ currentLanguage === 'en' ? 'Price: High to Low' : 'السعر: مرتفع إلى منخفض' }}</option>
+                  <option value="rating">{{ currentLanguage === 'en' ? 'Highest Rated' : 'الأعلى تقييماً' }}</option>
+                  <option value="name-asc">{{ currentLanguage === 'en' ? 'Name: A-Z' : 'الاسم: أ-ي' }}</option>
+                  <option value="name-desc">{{ currentLanguage === 'en' ? 'Name: Z-A' : 'الاسم: ي-أ' }}</option>
+                  <option value="popular">{{ currentLanguage === 'en' ? 'Most Popular' : 'الأكثر شعبية' }}</option>
+                  <option value="best-selling">{{ currentLanguage === 'en' ? 'Best Selling' : 'الأفضل مبيعاً' }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Loading indicator for additional products -->
+            <div v-if="productsStore.isFetchingMore" class="text-center py-8">
+              <div class="inline-flex items-center text-primary-500">
+                <div class="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                <span>{{ currentLanguage === 'en' ? 'Loading more products...' : 'جاري تحميل المزيد من المنتجات...' }}</span>
+              </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div v-if="visibleProducts.length > 0">
+              <ProductGrid 
+                :products="visibleProducts"
+                @view-product="viewProduct"
+                @add-to-cart="addToCart"
+              />
+
+              <!-- Load More Button -->
+              <div v-if="productsStore.hasMore && showLoadMore" class="text-center mt-12">
+                <button
+                  @click="loadMoreProducts"
+                  :disabled="productsStore.isFetchingMore"
+                  :class="[
+                    'px-8 py-3 rounded-lg transition-colors duration-200 font-medium',
+                    productsStore.isFetchingMore
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-primary-500 text-white hover:bg-primary-600'
+                  ]"
+                >
+                  <template v-if="productsStore.isFetchingMore">
+                    <div class="inline-flex items-center">
+                      <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      {{ currentLanguage === 'en' ? 'Loading...' : 'جاري التحميل...' }}
+                    </div>
+                  </template>
+                  <template v-else>
+                    {{ currentLanguage === 'en' ? 'Load More Products' : 'تحميل المزيد من المنتجات' }}
+                  </template>
+                </button>
+              </div>
+
+              <!-- End of Results -->
+              <div v-else-if="filteredProducts.length > 0 && !productsStore.hasMore" class="text-center mt-12 pt-8 border-t border-gray-200">
+                <p class="text-gray-600">
+                  {{ currentLanguage === 'en' 
+                     ? `You've viewed all ${filteredProducts.length} products` 
+                     : `لقد شاهدت جميع المنتجات البالغ عددها ${filteredProducts.length} منتج` }}
+                </p>
+              </div>
+            </div>
+
+            <!-- No Products Message -->
+            <div v-else class="text-center py-20">
+              <div class="text-gray-400 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-medium text-gray-900 mb-2">
+                {{ currentLanguage === 'en' ? 'No Products Found' : 'لم يتم العثور على منتجات' }}
+              </h3>
+              <p class="text-gray-600 mb-6">
+                <template v-if="searchQuery">
+                  {{ currentLanguage === 'en' 
+                     ? `No products found for "${searchQuery}". Try adjusting your search or filters.` 
+                     : `لم يتم العثور على منتجات لـ "${searchQuery}". حاول تعديل البحث أو الفلاتر.` }}
+                </template>
+                <template v-else>
+                  {{ currentLanguage === 'en' 
+                     ? 'Try adjusting your filters or browse all categories.' 
+                     : 'حاول تعديل الفلاتر أو تصفح جميع الفئات.' }}
+                </template>
+              </p>
               <button
                 @click="clearFilters"
-                class="w-full mt-6 px-4 py-3 text-gray-600 hover:text-primary-600 
-                       border border-gray-300 rounded-lg hover:border-primary-500 
-                       transition-all duration-200 font-medium"
+                class="text-primary-600 hover:text-primary-700 font-medium underline"
               >
                 {{ currentLanguage === 'en' ? 'Clear All Filters' : 'مسح جميع الفلاتر' }}
               </button>
             </div>
           </div>
         </div>
-
-        <!-- Products Grid -->
-        <div class="lg:col-span-3">
-          <!-- Header with counts and sort -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div>
-              <h2 class="text-2xl font-display-en font-bold text-gray-900">
-                {{ currentLanguage === 'en' ? 'All Products' : 'جميع المنتجات' }}
-                <span class="text-primary-500">({{ filteredProducts.length }})</span>
-              </h2>
-              <p class="text-gray-600 mt-1">
-                {{ currentLanguage === 'en' 
-                   ? `Showing ${filteredProducts.length} of ${products.length} products` 
-                   : `عرض ${filteredProducts.length} من أصل ${products.length} منتج` }}
-              </p>
-            </div>
-
-            <div class="flex items-center gap-4">
-              <select
-                v-model="filters.sortBy"
-                class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 
-                       focus:ring-primary-500 focus:border-transparent bg-white"
-              >
-                <option value="newest">{{ currentLanguage === 'en' ? 'Newest First' : 'الأحدث أولاً' }}</option>
-                <option value="price-low">{{ currentLanguage === 'en' ? 'Price: Low to High' : 'السعر: منخفض إلى مرتفع' }}</option>
-                <option value="price-high">{{ currentLanguage === 'en' ? 'Price: High to Low' : 'السعر: مرتفع إلى منخفض' }}</option>
-                <option value="rating">{{ currentLanguage === 'en' ? 'Highest Rated' : 'الأعلى تقييماً' }}</option>
-                <option value="name">{{ currentLanguage === 'en' ? 'Name' : 'الاسم' }}</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Products Grid -->
-          <div v-if="filteredProducts.length > 0">
-            <ProductGrid 
-              :products="filteredProducts"
-              @view-product="viewProduct"
-              @add-to-cart="addToCart"
-            />
-
-            <!-- Load More Button -->
-            <div v-if="showLoadMore" class="text-center mt-12">
-              <button
-                @click="loadMoreProducts"
-                class="px-8 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 
-                       transition-colors duration-200 font-medium"
-              >
-                {{ currentLanguage === 'en' ? 'Load More Products' : 'تحميل المزيد من المنتجات' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- No Products Message -->
-          <div v-else class="text-center py-20">
-            <div class="text-gray-400 mb-4">
-              <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-medium text-gray-900 mb-2">
-              {{ currentLanguage === 'en' ? 'No Products Found' : 'لم يتم العثور على منتجات' }}
-            </h3>
-            <p class="text-gray-600 mb-6">
-              {{ currentLanguage === 'en' 
-                 ? 'Try adjusting your filters or browse all categories.' 
-                 : 'حاول تعديل الفلاتر أو تصفح جميع الفئات.' }}
-            </p>
-            <button
-              @click="clearFilters"
-              class="text-primary-600 hover:text-primary-700 font-medium underline"
-            >
-              {{ currentLanguage === 'en' ? 'Clear All Filters' : 'مسح جميع الفلاتر' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
@@ -220,13 +444,19 @@ const productsStore = useProductsStore()
 const cartStore = useCartStore()
 
 const { currentLanguage, isRTL } = languageStore
-const { categories, luxuryBrands, products, filterProducts } = productsStore
+
+// Refs
+const sidebarRef = ref<HTMLElement>()
+const showMobileFilters = ref(false)
+const searchQuery = ref('')
+const searchTimeout = ref<NodeJS.Timeout>()
 
 // State
 const filters = ref<FilterOptions>({
   sortBy: 'newest'
 })
 const visibleCount = ref(12)
+const isInitialLoad = ref(true)
 
 // Price ranges in EGP
 const priceRanges = [
@@ -234,12 +464,29 @@ const priceRanges = [
   { min: 1000, max: 2000, label: { en: '1000 - 2000 EGP', ar: '1000 - 2000 جنيه' } },
   { min: 2000, max: 5000, label: { en: '2000 - 5000 EGP', ar: '2000 - 5000 جنيه' } },
   { min: 5000, max: 10000, label: { en: '5000 - 10000 EGP', ar: '5000 - 10000 جنيه' } },
-  { min: 10000, max: Infinity, label: { en: '10000+ EGP', ar: '10000+ جنيه' } }
+  { min: 10000, max: undefined, label: { en: '10000+ EGP', ar: '10000+ جنيه' } }
 ]
 
 // Computed
 const filteredProducts = computed(() => {
-  return productsStore.filterProducts(filters.value)
+  let filtered = productsStore.filterProducts(filters.value)
+  
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(product => 
+      product.name.en.toLowerCase().includes(query) ||
+      product.name.ar.toLowerCase().includes(query) ||
+      product.description.en.toLowerCase().includes(query) ||
+      product.description.ar.toLowerCase().includes(query) ||
+      product.brand.toLowerCase().includes(query) ||
+      product.notes.top.some(note => note.toLowerCase().includes(query)) ||
+      product.notes.heart.some(note => note.toLowerCase().includes(query)) ||
+      product.notes.base.some(note => note.toLowerCase().includes(query))
+    )
+  }
+  
+  return filtered
 })
 
 const visibleProducts = computed(() => {
@@ -250,42 +497,159 @@ const showLoadMore = computed(() => {
   return visibleCount.value < filteredProducts.value.length
 })
 
+const activeFilters = computed(() => {
+  const active: Array<{ label: string, value: any }> = []
+  
+  if (filters.value.category) {
+    const category = productsStore.getCategoryById(filters.value.category)
+    if (category) {
+      active.push({ 
+        label: `${currentLanguage === 'en' ? 'Category' : 'الفئة'}: ${category[currentLanguage]}`, 
+        value: filters.value.category 
+      })
+    }
+  }
+  
+  if (filters.value.minPrice !== undefined || filters.value.maxPrice !== undefined) {
+    const min = filters.value.minPrice ?? 0
+    const max = filters.value.maxPrice ?? Infinity
+    const range = priceRanges.find(r => r.min === min && r.max === max)
+    active.push({ 
+      label: range ? range.label[currentLanguage] : `${currentLanguage === 'en' ? 'Price' : 'السعر'}: ${formatPrice(min)} - ${max === Infinity ? '∞' : formatPrice(max)} EGP`, 
+      value: { min, max } 
+    })
+  }
+  
+  if (filters.value.bestseller) {
+    active.push({ 
+      label: currentLanguage === 'en' ? 'Best Sellers' : 'الأفضل مبيعاً', 
+      value: true 
+    })
+  }
+  
+  if (filters.value.newArrival) {
+    active.push({ 
+      label: currentLanguage === 'en' ? 'New Arrivals' : 'الوصلات الجديدة', 
+      value: true 
+    })
+  }
+  
+  if (filters.value.isFeatured) {
+    active.push({ 
+      label: currentLanguage === 'en' ? 'Featured' : 'مميز', 
+      value: true 
+    })
+  }
+  
+  return active
+})
+
 // Methods
+const toggleMobileFilters = () => {
+  showMobileFilters.value = !showMobileFilters.value
+}
+
 const updateFilter = (key: keyof FilterOptions, value: any) => {
-  if (filters.value[key] === value) {
-    delete filters.value[key]
+  if (key === 'price') {
+    // Handle luxury filter special case
+    if (value === 1000) {
+      filters.value.minPrice = 1000
+      filters.value.price = 1000
+    } else {
+      delete filters.value.minPrice
+      delete filters.value.price
+    }
   } else {
     filters.value[key] = value
   }
   visibleCount.value = 12 // Reset to first page
+  
+  // Close mobile filters after selection
+  if (window.innerWidth < 1024) {
+    showMobileFilters.value = false
+  }
+  
+  // Trigger immediate filter update
+  productsStore.setFilters({ ...filters.value })
 }
 
-const updatePriceRange = (range: typeof priceRanges[0]) => {
-  if (isPriceRangeSelected(range)) {
+const updatePriceRange = (range: { min?: number, max?: number }) => {
+  if (range.min === undefined && range.max === undefined) {
     delete filters.value.minPrice
     delete filters.value.maxPrice
+    delete filters.value.price
   } else {
     filters.value.minPrice = range.min
-    filters.value.maxPrice = range.max === Infinity ? undefined : range.max
+    filters.value.maxPrice = range.max
+    // Clear luxury filter if using price range
+    delete filters.value.price
   }
   visibleCount.value = 12
+  
+  // Close mobile filters after selection
+  if (window.innerWidth < 1024) {
+    showMobileFilters.value = false
+  }
+  
+  productsStore.setFilters({ ...filters.value })
 }
 
 const isPriceRangeSelected = (range: typeof priceRanges[0]) => {
   return (
     filters.value.minPrice === range.min &&
-    (filters.value.maxPrice === range.max || 
-     (range.max === Infinity && filters.value.maxPrice === undefined))
+    (filters.value.maxPrice === range.max || (range.max === undefined && filters.value.maxPrice === undefined))
   )
 }
 
+const handleSortChange = () => {
+  visibleCount.value = 12
+  productsStore.setFilters({ ...filters.value })
+}
+
 const clearFilters = () => {
-  filters.value = { sortBy: 'newest' }
+  // Reset to default filters but keep sort preference
+  const sortBy = filters.value.sortBy || 'newest'
+  filters.value = { sortBy }
+  searchQuery.value = ''
+  visibleCount.value = 12
+  productsStore.resetFilters()
+  productsStore.setFilters({ sortBy })
+  
+  // Close mobile filters
+  showMobileFilters.value = false
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
   visibleCount.value = 12
 }
 
-const loadMoreProducts = () => {
+const handleSearch = () => {
+  // Clear previous timeout
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+  
+  // Set new timeout for debouncing
+  searchTimeout.value = setTimeout(() => {
+    visibleCount.value = 12
+  }, 300)
+}
+
+const loadMoreProducts = async () => {
+  if (!productsStore.hasMore) return
+  
+  // First load more products from the store
+  await productsStore.loadMoreProducts()
+  
+  // Then increase visible count
   visibleCount.value += 12
+}
+
+const retryLoading = async () => {
+  isInitialLoad.value = true
+  await productsStore.refreshProducts()
+  isInitialLoad.value = false
 }
 
 const viewProduct = (product: Product) => {
@@ -296,37 +660,185 @@ const addToCart = (product: Product, quantity: number = 1) => {
   cartStore.addToCart(product, quantity)
 }
 
-// Watch for language changes to update SEO
-watch(() => currentLanguage.value, () => {
-  // Language changed, component will automatically update
-})
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-EG').format(price)
+}
+
+// Click outside handler for mobile filters
+const handleClickOutside = (event: MouseEvent) => {
+  if (showMobileFilters.value && window.innerWidth < 1024) {
+    const target = event.target as HTMLElement
+    const sidebar = sidebarRef.value
+    const toggleBtn = document.querySelector('.filter-toggle-btn')
+    
+    if (sidebar && !sidebar.contains(target) && toggleBtn && !toggleBtn.contains(target)) {
+      showMobileFilters.value = false
+    }
+  }
+}
+
+// Watch for filter changes to update store filters
+watch(filters, (newFilters) => {
+  // Don't update store on initial load
+  if (isInitialLoad.value) return
+  
+  // Debounce the filter update
+  clearTimeout(filterTimeout)
+  filterTimeout = setTimeout(() => {
+    productsStore.setFilters({ ...newFilters })
+  }, 300)
+}, { deep: true })
+
+let filterTimeout: NodeJS.Timeout
+
+// Watch for store filters to trigger fetch
+watch(
+  () => productsStore.filters,
+  (newStoreFilters) => {
+    // Sync local filters with store filters
+    if (!isInitialLoad.value) {
+      Object.keys(newStoreFilters).forEach(key => {
+        if (filters.value[key as keyof FilterOptions] !== newStoreFilters[key as keyof FilterOptions]) {
+          filters.value[key as keyof FilterOptions] = newStoreFilters[key as keyof FilterOptions]
+        }
+      })
+    }
+  },
+  { deep: true }
+)
 
 // On mounted
-onMounted(() => {
-  // Load products if not already loaded
+onMounted(async () => {
+  // Initialize products store if not already loaded
   if (productsStore.products.length === 0) {
-    productsStore.fetchProducts()
+    await productsStore.initialize()
   }
+  
+  // Set initial filters from store
+  const storeFilters = productsStore.filters
+  if (storeFilters && Object.keys(storeFilters).length > 0) {
+    filters.value = { ...filters.value, ...storeFilters }
+  }
+  
+  isInitialLoad.value = false
+  
+  // Ensure store has the latest filters
+  await nextTick()
+  productsStore.setFilters({ ...filters.value })
+  
+  // Add click outside listener for mobile filters
+  document.addEventListener('click', handleClickOutside)
+})
+
+// On unmounted, clean up
+onUnmounted(() => {
+  // Clear any timeouts
+  clearTimeout(filterTimeout)
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+  
+  // Remove event listener
+  document.removeEventListener('click', handleClickOutside)
+  
+  // Reset component state
+  visibleCount.value = 12
+  isInitialLoad.value = true
+  showMobileFilters.value = false
+})
+
+// Auto-refresh products when language changes
+watch(
+  () => currentLanguage.value,
+  () => {
+    // Refresh products with current filters
+    if (!isInitialLoad.value && productsStore.products.length > 0) {
+      productsStore.refreshProducts()
+    }
+  }
+)
+
+// Close mobile filters on escape key
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && showMobileFilters.value) {
+    showMobileFilters.value = false
+  }
+}
+
+// Add escape key listener
+onMounted(() => {
+  document.addEventListener('keydown', handleEscapeKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEscapeKey)
 })
 </script>
 
 <style scoped>
-/* Custom scrollbar for brands list */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+/* Animation for loading */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #d4af37;
-  border-radius: 3px;
+/* Smooth transitions for filter buttons */
+button {
+  transition: all 0.2s ease-in-out;
 }
 
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #b8941f;
+/* Mobile sidebar animation */
+@media (max-width: 1023px) {
+  .sidebar-filters {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .sidebar-filters:not(.hidden) {
+    transform: translateX(0);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Search bar styling */
+input:focus {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+/* Active filter indicator */
+.bg-primary-500 {
+  position: relative;
+}
+
+.bg-primary-500::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+/* RTL support for search */
+[dir="rtl"] input {
+  padding-left: 3rem;
+  padding-right: 3rem;
+}
+
+[dir="rtl"] .absolute.left-4 {
+  left: auto;
+  right: 1rem;
+}
+
+[dir="rtl"] .absolute.right-4 {
+  right: auto;
+  left: 1rem;
 }
 </style>

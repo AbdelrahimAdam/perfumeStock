@@ -1,26 +1,23 @@
-/* main.css - Luxury Perfume Theme */
+/* main.css - P.Notes Perfume Store - EXACT CLIENT REQUIREMENTS */
 
 /* Base Styles */
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Custom Base Styles */
+/* Custom Base Styles - EXACT COLORS FROM PDF */
 @layer base {
   :root {
-    /* Luxury Color Palette */
-    --color-dark-bg: 10 10 10; /* #0a0a0a */
-    --color-dark-brown: 26 18 11; /* #1a120b */
-    --color-gold: 212 175 55; /* #D4AF37 */
-    --color-gold-light: 244 231 193; /* #F4E7C1 */
-    --color-gold-dark: 184 148 31; /* #B8941F */
-    --color-light-bg: 249 247 243; /* #F9F7F3 */
-    --color-card-bg: 255 255 255; /* #FFFFFF */
-    --color-red: 196 30 58; /* #C41E3A */
+    /* EXACT Color Palette from Client PDF */
+    --color-gold: 205 163 73;      /* rgb(205,163,73) - Gold for headings, highlights */
+    --color-gray: 102 102 102;     /* rgb(102,102,102) - Gray for body text */
+    --color-gray-tint: 209 211 212;/* rgb(209,211,212) - Light Gray Tint for backgrounds */
+    --color-white: 255 255 255;    /* #FFFFFF */
+    --color-black: 0 0 0;          /* #000000 */
     
-    /* Typography */
-    --font-serif: 'Cormorant Garamond', serif;
-    --font-sans: 'Inter', sans-serif;
+    /* Typography from PDF */
+    --font-headline: 'Changa', serif;          /* Hot Pizza alternative */
+    --font-body: 'Inter', sans-serif;          /* Avenir Next alternative */
     
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -30,380 +27,491 @@
     --spacing-xl: 8rem;
     
     /* Shadows */
-    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.1);
-    --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.15);
-    --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.3);
-    --shadow-luxury: 0 10px 40px rgba(0, 0, 0, 0.2);
+    --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Reset and Base */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
 
   html {
-    @apply antialiased;
+    font-size: 16px;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-[#0a0a0a] text-[#f4e7c1] overflow-x-hidden;
-    font-family: 'Inter', sans-serif;
+    background-color: rgb(var(--color-white));
+    color: rgb(var(--color-gray));
+    font-family: var(--font-body);
     line-height: 1.6;
-  }
-
-  /* Luxury Font Faces */
-  @font-face {
-    font-family: 'Cormorant Garamond';
-    font-style: normal;
     font-weight: 400;
-    font-display: swap;
-    src: url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 
-  @font-face {
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 300 400 500 600;
-    font-display: swap;
-    src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-  }
+  /* Font Imports - As per client typography requirements */
+  @import url('https://fonts.googleapis.com/css2?family=Changa:wght@400;500;600;700&display=swap'); /* Hot Pizza alternative */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap'); /* Avenir Next alternative */
 
-  /* Arabic Font */
+  /* Arabic Font Support */
   @font-face {
     font-family: 'Noto Sans Arabic';
     font-style: normal;
-    font-weight: 400;
+    font-weight: 400 500 600;
     font-display: swap;
     src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600&display=swap');
   }
 
-  /* Luxury Typography */
+  /* Typography Hierarchy as per PDF */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: #d4af37;
+    font-family: var(--font-headline);
+    color: rgb(var(--color-gold));
+    letter-spacing: 2px; /* Wide letter spacing per PDF */
+    font-weight: 400; /* Clean, premium look */
+    line-height: 1.2;
   }
 
-  /* Links */
+  h1 {
+    font-size: 3rem; /* 48px */
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    font-size: 2rem; /* 32px */
+    letter-spacing: 3px;
+  }
+
+  h3 {
+    font-size: 1.5rem; /* 24px */
+    letter-spacing: 2px;
+  }
+
+  h4 {
+    font-size: 1.25rem; /* 20px */
+    letter-spacing: 1.5px;
+  }
+
+  p, span, div, li, a, button, input, textarea, select {
+    font-family: var(--font-body);
+    color: rgb(var(--color-gray));
+    letter-spacing: 0.5px;
+  }
+
+  /* Links - Simple and clean */
   a {
-    color: #f4e7c1;
+    color: rgb(var(--color-gray));
     text-decoration: none;
-    transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 0.2s ease;
   }
 
   a:hover {
-    color: #d4af37;
+    color: rgb(var(--color-gold));
+  }
+
+  /* Focus states for accessibility */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-gold));
+    outline-offset: 2px;
   }
 }
 
-/* Custom Components */
+/* Custom Components - Simplified to match PDF requirements */
 @layer components {
-  /* Luxury Header */
-  .luxury-header {
-    @apply fixed top-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-md 
-           border-b border-[#d4af37]/10 z-50 py-4;
+  /* Simple Header */
+  .p-notes-header {
+    background-color: rgb(var(--color-white));
+    border-bottom: 1px solid rgb(var(--color-gray-tint));
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
-  /* Luxury Button */
-  .btn-luxury {
-    @apply px-8 py-3 bg-gradient-to-r from-[#d4af37] to-[#b8941f] 
-           text-[#0a0a0a] font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.3)]
-           hover:shadow-[0_0_40px_rgba(212,175,55,0.4)] transition-all duration-300 
-           hover:-translate-y-0.5 focus:outline-none focus:ring-2 
-           focus:ring-[#d4af37] focus:ring-offset-2 focus:ring-offset-[#0a0a0a];
+  /* Main Navigation - EXACT as per PDF */
+  .p-notes-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
-  /* Luxury Card */
-  .card-luxury {
-    @apply bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] 
-           hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transition-all 
-           duration-500 overflow-hidden;
+  .nav-primary,
+  .nav-secondary {
+    display: flex;
+    gap: 2rem;
   }
 
-  /* Luxury Input */
-  .input-luxury {
-    @apply w-full px-6 py-4 border border-gray-300 rounded-xl 
-           focus:outline-none focus:ring-2 focus:ring-[#d4af37] 
-           focus:border-transparent transition-all duration-200 
-           placeholder-gray-400 bg-white text-gray-900;
+  .nav-link {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgb(var(--color-gray));
+    transition: color 0.2s ease;
   }
 
-  /* Luxury Select */
-  .select-luxury {
-    @apply w-full px-6 py-4 border border-gray-300 rounded-xl 
-           focus:outline-none focus:ring-2 focus:ring-[#d4af37] 
-           focus:border-transparent transition-all duration-200 
-           appearance-none bg-white text-gray-900;
+  .nav-link:hover,
+  .nav-link.active {
+    color: rgb(var(--color-gold));
   }
 
-  /* Luxury Badge */
-  .badge-luxury {
-    @apply inline-flex items-center px-4 py-2 rounded-full 
-           text-sm font-bold bg-[#f4e7c1] text-[#0a0a0a] 
-           border border-[#d4af37]/20;
+  /* Simple Button */
+  .btn-simple {
+    display: inline-block;
+    padding: 0.8rem 2.5rem;
+    background-color: transparent;
+    color: rgb(var(--color-gold));
+    border: 2px solid rgb(var(--color-gold));
+    font-family: var(--font-body);
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    text-decoration: none;
   }
 
-  /* Glass Effect */
-  .glass-effect {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 
-           shadow-xl;
+  .btn-simple:hover {
+    background-color: rgb(var(--color-gold));
+    color: rgb(var(--color-white));
   }
 
-  /* Gradient Text */
-  .text-gradient-gold {
-    @apply bg-gradient-to-r from-[#d4af37] via-[#f4e7c1] to-[#d4af37] 
-           bg-clip-text text-transparent;
+  /* Simple Card - For product displays */
+  .simple-card {
+    background-color: rgb(var(--color-white));
+    border: 1px solid rgb(var(--color-gray-tint));
+    padding: 1.5rem;
+    transition: all 0.3s ease;
   }
 
-  /* Line Clamp Utilities */
-  .line-clamp-1 {
+  .simple-card:hover {
+    border-color: rgba(var(--color-gold), 0.4);
+  }
+
+  /* Section Labels - Design elements only */
+  .section-label {
+    text-align: center;
+    padding: 2rem 1rem;
+    border: 1px solid rgb(var(--color-gray-tint));
+    border-top: 3px solid rgb(var(--color-gold));
+    background-color: rgb(var(--color-white));
+    cursor: default;
+    user-select: none;
+    transition: all 0.3s ease;
+  }
+
+  .section-label:hover {
+    border-color: rgb(var(--color-gold));
+  }
+
+  /* Product Grid - For Male/Female/Trademarks pages */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+  }
+
+  /* Product Card */
+  .product-card {
+    background-color: rgb(var(--color-white));
+    border: 1px solid rgb(var(--color-gray-tint));
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    transition: all 0.3s ease;
   }
 
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+  .product-card:hover {
+    border-color: rgba(var(--color-gold), 0.4);
   }
 
-  .line-clamp-3 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+  .product-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    background-color: rgb(var(--color-gray-tint));
   }
 
-  /* Musical Lines Pattern */
-  .musical-lines {
-    @apply flex flex-col gap-2 w-48;
+  .product-info {
+    padding: 1rem;
   }
 
-  .musical-line {
-    @apply h-px bg-gradient-to-r from-transparent via-[#d4af37] to-transparent;
+  .product-name {
+    font-family: var(--font-headline);
+    color: rgb(var(--color-gray));
+    font-size: 1rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
   }
 
-  /* Luxury Section */
-  .luxury-section {
-    @apply py-16 md:py-24;
+  .product-code {
+    font-family: var(--font-body);
+    color: rgb(var(--color-gold));
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
   }
 
-  /* Container */
-  .luxury-container {
-    @apply max-w-7xl mx-auto px-4 md:px-8;
+  /* Trademarks Page Specific */
+  .trademarks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem 0;
   }
 
-  /* Hero Container */
-  .hero-container {
-    @apply max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-2 
-           gap-12 items-center min-h-[90vh];
+  .trademark-item {
+    text-align: center;
+    padding: 1rem;
+    border: 1px solid rgb(var(--color-gray-tint));
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
 
-  /* Brands Grid */
-  .brands-grid {
-    @apply grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8;
+  .trademark-item:hover {
+    border-color: rgb(var(--color-gold));
+    background-color: rgba(var(--color-gold), 0.05);
   }
 
-  /* Brand Card */
-  .brand-card {
-    @apply bg-white rounded-2xl p-8 aspect-square flex items-center 
-           justify-center relative overflow-hidden transition-all 
-           duration-300 hover:scale-105 hover:shadow-xl;
+  /* Form Elements - Simple and clean */
+  .simple-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgb(var(--color-gray-tint));
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: rgb(var(--color-gray));
+    transition: border-color 0.3s ease;
   }
 
-  /* Offer Card */
-  .offer-card {
-    @apply bg-gradient-to-br from-[#d4af37] to-[#b8941f] rounded-3xl 
-           p-8 text-center relative overflow-hidden shadow-2xl;
+  .simple-input:focus {
+    outline: none;
+    border-color: rgb(var(--color-gold));
   }
 
-  /* Perfume Bottle Container */
-  .perfume-bottle-container {
-    @apply relative h-[500px] md:h-[600px] flex items-center justify-center;
+  .simple-select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgb(var(--color-gray-tint));
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: rgb(var(--color-gray));
+    background-color: rgb(var(--color-white));
+    cursor: pointer;
+    transition: border-color 0.3s ease;
   }
 
-  /* Light Particle */
-  .light-particle {
-    @apply absolute w-1 h-1 bg-[#d4af37] rounded-full blur-sm;
+  .simple-select:focus {
+    outline: none;
+    border-color: rgb(var(--color-gold));
   }
 
-  /* Crystal Effect */
-  .crystal-effect {
-    @apply absolute w-32 h-32 bg-[radial-gradient(circle,rgba(212,175,55,0.4)_0%,transparent_70%)] 
-           blur-2xl animate-pulse;
+  /* Utility Classes */
+  .text-gold {
+    color: rgb(var(--color-gold));
+  }
+
+  .text-gray {
+    color: rgb(var(--color-gray));
+  }
+
+  .bg-gray-tint {
+    background-color: rgb(var(--color-gray-tint));
+  }
+
+  .border-gray-tint {
+    border-color: rgb(var(--color-gray-tint));
+  }
+
+  .border-gold {
+    border-color: rgb(var(--color-gold));
   }
 }
 
 /* Custom Utilities */
 @layer utilities {
-  /* Animation Delays */
-  .delay-100 {
-    animation-delay: 100ms;
-  }
-  .delay-200 {
-    animation-delay: 200ms;
-  }
-  .delay-300 {
-    animation-delay: 300ms;
-  }
-  .delay-400 {
-    animation-delay: 400ms;
-  }
-  .delay-500 {
-    animation-delay: 500ms;
+  /* Layout Utilities */
+  .container-narrow {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
-  /* Text Balance */
-  .text-balance {
-    text-wrap: balance;
+  .container-wide {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
-  /* Hide Scrollbar */
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* Spacing Utilities */
+  .section-padding {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
   }
-  .hide-scrollbar::-webkit-scrollbar {
+
+  .section-padding-sm {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .section-padding-lg {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+
+  /* Text Utilities */
+  .text-headline {
+    font-family: var(--font-headline);
+    color: rgb(var(--color-gold));
+    letter-spacing: 2px;
+  }
+
+  .text-body {
+    font-family: var(--font-body);
+    color: rgb(var(--color-gray));
+  }
+
+  .text-uppercase {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-left {
+    text-align: left;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  /* Flex Utilities */
+  .flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .flex-start {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  /* Grid Utilities */
+  .grid-responsive {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  /* Visibility Utilities */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* RTL Support */
+  .rtl {
+    direction: rtl;
+    text-align: right;
+  }
+
+  .ltr {
+    direction: ltr;
+    text-align: left;
+  }
+
+  /* Dark Mode Support */
+  .dark-mode {
+    background-color: rgb(30, 30, 30);
+    color: rgb(240, 240, 240);
+  }
+
+  .dark-mode .text-gold {
+    color: rgb(225, 183, 93);
+  }
+
+  .dark-mode .text-gray {
+    color: rgb(220, 220, 220);
+  }
+
+  .dark-mode .bg-gray-tint {
+    background-color: rgb(60, 60, 60);
+  }
+
+  .dark-mode .border-gray-tint {
+    border-color: rgb(60, 60, 60);
+  }
+
+  /* Animation Utilities */
+  .fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  .slide-in-left {
+    animation: slideInLeft 0.5s ease-out forwards;
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+
+  /* Print Utilities */
+  .print-only {
     display: none;
   }
 
-  /* Custom Animations */
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-pulse-gentle {
-    animation: pulse 4s ease-in-out infinite;
-  }
-
-  .animate-sparkle {
-    animation: sparkle 3s ease-in-out infinite;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 1s ease-out forwards;
-  }
-
-  .animate-fade-in-up {
-    animation: fadeInUp 1s ease-out forwards;
-  }
-
-  .animate-shimmer {
-    animation: shimmer 2s infinite linear;
-  }
-
-  /* Gradient Backgrounds */
-  .bg-gradient-luxury {
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a120b 100%);
-  }
-
-  .bg-gradient-gold {
-    background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
-  }
-
-  /* Custom Shadows */
-  .shadow-gold-lg {
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
-  }
-
-  .shadow-gold-xl {
-    box-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
-  }
-
-  .shadow-luxury-lg {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  }
-
-  .shadow-luxury-xl {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Aspect Ratios */
-  .aspect-square {
-    aspect-ratio: 1 / 1;
-  }
-  .aspect-video {
-    aspect-ratio: 16 / 9;
-  }
-  .aspect-portrait {
-    aspect-ratio: 3 / 4;
-  }
-  .aspect-hero {
-    aspect-ratio: 16 / 9;
-  }
-
-  /* RTL Specific */
-  .rtl {
-    direction: rtl;
-  }
-  .ltr {
-    direction: ltr;
-  }
-
-  /* Print Styles */
   @media print {
-    .print\:hidden {
+    .no-print {
       display: none !important;
     }
-    .print\:block {
+    
+    .print-only {
       display: block !important;
     }
-  }
-
-  /* Custom Colors */
-  .text-gold {
-    color: #d4af37;
-  }
-
-  .text-gold-light {
-    color: #f4e7c1;
-  }
-
-  .bg-dark {
-    background-color: #0a0a0a;
-  }
-
-  .bg-dark-brown {
-    background-color: #1a120b;
-  }
-
-  .border-gold {
-    border-color: rgba(212, 175, 55, 0.3);
+    
+    .page-break {
+      page-break-before: always;
+    }
   }
 }
 
-/* Animation Keyframes */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
+/* Animation Keyframes - Simple and subtle */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -416,7 +524,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -424,170 +532,228 @@
   }
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
   }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* Scroll Animations */
-.scroll-fade-in {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.scroll-fade-in.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Accessibility */
-@layer base {
-  /* Focus styles for keyboard navigation */
-  :focus-visible {
-    @apply outline-2 outline-[#d4af37] outline-offset-2;
-  }
-
-  /* Skip to main content link */
-  .skip-to-content {
-    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 
-           z-50 bg-white p-4 text-gray-900 font-bold rounded-lg;
-  }
-
-  /* High contrast mode */
-  @media (prefers-contrast: high) {
-    .btn-luxury {
-      @apply border-2 border-black;
-    }
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-    
-    .animate-float,
-    .animate-pulse-gentle,
-    .animate-sparkle,
-    .animate-fade-in,
-    .animate-fade-in-up,
-    .animate-shimmer {
-      animation: none !important;
-    }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-/* Custom Scrollbar */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom Scrollbar - Simple and clean */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a120b;
+  background: rgb(var(--color-gray-tint));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4af37;
+  background: rgb(var(--color-gold));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b8941f;
+  background: rgba(var(--color-gold), 0.8);
 }
 
-/* Selection */
+/* Selection Styling */
 ::selection {
-  background-color: #d4af37;
-  color: #0a0a0a;
+  background-color: rgba(var(--color-gold), 0.3);
+  color: rgb(var(--color-gray));
 }
 
-/* Vendor Overrides */
-@layer base {
-  /* Remove default button styles */
-  button {
-    @apply focus:outline-none;
-  }
+/* Focus styles for form elements */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: 2px solid rgb(var(--color-gold));
+  outline-offset: 2px;
+}
 
-  /* Remove default list styles */
-  ul, ol {
-    @apply list-none p-0 m-0;
+/* Accessibility and Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-
-  /* Better image defaults */
-  img {
-    @apply max-w-full h-auto align-middle;
-  }
-
-  /* Better table defaults */
-  table {
-    @apply border-collapse w-full;
-  }
-
-  /* Smooth transitions */
-  * {
-    @apply transition-colors duration-200;
+  
+  .fade-in,
+  .fade-in-up,
+  .slide-in-left,
+  .slide-in-right {
+    animation: none !important;
   }
 }
 
-/* Responsive Utilities */
-@media (max-width: 768px) {
-  .mobile\:stack {
-    flex-direction: column !important;
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  :root {
+    --color-gold: 170 140 50;      /* Darker gold for high contrast */
+    --color-gray: 50 50 50;        /* Darker gray for high contrast */
+    --color-gray-tint: 180 180 180;/* Lighter gray tint for high contrast */
   }
   
-  .mobile\:text-center {
-    text-align: center !important;
+  .btn-simple {
+    border-width: 2px;
   }
   
-  .mobile\:py-8 {
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
+  .nav-link {
+    font-weight: 600;
   }
 }
 
 /* Print Styles */
 @media print {
-  @page {
-    margin: 2cm;
-  }
-
   body {
-    @apply text-black bg-white;
-    color: #000 !important;
-    background: #fff !important;
+    background: white !important;
+    color: black !important;
   }
-
+  
   a {
-    @apply text-black no-underline;
-  }
-
-  a[href^="http"]::after {
-    content: " (" attr(href) ")";
-  }
-
-  .no-print {
-    @apply hidden;
+    color: black !important;
+    text-decoration: underline;
   }
   
-  /* Luxury specific print styles */
-  .luxury-header,
-  .luxury-footer {
-    display: none !important;
+  .p-notes-header,
+  .btn-simple,
+  .section-label:hover,
+  .product-card:hover,
+  .trademark-item:hover {
+    border-color: #ccc !important;
   }
   
-  .text-gold,
-  .text-gradient-gold {
-    color: #000 !important;
-    background: none !important;
+  .text-gold {
+    color: black !important;
+  }
+  
+  /* Remove backgrounds and shadows */
+  * {
+    background: white !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Responsive Breakpoints - Simple and clean */
+@media (max-width: 768px) {
+  /* Typography adjustments */
+  h1 {
+    font-size: 2.25rem; /* 36px */
+    letter-spacing: 3px;
+  }
+  
+  h2 {
+    font-size: 1.75rem; /* 28px */
+  }
+  
+  h3 {
+    font-size: 1.25rem; /* 20px */
+  }
+  
+  /* Navigation adjustments */
+  .p-notes-nav {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .nav-primary,
+  .nav-secondary {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+  }
+  
+  .nav-link {
+    font-size: 0.8rem;
+  }
+  
+  /* Grid adjustments */
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  
+  .trademarks-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  /* Section padding adjustments */
+  .section-padding {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  
+  .section-padding-lg {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.75rem; /* 28px */
+    letter-spacing: 2px;
+  }
+  
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .trademarks-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .btn-simple {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Large Screens */
+@media (min-width: 1536px) {
+  .container-wide {
+    max-width: 1400px;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .btn-simple:active {
+    background-color: rgb(var(--color-gold));
+    color: rgb(var(--color-white));
+  }
+  
+  .nav-link:active {
+    color: rgb(var(--color-gold));
+  }
+  
+  /* Increase tap targets for mobile */
+  .nav-link,
+  .btn-simple {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

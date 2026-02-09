@@ -4,9 +4,10 @@
     <div v-if="loading" class="grid-loading">
       <div v-for="n in skeletonCount" :key="n" class="product-skeleton">
         <div class="skeleton-image"></div>
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line short"></div>
-        <div class="skeleton-line shorter"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
       </div>
     </div>
 
@@ -105,43 +106,47 @@ const skeletonCount = 8
 
 .grid-loading {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
 }
 
 .product-skeleton {
-  background: white;
-  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  aspect-ratio: 3/4;
+  position: relative;
 }
 
 .skeleton-image {
-  height: 200px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #f9fafb 25%, #f3f4f6 50%, #f9fafb 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 10px;
-  margin-bottom: 1rem;
+}
+
+.skeleton-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px;
 }
 
 .skeleton-line {
-  height: 12px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  height: 10px;
+  background: linear-gradient(90deg, #f9fafb 25%, #f3f4f6 50%, #f9fafb 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 6px;
+  border-radius: 2px;
 }
 
 .skeleton-line.short {
-  width: 70%;
-}
-
-.skeleton-line.shorter {
-  width: 50%;
-  margin-bottom: 1.5rem;
+  width: 60%;
+  margin-bottom: 0;
 }
 
 @keyframes shimmer {
@@ -152,18 +157,18 @@ const skeletonCount = 8
 .grid-error,
 .grid-empty {
   text-align: center;
-  padding: 4rem 2rem;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 48px 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 2px;
 }
 
 .error-icon,
 .empty-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem;
-  color: #666;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: #6b7280;
 }
 
 .error-icon svg,
@@ -174,70 +179,69 @@ const skeletonCount = 8
 
 .error-title,
 .empty-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 2rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
   font-weight: 600;
-  color: #0a0a0a;
-  margin-bottom: 0.5rem;
+  color: #111827;
+  margin-bottom: 8px;
 }
 
 .error-message,
 .empty-message {
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  color: #666;
-  margin-bottom: 1.5rem;
-  max-width: 400px;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  max-width: 320px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.5;
 }
 
 .retry-btn {
-  padding: 0.75rem 2rem;
-  background: #d4af37;
-  color: #0a0a0a;
+  padding: 8px 20px;
+  background: #111827;
+  color: #ffffff;
   border: none;
-  border-radius: 25px;
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
 }
 
 .retry-btn:hover {
-  background: #c19b2a;
-  transform: translateY(-2px);
+  background: #374151;
 }
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
 }
 
 .load-more {
   text-align: center;
-  margin-top: 4rem;
+  margin-top: 40px;
 }
 
 .load-more-btn {
-  padding: 1rem 3rem;
+  padding: 10px 28px;
   background: transparent;
-  color: #d4af37;
-  border: 2px solid #d4af37;
-  border-radius: 30px;
+  color: #111827;
+  border: 1px solid #d1d5db;
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  border-radius: 2px;
+  transition: all 0.2s ease;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: #d4af37;
-  color: #0a0a0a;
-  transform: translateY(-2px);
+  background: #f9fafb;
+  border-color: #111827;
 }
 
 .load-more-btn:disabled {
@@ -249,12 +253,12 @@ const skeletonCount = 8
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .loading-spinner svg {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   animation: spin 1s linear infinite;
 }
 
@@ -263,39 +267,109 @@ const skeletonCount = 8
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Desktop */
+@media (min-width: 1280px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  
+  .grid-loading {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
   }
 }
 
-@media (max-width: 768px) {
-  .grid-loading {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+/* Tablet */
+@media (max-width: 1024px) {
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
   }
   
+  .grid-loading {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+}
+
+/* Mobile - 3 cards per row */
+@media (max-width: 768px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  
+  .grid-loading {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
   
   .error-title,
   .empty-title {
-    font-size: 1.5rem;
+    font-size: 16px;
   }
 }
 
-@media (max-width: 480px) {
+/* Small Mobile */
+@media (max-width: 640px) {
   .products-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
   
   .grid-loading {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  
+  .product-skeleton {
+    aspect-ratio: 2/3;
+  }
+  
+  .skeleton-content {
+    padding: 10px;
+  }
+  
+  .skeleton-line {
+    height: 8px;
+  }
+}
+
+/* Very Small Mobile */
+@media (max-width: 480px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .grid-loading {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .grid-error,
+  .grid-empty {
+    padding: 32px 20px;
+  }
+  
+  .error-icon,
+  .empty-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Extra Small - Still 3 cards but minimal */
+@media (max-width: 360px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .grid-loading {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 }
 </style>

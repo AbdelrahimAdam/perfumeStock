@@ -1,8 +1,8 @@
-<!-- src/pages/HomePage.vue - UPDATED FOR STORE COMPLIANCE -->
+<!-- src/pages/HomePage.vue - UPDATED TEMPLATE -->
 <template>
   <div class="luxury-perfume-homepage" :class="{ 'dark-mode': isDarkMode, 'rtl-direction': isRTL, 'ltr-direction': !isRTL }">
     <!-- Loading Spinner -->
-    <div v-if="homepageStore.isLoading" class="loading-overlay">
+    <div v-if="homepageStore.isLoading || brandsStore.isLoading" class="loading-overlay">
       <div class="luxury-spinner">
         <div class="spinner-gold-ring"></div>
         <div class="spinner-glow"></div>
@@ -16,15 +16,18 @@
         <summary>📊 Store Debug</summary>
         <div class="debug-info">
           <div><strong>Status:</strong> {{ homepageStore.isLoading ? 'Loading...' : 'Ready' }}</div>
+          <div><strong>Brands Store Status:</strong> {{ brandsStore.isLoading ? 'Loading...' : 'Ready' }}</div>
           <div><strong>Error:</strong> {{ homepageStore.error || 'None' }}</div>
+          <div><strong>Brands Error:</strong> {{ brandsStore.error || 'None' }}</div>
           <div><strong>Source:</strong> {{ dataSource }}</div>
-          <div><strong>Brands:</strong> {{ featuredBrands.length }}</div>
+          <div><strong>Display Brands:</strong> {{ displayBrands.length }}</div>
+          <div><strong>Active Brands:</strong> {{ activeBrands.length }}</div>
+          <div><strong>All Brands:</strong> {{ allBrands.length }}</div>
           <div><strong>Offers:</strong> {{ activeOffers.length }}</div>
-          <div><strong>Marquee:</strong> {{ marqueeBrands.length }}</div>
-          <div><strong>Listening:</strong> {{ homepageStore.isListening ? 'Yes' : 'No' }}</div>
+          <div><strong>Marquee:</strong> {{ displayBrandsForMarquee.length }}</div>
           <div><strong>Last Firebase Update:</strong> {{ lastUpdatedFormatted }}</div>
           <div class="debug-actions">
-            <button @click="forceRefreshStoreData">🔄 Refresh</button>
+            <button @click="forceRefreshAllData">🔄 Refresh All</button>
             <button @click="clearCacheAndRefresh">🧹 Clear Cache</button>
             <button @click="checkFirebaseConnection">🔗 Check Firebase</button>
           </div>
@@ -49,7 +52,10 @@
         <!-- Brand Identity -->
         <div class="banner-left">
           <div class="glass-card luxury-branding">
-            <h1 class="brand-name-large">{{ heroBanner.title || t('brandName') }}</h1>
+            <div class="app-identity">
+              <h1 class="brand-name-large">P.NOTES</h1>
+              <p class="app-subtitle">PERFUME STORE</p>
+            </div>
             
             <!-- Mobile View -->
             <div class="mobile-simple-view">
@@ -88,21 +94,31 @@
         </div>
       </div>
       
-      <!-- Floating Brand Logos from Firebase - FIXED MARQUEE -->
+      <!-- Floating Brand Logos from Firebase - FIXED MARQUEE (No Blinking/Shaking) -->
       <div class="floating-brands">
         <div class="marquee-container">
           <div class="marquee-track" :class="{ 'rtl-animation': isRTL }">
-            <template v-if="marqueeBrands.length > 0">
-              <!-- First set of brands (original + duplicate for seamless loop) -->
-              <template v-for="i in 3" :key="'set-' + i">
-                <router-link
-                  v-for="brand in marqueeBrands"
-                  :key="`${brand.id || brand.name}-${i}`"
-                  :to="`/brand/${brand.slug || brand.id || 'brand'}`"
-                  class="brand-link"
+            <template v-if="displayBrandsForMarquee.length > 0">
+              <!-- Duplicate set for seamless loop without blinking -->
+              <template v-for="set in 2" :key="'set-' + set">
+                <div 
+                  v-for="brand in displayBrandsForMarquee" 
+                  :key="`${brand.id || brand.name}-${set}`"
+                  class="brand-item"
                 >
-                  <img :src="brand.logo || '/images/default-logo.png'" :alt="brand.name || 'Brand'" class="brand-logo" />
-                </router-link>
+                  <router-link
+                    :to="`/brand/${brand.slug || brand.id || 'brand'}`"
+                    class="brand-link"
+                  >
+                    <img 
+                      :src="brand.image || brand.logo || '/images/default-logo.png'" 
+                      :alt="brand.name || 'Brand'" 
+                      class="brand-logo" 
+                      @error="handleImageError"
+                      loading="lazy"
+                    />
+                  </router-link>
+                </div>
               </template>
             </template>
             <div v-else class="no-brands-message">
@@ -116,143 +132,88 @@
     <!-- Featured Brands & Offer Section -->
     <section class="main-content-section">
       <div class="content-container">
-        <!-- MOBILE LAYOUT -->
-        <div class="mobile-content-layout">
-          <div class="section-header">
-            <h2 class="section-title">{{ t('featuredBrands') }}</h2>
-            <p class="section-subtitle">{{ t('luxuryCollections') }}</p>
-          </div>
-          
-          <div class="mobile-grid-container">
-            <!-- Left side: Brands Grid -->
-            <div class="mobile-brands-section">
-              <div v-if="featuredBrands.length > 0" class="brands-grid-mobile">
-                <router-link
-                  v-for="brand in featuredBrands"
-                  :key="brand.id || brand.name"
-                  :to="`/brand/${brand.slug || brand.id || 'brand'}`"
-                  class="brand-card-link-mobile"
-                >
-                  <div class="brand-card-mobile">
-                    <div class="brand-image-wrapper-mobile">
-                      <img 
-                        :src="brand.image || '/images/default-brand.jpg'" 
-                        :alt="brand.name || 'Brand'" 
-                        loading="lazy" 
-                      />
-                      <div class="brand-overlay-mobile"></div>
-                    </div>
-                    <div class="brand-info-mobile">
-                      <h3 class="brand-name-mobile">{{ brand.name || t('brandName') }}</h3>
-                      <p class="brand-signature-mobile">{{ brand.signature || t('luxurySignature') }}</p>
-                      <p class="brand-price-mobile">{{ brand.price || 0 }} {{ t('currencyLE') }}</p>
-                    </div>
-                  </div>
-                </router-link>
-              </div>
-              <div v-else class="no-data-message">
-                <p>{{ t('noBrandsAvailable') }}</p>
-                <button @click="forceRefreshStoreData" class="refresh-button">
-                  {{ t('refresh') }}
-                </button>
-              </div>
-            </div>
-            
-            <!-- Right side: Today's Offer from Firebase -->
-            <div class="mobile-offer-section">
-              <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card-mobile">
-                <div class="offer-badge-mobile">{{ t('todaysExclusiveOffer') }}</div>
-                <div class="offer-content-mobile">
-                  <div class="offer-image-wrapper-mobile">
-                    <img
-                      :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
-                      :alt="activeOffers[0].title || t('exclusiveOffer')"
-                      class="offer-bottle-mobile"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div class="offer-details-mobile">
-                    <h3 class="offer-title-mobile">{{ activeOffers[0].title || t('specialOffer') }}</h3>
-                    <p class="offer-subtitle-mobile">{{ activeOffers[0].subtitle || t('limitedTimeOffer') }}</p>
-                    <div class="offer-pricing-mobile">
-                      <span class="old-price-mobile">{{ activeOffers[0].oldPrice || 0 }} {{ t('currencyLE') }}</span>
-                      <span class="new-price-mobile">{{ activeOffers[0].newPrice || 0 }} {{ t('currencyLE') }}</span>
-                    </div>
-                    <button class="buy-now-button-mobile" @click="navigateToOffer(activeOffers[0])">
-                      <span class="button-text">{{ t('buyNow') }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="no-offer-message">
-                <p>{{ t('noOffersAvailable') }}</p>
-              </div>
-            </div>
+        <!-- SECTION HEADER WITH EXPLORE MORE LINK -->
+        <div class="section-header">
+          <h2 class="section-title">{{ t('featuredBrands') }}</h2>
+          <div class="section-header-right">
+            <router-link to="/brands" class="explore-more-link">
+              <span>{{ t('exploreMoreBrands') }}</span>
+              <span class="explore-icon">↗</span>
+            </router-link>
           </div>
         </div>
-
-        <!-- DESKTOP LAYOUT -->
-        <div class="desktop-content-layout">
-          <!-- Featured Brands Grid from Firebase -->
-          <div class="featured-brands">
-            <div class="section-header">
-              <h2 class="section-title">{{ t('featuredBrands') }}</h2>
-              <p class="section-subtitle">{{ t('luxuryCollections') }}</p>
-            </div>
-            <div v-if="featuredBrands.length > 0" class="brands-grid">
+        
+        <!-- MAIN CONTENT LAYOUT - SAME STRUCTURE FOR ALL SCREENS -->
+        <div class="main-content-layout">
+          <!-- Featured Brands Grid (2 columns on mobile/tablet, 3 on desktop) -->
+          <div class="featured-brands-section">
+            <div v-if="displayBrands.length > 0" class="brands-grid">
               <router-link
-                v-for="brand in featuredBrands"
+                v-for="brand in displayBrands"
                 :key="brand.id || brand.name"
                 :to="`/brand/${brand.slug || brand.id || 'brand'}`"
                 class="brand-card-link"
               >
                 <div class="brand-card">
-                  <div class="brand-image-wrapper">
+                  <!-- Brand Image - Full Card Coverage -->
+                  <div class="brand-image-full">
                     <img 
                       :src="brand.image || '/images/default-brand.jpg'" 
                       :alt="brand.name || 'Brand'" 
                       loading="lazy"
+                      class="brand-image"
+                      @error="handleBrandImageError"
                     />
-                    <div class="brand-overlay"></div>
-                    <div class="brand-glow"></div>
-                    <div class="gold-sparkles"></div>
+                    <!-- Gradient Overlay for Text Readability -->
+                    <div class="image-gradient-overlay"></div>
                   </div>
-                  <div class="brand-info">
+                  
+                  <!-- Brand Info Overlay on Image -->
+                  <div class="brand-info-overlay">
                     <h3 class="brand-name">{{ brand.name || t('brandName') }}</h3>
                     <p class="brand-signature">{{ brand.signature || t('luxurySignature') }}</p>
-                    <p class="brand-price">{{ brand.price || 0 }} {{ t('currencyLE') }}</p>
+                    <!-- Display Product Count Instead of Price -->
+                    <div class="product-count">
+                      <span class="count-number">{{ getProductCount(brand) }}</span>
+                      <span class="count-label">{{ t('products') }}</span>
+                    </div>
                   </div>
                 </div>
               </router-link>
             </div>
             <div v-else class="no-data-message">
               <p>{{ t('noBrandsAvailable') }}</p>
-              <button @click="forceRefreshStoreData" class="refresh-button">
+              <button @click="forceRefreshAllData" class="refresh-button">
                 {{ t('refresh') }}
               </button>
             </div>
           </div>
 
-          <!-- Today's Exclusive Offer from Firebase -->
+          <!-- Today's Exclusive Offer from Homepage Store -->
           <aside class="offer-sidebar">
             <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card">
               <div class="offer-badge">{{ t('todaysExclusiveOffer') }}</div>
               <div class="offer-content">
-                <div class="offer-image-wrapper">
+                <!-- Offer Image - Full Card Coverage -->
+                <div class="offer-image-full">
                   <img
                     :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
                     :alt="activeOffers[0].title || t('exclusiveOffer')"
-                    class="offer-bottle"
+                    class="offer-image"
                     loading="lazy"
+                    @error="handleOfferImageError"
                   />
-                  <div class="offer-glow"></div>
+                  <!-- Gradient Overlay for Text Readability -->
+                  <div class="offer-gradient-overlay"></div>
                 </div>
-                <div class="offer-details">
+                
+                <!-- Offer Details Overlay on Image -->
+                <div class="offer-details-overlay">
                   <h3 class="offer-title">{{ activeOffers[0].title || t('specialOffer') }}</h3>
                   <p class="offer-subtitle">{{ activeOffers[0].subtitle || t('limitedTimeOffer') }}</p>
                   <div class="offer-pricing">
-                    <span class="old-price">{{ activeOffers[0].oldPrice || 0 }} {{ t('currencyLE') }}</span>
-                    <span class="new-price">{{ activeOffers[0].newPrice || 0 }} {{ t('currencyLE') }}</span>
+                    <span class="old-price">{{ formatPrice(activeOffers[0].oldPrice || 0) }} {{ t('currencyLE') }}</span>
+                    <span class="new-price">{{ formatPrice(activeOffers[0].newPrice || 0) }} {{ t('currencyLE') }}</span>
                   </div>
                   <button class="buy-now-button" @click="navigateToOffer(activeOffers[0])">
                     <span class="button-text">{{ t('buyNow') }}</span>
@@ -276,38 +237,24 @@ import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useHomepageStore } from '@/stores/homepage'
-import type { HomepageData, Brand, Offer, MarqueeBrand, HeroBanner } from '@/stores/homepage'
+import { useBrandsStore } from '@/stores/brands'
+import type { Brand } from '@/types'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
 const homepageStore = useHomepageStore()
+const brandsStore = useBrandsStore()
 const { t, formatDate } = languageStore
 
 // Development mode check
 const isDevelopment = import.meta.env.DEV
 
-// Safely access homepage data with fallbacks
-const homepageData = computed(() => homepageStore.homepageData)
-
-// Extract data with proper fallbacks
-const heroBanner = computed<HeroBanner>(() => homepageData.value?.heroBanner || {
-  imageUrl: '/images/banner.jpg',
-  title: 'Luxury Perfumes',
-  subtitle: 'Premium Collection'
-})
-
-const featuredBrands = computed<Brand[]>(() => homepageData.value?.featuredBrands || [])
-const activeOffers = computed<Offer[]>(() => homepageData.value?.activeOffers || [])
-const marqueeBrands = computed<MarqueeBrand[]>(() => homepageData.value?.marqueeBrands || [])
-
-// Safely access settings
-const settings = computed(() => homepageData.value?.settings || {
-  isDarkMode: false,
-  defaultLanguage: 'ar'
-})
-
+// Homepage Store data - safely access nested properties
+const homepageData = computed(() => homepageStore.homepageData || {})
+const heroBanner = computed(() => homepageData.value.heroBanner || {})
+const activeOffers = computed(() => homepageData.value.activeOffers || [])
 const lastUpdatedFormatted = computed(() => {
-  if (homepageData.value?.lastUpdated) {
+  if (homepageData.value.lastUpdated) {
     return formatDate(homepageData.value.lastUpdated)
   }
   return 'Never'
@@ -315,11 +262,11 @@ const lastUpdatedFormatted = computed(() => {
 
 // Data source for debugging
 const dataSource = computed(() => {
-  return homepageData.value?.source || 'unknown'
+  return homepageData.value.source || 'unknown'
 })
 
 // Dark mode from store
-const isDarkMode = computed(() => settings.value?.isDarkMode || false)
+const isDarkMode = computed(() => homepageData.value.settings?.isDarkMode || false)
 
 // RTL based on language
 const isRTL = computed(() => {
@@ -327,14 +274,45 @@ const isRTL = computed(() => {
   return currentLang === 'ar' || currentLang === 'fa' || currentLang === 'he';
 })
 
-// Store subscription reference
-let unsubscribeStore: (() => void) | null = null
+// Brands from Brands Store
+const activeBrands = computed(() => brandsStore.activeBrands || [])
+const allBrands = computed(() => brandsStore.brands || [])
+
+// Display brands (limit to 6 for grid - 2 columns on mobile)
+const displayBrands = computed(() => {
+  const brands = activeBrands.value.length > 0 ? activeBrands.value : allBrands.value
+  return brands.slice(0, 6) // Show first 6 brands (2 rows × 3 columns on desktop)
+})
+
+// Brands for marquee (use active brands or all brands) - FIXED FOR SMOOTH ANIMATION
+const displayBrandsForMarquee = computed(() => {
+  const brands = activeBrands.value.length > 0 ? activeBrands.value : allBrands.value
+  return brands.slice(0, 8) // Show first 8 brands for marquee
+})
+
+// Get actual product count from brand data
+const getProductCount = (brand: Brand) => {
+  if (!brand.id) return 0
+  
+  // Check if brand has productIds array
+  if (Array.isArray(brand.productIds) && brand.productIds.length > 0) {
+    return brand.productIds.length
+  }
+  
+  // Check if brand has a productCount property
+  if (brand.productCount !== undefined) return brand.productCount
+  
+  // Default to 0 if no product information
+  return 0
+}
+
+// Store subscription references
+let unsubscribeHomepageStore: (() => void) | null = null
 
 // Watch for store updates
 watch(() => homepageStore.homepageData, (newData) => {
   console.log('🏪 Homepage data updated:', {
     source: newData?.source,
-    brands: newData?.featuredBrands?.length || 0,
     offers: newData?.activeOffers?.length || 0,
     lastUpdated: newData?.lastUpdated || 'Never'
   })
@@ -354,14 +332,23 @@ watch(() => homepageStore.error, (error) => {
   }
 })
 
-// Force refresh function
-const forceRefreshStoreData = async () => {
-  console.log('🔄 Force refreshing homepage data...')
+watch(() => brandsStore.error, (error) => {
+  if (error) {
+    console.error('❌ Brands store error:', error)
+  }
+})
+
+// Force refresh all data
+const forceRefreshAllData = async () => {
+  console.log('🔄 Force refreshing all data...')
   try {
-    await homepageStore.forceRefresh()
-    console.log('✅ Store data force refreshed')
+    await Promise.all([
+      homepageStore.forceRefresh(),
+      brandsStore.loadBrands()
+    ])
+    console.log('✅ All data force refreshed')
   } catch (error: any) {
-    console.error('❌ Error refreshing store:', error.message)
+    console.error('❌ Error refreshing data:', error.message)
   }
 }
 
@@ -369,7 +356,7 @@ const forceRefreshStoreData = async () => {
 const clearCacheAndRefresh = async () => {
   console.log('🧹 Clearing cache and refreshing...')
   homepageStore.clearCache()
-  await forceRefreshStoreData()
+  await forceRefreshAllData()
 }
 
 // Check Firebase connection
@@ -382,8 +369,11 @@ const checkFirebaseConnection = async () => {
     alert(`Firebase Status:
 Connected: ${connection.connected ? 'Yes' : 'No'}
 Last Update: ${connection.lastUpdate || 'Never'}
-Store Listening: ${homepageStore.isListening ? 'Yes' : 'No'}
-Store Error: ${homepageStore.error || 'None'}`)
+Homepage Listening: ${homepageStore.isListening ? 'Yes' : 'No'}
+Homepage Error: ${homepageStore.error || 'None'}
+Brands Count: ${allBrands.value.length}
+Active Brands: ${activeBrands.value.length}
+Brands Error: ${brandsStore.error || 'None'}`)
   } catch (error) {
     console.error('❌ Connection check failed:', error)
     alert('Connection check failed. Check console for details.')
@@ -405,31 +395,71 @@ const navigateToOffer = (offer: any) => {
   }
 }
 
+// Format price
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-EG', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price)
+}
+
+// Image error handlers
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-logo.png'
+}
+
+const handleBrandImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-brand.jpg'
+}
+
+const handleOfferImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-offer.jpg'
+}
+
 onMounted(async () => {
   console.log('🏠 HomePage.vue mounted - Initializing...')
   document.documentElement.style.scrollBehavior = 'smooth'
   
-  // Subscribe to store updates
-  unsubscribeStore = homepageStore.subscribeToUpdates((data) => {
-    console.log('📡 Store update notification:', {
+  // Subscribe to homepage store updates
+  unsubscribeHomepageStore = homepageStore.subscribeToUpdates((data) => {
+    console.log('📡 Homepage store update notification:', {
       source: data.source,
-      brands: data.featuredBrands?.length,
+      offers: data.activeOffers?.length,
       timestamp: data.lastUpdated
     })
   })
   
-  // Load homepage data from store
+  // Load all data
   try {
     console.log('📥 Loading homepage data...')
-    await homepageStore.loadHomepageData()
+    await Promise.all([
+      homepageStore.loadHomepageData(),
+      brandsStore.initialize()
+    ])
     
-    console.log('✅ Homepage data loaded:', {
+    console.log('✅ All data loaded:', {
       source: dataSource.value,
-      brands: featuredBrands.value.length,
+      allBrands: allBrands.value.length,
+      activeBrands: activeBrands.value.length,
+      displayBrands: displayBrands.value.length,
       offers: activeOffers.value.length,
-      marquee: marqueeBrands.value.length,
-      darkMode: isDarkMode.value
+      darkMode: isDarkMode.value,
+      brandsStoreError: brandsStore.error
     })
+    
+    // Log brands for debugging with product counts
+    console.log('📋 Available brands:', allBrands.value.map(b => ({
+      id: b.id,
+      name: b.name,
+      slug: b.slug,
+      productIds: b.productIds?.length || 0,
+      productCount: getProductCount(b),
+      image: b.image ? 'Has image' : 'No image',
+      isActive: b.isActive
+    })))
     
   } catch (err: any) {
     console.error('❌ Could not load homepage data:', err.message)
@@ -449,7 +479,7 @@ onMounted(async () => {
   
   // Observe elements after a short delay to ensure they exist
   setTimeout(() => {
-    document.querySelectorAll('.brand-card, .offer-card, .brand-card-mobile, .offer-card-mobile').forEach((el) => {
+    document.querySelectorAll('.brand-card, .offer-card').forEach((el) => {
       observer.observe(el)
     })
   }, 100)
@@ -457,8 +487,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   // Cleanup subscription
-  if (unsubscribeStore) {
-    unsubscribeStore()
+  if (unsubscribeHomepageStore) {
+    unsubscribeHomepageStore()
   }
   
   // Clean up Firebase listener when component is destroyed
@@ -467,7 +497,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ALL YOUR EXISTING STYLES REMAIN UNCHANGED */
 /* ============================================= */
 /* LUXURIOUS WHITE & GOLD THEME WITH DARK MODE */
 /* ============================================= */
@@ -486,7 +515,7 @@ onUnmounted(() => {
   --glass-bg: rgba(255, 255, 255, 0.12);
   --glass-border: rgba(212, 175, 55, 0.25);
   --offer-badge: linear-gradient(to right, #c41e3a, #e63946);
-  --overlay-gradient: linear-gradient(to bottom, transparent 60%, rgba(255, 255, 255, 0.95));
+  --overlay-gradient: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
   
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -513,7 +542,26 @@ onUnmounted(() => {
   --glass-bg: rgba(26, 26, 26, 0.3);
   --glass-border: rgba(212, 175, 55, 0.4);
   --offer-badge: linear-gradient(to right, #e63946, #ff6b6b);
-  --overlay-gradient: linear-gradient(to bottom, transparent 40%, rgba(26, 26, 26, 0.95));
+  --overlay-gradient: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+}
+
+/* App Identity */
+.app-identity {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.app-subtitle {
+  font-size: 0.7rem;
+  color: #999999;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+  font-weight: 400;
+}
+
+.luxury-perfume-homepage.dark-mode .app-subtitle {
+  color: #aaaaaa;
 }
 
 /* Debug Panel */
@@ -574,7 +622,6 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
-
 /* No data messages */
 .no-data-message,
 .no-offer-message,
@@ -607,19 +654,6 @@ onUnmounted(() => {
   transform: translateY(-2px);
 }
 
-/* Brand price display */
-.brand-price,
-.brand-price-mobile {
-  color: var(--gold-primary);
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-top: 5px;
-}
-
-.brand-price-mobile {
-  font-size: 0.75rem;
-}
-
 /* RTL Direction Support */
 .luxury-perfume-homepage.rtl-direction {
   direction: rtl;
@@ -627,10 +661,8 @@ onUnmounted(() => {
 }
 
 .luxury-perfume-homepage.rtl-direction .section-header,
-.luxury-perfume-homepage.rtl-direction .brand-info,
-.luxury-perfume-homepage.rtl-direction .offer-details,
-.luxury-perfume-homepage.rtl-direction .brand-info-mobile,
-.luxury-perfume-homepage.rtl-direction .offer-details-mobile {
+.luxury-perfume-homepage.rtl-direction .brand-info-overlay,
+.luxury-perfume-homepage.rtl-direction .offer-details-overlay {
   text-align: right;
 }
 
@@ -639,8 +671,7 @@ onUnmounted(() => {
 }
 
 .luxury-perfume-homepage.rtl-direction .shop-now-button,
-.luxury-perfume-homepage.rtl-direction .buy-now-button,
-.luxury-perfume-homepage.rtl-direction .buy-now-button-mobile {
+.luxury-perfume-homepage.rtl-direction .buy-now-button {
   flex-direction: row-reverse;
 }
 
@@ -651,10 +682,8 @@ onUnmounted(() => {
 }
 
 .luxury-perfume-homepage.ltr-direction .section-header,
-.luxury-perfume-homepage.ltr-direction .brand-info,
-.luxury-perfume-homepage.ltr-direction .offer-details,
-.luxury-perfume-homepage.ltr-direction .brand-info-mobile,
-.luxury-perfume-homepage.ltr-direction .offer-details-mobile {
+.luxury-perfume-homepage.ltr-direction .brand-info-overlay,
+.luxury-perfume-homepage.ltr-direction .offer-details-overlay {
   text-align: left;
 }
 
@@ -663,8 +692,7 @@ onUnmounted(() => {
 }
 
 .luxury-perfume-homepage.ltr-direction .shop-now-button,
-.luxury-perfume-homepage.ltr-direction .buy-now-button,
-.luxury-perfume-homepage.ltr-direction .buy-now-button-mobile {
+.luxury-perfume-homepage.ltr-direction .buy-now-button {
   flex-direction: row;
 }
 
@@ -946,9 +974,9 @@ onUnmounted(() => {
 
 /* Brand Name */
 .brand-name-large {
-  font-size: 2.2rem;
-  letter-spacing: 3px;
-  margin: 0 0 1.5rem 0;
+  font-size: 2.8rem;
+  letter-spacing: 4px;
+  margin: 0 0 0.3rem 0;
   line-height: 1.1;
   color: #ffffff !important;
   font-weight: 700;
@@ -966,9 +994,9 @@ onUnmounted(() => {
 
 @media (max-width: 767px) {
   .brand-name-large {
-    font-size: 1.8rem;
-    letter-spacing: 2px;
-    margin-bottom: 1rem;
+    font-size: 2.2rem;
+    letter-spacing: 3px;
+    margin-bottom: 0.5rem;
     color: #ffffff !important;
     text-shadow: 
       0 2px 8px rgba(0, 0, 0, 0.6),
@@ -978,8 +1006,8 @@ onUnmounted(() => {
 
 @media (min-width: 1024px) {
   .brand-name-large {
-    font-size: 3rem;
-    letter-spacing: 4px;
+    font-size: 3.2rem;
+    letter-spacing: 5px;
   }
 }
 
@@ -1112,7 +1140,7 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
-/* ========== FLOATING BRANDS - COMPLETELY FIXED ========== */
+/* ========== FLOATING BRANDS - FIXED MARQUEE (NO BLINKING/SHAKING) ========== */
 .floating-brands {
   position: absolute;
   bottom: 40px;
@@ -1125,12 +1153,26 @@ onUnmounted(() => {
   height: 60px;
   display: flex;
   align-items: center;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
 }
 
 @media (max-width: 767px) {
   .floating-brands {
     bottom: 20px;
     height: 50px;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 5%,
+      black 95%,
+      transparent
+    );
   }
 }
 
@@ -1161,11 +1203,41 @@ onUnmounted(() => {
   align-items: center;
   width: max-content;
   will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
   animation: marquee-ltr 30s linear infinite;
+  animation-play-state: running;
 }
 
 .marquee-track.rtl-animation {
   animation: marquee-rtl 30s linear infinite;
+}
+
+/* Fix for smooth animation without blinking */
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Brand Item Container */
+.brand-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Brand Link Wrapper */
@@ -1173,7 +1245,7 @@ onUnmounted(() => {
   text-decoration: none;
   display: block;
   transition: all 0.3s ease;
-  flex-shrink: 0;
+  padding: 0 1rem;
 }
 
 .brand-link:hover {
@@ -1182,10 +1254,11 @@ onUnmounted(() => {
 
 /* Brand Logo */
 .brand-logo {
-  height: 30px;
+  height: 35px;
   width: auto;
-  max-width: 120px;
+  max-width: 140px;
   object-fit: contain;
+  object-position: center;
   opacity: 0.9;
   transition: all 0.3s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
@@ -1213,34 +1286,14 @@ onUnmounted(() => {
   }
   
   .marquee-track {
-    gap: 3rem;
+    gap: 2.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .brand-logo {
-    height: 35px;
-    max-width: 150px;
-  }
-}
-
-/* LTR Animation (for English) - Left to Right */
-@keyframes marquee-ltr {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-/* RTL Animation (for Arabic) - Right to Left */
-@keyframes marquee-rtl {
-  0% {
-    transform: translateX(-50%);
-  }
-  100% {
-    transform: translateX(0);
+    height: 40px;
+    max-width: 160px;
   }
 }
 
@@ -1278,395 +1331,120 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-/* ========== MOBILE LAYOUT (ONLY FOR MOBILE) ========== */
-.mobile-content-layout {
-  display: block;
-}
-
-@media (min-width: 1024px) {
-  .mobile-content-layout {
-    display: none;
-  }
-}
-
-/* Mobile Section Header */
-.mobile-content-layout .section-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.mobile-content-layout .section-title {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: 2px;
-  margin: 0 0 0.5rem 0;
-}
-
-.mobile-content-layout .section-subtitle {
-  font-size: 0.8rem;
-  color: var(--gold-primary);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-/* Mobile Grid Container - 2×3 Grid + Offer Side by Side */
-.mobile-grid-container {
+/* ========== SECTION HEADER WITH EXPLORE MORE ========== */
+.section-header {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-@media (min-width: 480px) {
-  .mobile-grid-container {
-    flex-direction: row;
-    gap: 1rem;
-    align-items: stretch;
-  }
-}
-
-/* Mobile Brands Section - Left side */
-.mobile-brands-section {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Mobile Brands Grid - 2×3 Layout (All 6 brands) */
-.brands-grid-mobile {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .brands-grid-mobile {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Mobile Brand Cards - Compact */
-.brand-card-link-mobile {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.brand-card-mobile {
-  position: relative;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.luxury-perfume-homepage.dark-mode .brand-card-mobile {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.brand-card-mobile.in-view {
-  opacity: 1;
-  transform: translateY(0);
-  transition: all 0.4s ease;
-}
-
-.brand-card-mobile:active {
-  transform: scale(0.98);
-}
-
-/* Mobile Brand Image */
-.brand-image-wrapper-mobile {
-  position: relative;
-  height: 100px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.brand-image-wrapper-mobile img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.brand-overlay-mobile {
-  position: absolute;
-  inset: 0;
-  background: var(--overlay-gradient);
-}
-
-/* Mobile Brand Info */
-.brand-info-mobile {
-  padding: 0.6rem;
-  text-align: center;
-  background: var(--bg-secondary);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   justify-content: space-between;
-}
-
-.brand-name-mobile {
-  font-size: 0.7rem;
-  color: var(--text-primary);
-  letter-spacing: 0.8px;
-  margin: 0 0 0.2rem 0;
-  font-weight: 600;
-  text-transform: uppercase;
-  line-height: 1.1;
-}
-
-.brand-signature-mobile {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  margin: 0;
-  font-style: italic;
-  line-height: 1.2;
-}
-
-/* Mobile Offer Section - Right side */
-.mobile-offer-section {
-  flex: 1;
-  min-width: 0;
-}
-
-@media (min-width: 480px) {
-  .mobile-offer-section {
-    max-width: 180px;
-  }
-}
-
-@media (min-width: 640px) {
-  .mobile-offer-section {
-    max-width: 200px;
-  }
-}
-
-/* Mobile Offer Card */
-.offer-card-mobile {
-  background: var(--bg-secondary);
-  border: 2px solid var(--gold-primary);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.15);
-  transition: all 0.3s ease;
-  height: 100%;
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.luxury-perfume-homepage.dark-mode .offer-card-mobile {
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
-}
-
-.offer-card-mobile.in-view {
-  opacity: 1;
-  transform: translateY(0);
-  transition: all 0.4s ease 0.1s;
-}
-
-/* Mobile Offer Badge - Fixed font consistency */
-.offer-badge-mobile {
-  background: linear-gradient(to right, var(--gold-tertiary), var(--gold-primary));
-  color: #ffffff;
-  text-align: center;
-  padding: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  line-height: 1.2;
-}
-
-/* Mobile Offer Content */
-.offer-content-mobile {
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 36px);
-}
-
-.offer-image-wrapper-mobile {
-  padding: 0.8rem;
-  background: linear-gradient(135deg, #f9f7f2 0%, #ffffff 100%);
-  text-align: center;
-  position: relative;
-  flex: 1;
-  display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.luxury-perfume-homepage.dark-mode .offer-image-wrapper-mobile {
-  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-}
-
-.offer-bottle-mobile {
-  max-height: 120px;
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.1));
-}
-
-.luxury-perfume-homepage.dark-mode .offer-bottle-mobile {
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
-}
-
-/* Mobile Offer Details - Fixed font consistency */
-.offer-details-mobile {
-  padding: 0.8rem;
-  text-align: center;
-  background: var(--bg-secondary);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.offer-title-mobile {
-  font-size: 0.9rem;
-  color: var(--text-primary);
-  letter-spacing: 1px;
-  margin: 0 0 0.3rem 0;
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-.offer-subtitle-mobile {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  margin: 0 0 0.5rem 0;
-  font-style: italic;
-  line-height: 1.2;
-}
-
-.offer-pricing-mobile {
-  margin: 0.5rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  align-items: center;
-}
-
-.old-price-mobile {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  text-decoration: line-through;
-}
-
-.new-price-mobile {
-  font-size: 1.1rem;
-  color: var(--gold-primary);
-  font-weight: 800;
-  line-height: 1;
-}
-
-/* Mobile Buy Now Button */
-.buy-now-button-mobile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-secondary) 100%);
-  color: #ffffff;
-  border: none;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(212, 175, 55, 0.3);
-  width: 100%;
-  margin-top: 0.5rem;
-}
-
-.buy-now-button-mobile:active {
-  transform: scale(0.95);
-  background: linear-gradient(135deg, #e6c158 0%, var(--gold-primary) 100%);
-}
-
-/* ========== DESKTOP LAYOUT (ORIGINAL - UNCHANGED) ========== */
-.desktop-content-layout {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .desktop-content-layout {
-    display: flex;
-    flex-direction: row;
-    gap: 4rem;
-  }
-}
-
-/* Desktop Section Header */
-.desktop-content-layout .section-header {
-  text-align: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 @media (min-width: 1024px) {
-  .desktop-content-layout .section-header {
-    text-align: left;
+  .section-header {
     margin-bottom: 2.5rem;
   }
 }
 
-.desktop-content-layout .section-title {
-  font-size: 2rem;
+.section-title {
+  font-size: 1.8rem;
   font-weight: 400;
   color: var(--text-primary);
   letter-spacing: 2px;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
 }
 
-@media (min-width: 640px) {
-  .desktop-content-layout .section-title {
-    font-size: 2.2rem;
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 2rem;
     letter-spacing: 3px;
   }
 }
 
 @media (min-width: 1024px) {
-  .desktop-content-layout .section-title {
+  .section-title {
     font-size: 2.5rem;
   }
 }
 
-.desktop-content-layout .section-subtitle {
-  font-size: 0.9rem;
-  color: var(--gold-primary);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  font-weight: 500;
+.section-header-right {
+  display: flex;
+  align-items: center;
 }
 
-@media (min-width: 640px) {
-  .desktop-content-layout .section-subtitle {
-    font-size: 1rem;
-    letter-spacing: 2px;
+.explore-more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gold-primary);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.explore-more-link:hover {
+  background: rgba(212, 175, 55, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+}
+
+.luxury-perfume-homepage.dark-mode .explore-more-link {
+  background: rgba(212, 175, 55, 0.15);
+}
+
+.explore-icon {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* ========== MAIN CONTENT LAYOUT - 3 COLUMNS ON MOBILE ========== */
+.main-content-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .main-content-layout {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    align-items: start;
   }
 }
 
-/* Desktop Featured Brands */
-.featured-brands {
-  flex: 1;
+@media (min-width: 1024px) {
+  .main-content-layout {
+    gap: 2rem;
+  }
 }
 
-/* Desktop Brands Grid */
+/* ========== FEATURED BRANDS SECTION - 2 COLUMNS ========== */
+.featured-brands-section {
+  grid-column: span 2;
+}
+
+/* Brands Grid - 2 columns on mobile/tablet, 3 on desktop */
 .brands-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
 }
 
-/* Desktop Brand Cards */
+@media (min-width: 1024px) {
+  .brands-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Brand Card - Full Image with Overlay */
 .brand-card-link {
   text-decoration: none;
   color: inherit;
@@ -1677,346 +1455,426 @@ onUnmounted(() => {
   position: relative;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0;
-  transform: translateY(20px);
+  transition: all 0.3s ease;
   box-shadow: var(--card-shadow);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  height: 250px;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.luxury-perfume-homepage.dark-mode .brand-card {
+  box-shadow: var(--card-shadow);
 }
 
 .brand-card.in-view {
   opacity: 1;
   transform: translateY(0);
+  transition: all 0.4s ease;
 }
 
-.brand-card:hover {
-  border-color: rgba(212, 175, 55, 0.4);
-  transform: translateY(-8px);
-  box-shadow:
-    0 20px 40px rgba(212, 175, 55, 0.15),
-    0 8px 16px rgba(0, 0, 0, 0.1);
-}
-
-.luxury-perfume-homepage.dark-mode .brand-card:hover {
-  box-shadow:
-    0 20px 40px rgba(212, 175, 55, 0.25),
-    0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* Desktop Brand Image */
-.brand-image-wrapper {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-@media (min-width: 640px) {
-  .brand-image-wrapper {
-    height: 220px;
+@media (min-width: 768px) {
+  .brand-card {
+    height: 280px;
+    border-radius: 20px;
+  }
+  
+  .brand-card:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    transform: translateY(-8px);
+    box-shadow:
+      0 20px 40px rgba(212, 175, 55, 0.15),
+      0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  .luxury-perfume-homepage.dark-mode .brand-card:hover {
+    box-shadow:
+      0 20px 40px rgba(212, 175, 55, 0.25),
+      0 8px 16px rgba(0, 0, 0, 0.3);
   }
 }
 
 @media (min-width: 1024px) {
-  .brand-image-wrapper {
-    height: 250px;
+  .brand-card {
+    height: 300px;
   }
 }
 
-.brand-image-wrapper img {
+/* Brand Image Full Coverage */
+.brand-image-full {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.brand-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.brand-card:hover .brand-image-wrapper img {
-  transform: scale(1.08);
+@media (min-width: 768px) {
+  .brand-card:hover .brand-image {
+    transform: scale(1.08);
+  }
 }
 
-.brand-overlay {
+/* Gradient Overlay for Text Readability */
+.image-gradient-overlay {
   position: absolute;
   inset: 0;
   background: var(--overlay-gradient);
-}
-
-.brand-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.brand-card:hover .brand-glow {
-  opacity: 1;
-}
-
-.gold-sparkles {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.4) 0%, transparent 5%),
-    radial-gradient(circle at 80% 70%, rgba(212, 175, 55, 0.4) 0%, transparent 5%);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
 }
 
-.brand-card:hover .gold-sparkles {
-  opacity: 0.6;
-}
-
-/* Desktop Brand Info */
-.brand-info {
+/* Brand Info Overlay */
+.brand-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 1.2rem;
-  text-align: center;
-  background: var(--bg-secondary);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  z-index: 2;
+  pointer-events: none;
 }
 
-@media (min-width: 640px) {
-  .brand-info {
+@media (min-width: 768px) {
+  .brand-info-overlay {
     padding: 1.5rem;
   }
 }
 
 .brand-name {
-  font-size: 0.95rem;
-  color: var(--text-primary);
+  font-size: 1rem;
+  color: #ffffff;
   letter-spacing: 1.5px;
   margin: 0 0 0.4rem 0;
   font-weight: 600;
   text-transform: uppercase;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .brand-name {
     font-size: 1.1rem;
+    letter-spacing: 2px;
   }
 }
 
 .brand-signature {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.9);
   margin: 0 0 0.8rem 0;
   font-style: italic;
   line-height: 1.3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .brand-signature {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 }
 
-/* Desktop Offer Card */
+/* Product Count Display */
+.product-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.count-number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold-primary);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.count-label {
+  font-size: 0.7rem;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ========== OFFER SIDEBAR - 1 COLUMN ========== */
 .offer-sidebar {
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
+  grid-column: span 1;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .offer-sidebar {
-    max-width: 380px;
-    align-self: start;
-    position: sticky;
-    top: 120px;
+    grid-column: span 1;
   }
 }
 
+/* Offer Card - Full Image Dominant */
 .offer-card {
   background: var(--bg-secondary);
   border: 2px solid var(--gold-primary);
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow:
-    0 15px 35px rgba(212, 175, 55, 0.15),
+    0 10px 25px rgba(212, 175, 55, 0.15),
     0 5px 15px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(10px);
+  height: 450px;
+  position: relative;
 }
 
 .luxury-perfume-homepage.dark-mode .offer-card {
   box-shadow:
-    0 15px 35px rgba(212, 175, 55, 0.25),
+    0 10px 25px rgba(212, 175, 55, 0.25),
     0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .offer-card.in-view {
   opacity: 1;
   transform: translateY(0);
+  transition: all 0.4s ease 0.1s;
 }
 
+@media (min-width: 768px) {
+  .offer-card {
+    border-radius: 24px;
+    height: 500px;
+    box-shadow:
+      0 15px 35px rgba(212, 175, 55, 0.15),
+      0 5px 15px rgba(0, 0, 0, 0.08);
+  }
+  
+  .luxury-perfume-homepage.dark-mode .offer-card {
+    box-shadow:
+      0 15px 35px rgba(212, 175, 55, 0.25),
+      0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  .offer-card {
+    height: 550px;
+  }
+}
+
+/* Offer Badge */
 .offer-badge {
   background: var(--offer-badge);
   color: #ffffff;
   text-align: center;
-  padding: 0.8rem;
-  font-size: 0.9rem;
+  padding: 0.7rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
+  line-height: 1.2;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .offer-badge {
     padding: 1rem;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
   }
 }
 
+/* Offer Content */
 .offer-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.offer-image-wrapper {
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f8f5f0 0%, #ffffff 100%);
-  text-align: center;
   position: relative;
+  height: 100%;
 }
 
-.luxury-perfume-homepage.dark-mode .offer-image-wrapper {
+/* Offer Image Full Coverage */
+.offer-image-full {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f5f0 0%, #ffffff 100%);
+}
+
+.luxury-perfume-homepage.dark-mode .offer-image-full {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
 }
 
-.offer-bottle {
-  max-height: 220px;
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.1));
+.offer-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.95);
 }
 
-.luxury-perfume-homepage.dark-mode .offer-bottle {
-  filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.3));
+.luxury-perfume-homepage.dark-mode .offer-image {
+  filter: brightness(0.85);
 }
 
-@media (min-width: 640px) {
-  .offer-bottle {
-    max-height: 250px;
-  }
-}
-
-.offer-glow {
+/* Offer Gradient Overlay */
+.offer-gradient-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
-  opacity: 0.5;
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    rgba(0, 0, 0, 0.3) 40%, 
+    rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
 }
 
-.offer-details {
+/* Offer Details Overlay */
+.offer-details-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 1.5rem;
+  z-index: 2;
   text-align: center;
-  background: var(--bg-secondary);
 }
 
-@media (min-width: 640px) {
-  .offer-details {
+@media (min-width: 768px) {
+  .offer-details-overlay {
     padding: 2rem;
   }
 }
 
 .offer-title {
-  font-size: 1.8rem;
-  color: var(--text-primary);
-  letter-spacing: 2px;
+  font-size: 1.4rem;
+  color: #ffffff;
+  letter-spacing: 1.5px;
   margin: 0 0 0.5rem 0;
   font-weight: 600;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .offer-title {
-    font-size: 2rem;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .offer-title {
+    font-size: 1.8rem;
   }
 }
 
 .offer-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1rem;
   font-style: italic;
+  line-height: 1.3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .offer-subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
   }
 }
 
 .offer-pricing {
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .offer-pricing {
+    margin: 1.5rem 0;
+    gap: 1.5rem;
+  }
 }
 
 .old-price {
-  font-size: 1.2rem;
-  color: var(--text-tertiary);
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: line-through;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .old-price {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
   }
 }
 
 .new-price {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   color: var(--gold-primary);
   font-weight: 800;
-  text-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+  text-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.5);
+  line-height: 1;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .new-price {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
 }
 
+/* Buy Now Button */
 .buy-now-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
+  gap: 0.6rem;
   background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-tertiary) 100%);
   color: #ffffff;
   border: none;
-  padding: 0.9rem 1.5rem;
+  padding: 0.8rem 1.5rem;
   font-size: 0.9rem;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
-  margin-top: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  pointer-events: auto;
 }
 
-.buy-now-button:hover {
+.buy-now-button:active {
+  transform: scale(0.98);
   background: linear-gradient(135deg, #e6c158 0%, var(--gold-primary) 100%);
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .buy-now-button {
     padding: 1rem 2rem;
     font-size: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  }
+  
+  .buy-now-button:hover {
+    background: linear-gradient(135deg, #e6c158 0%, var(--gold-primary) 100%);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -2024,21 +1882,22 @@ onUnmounted(() => {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   .marquee-track { animation: none; }
-  .brand-card, .offer-card, .brand-card-mobile, .offer-card-mobile { opacity: 1; transform: none; }
+  .brand-card, .offer-card { opacity: 1; transform: none; }
 }
 
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .brand-image-wrapper img, .offer-bottle { image-rendering: crisp-edges; }
+  .brand-image, .offer-image { image-rendering: crisp-edges; }
 }
 
 @media (max-width: 767px) and (orientation: landscape) {
   .banner-video-container { height: 220px; min-height: 220px; }
   .hero-banner { height: 260px; min-height: 260px; }
-  .brand-image-wrapper { height: 160px; }
+  .brand-card { height: 220px; }
+  .offer-card { height: 400px; }
 }
 
 @media print {
-  .hero-banner, .brands-marquee, .shop-now-button, .buy-now-button { display: none; }
+  .hero-banner, .floating-brands, .shop-now-button, .buy-now-button { display: none; }
   .main-content-section { padding: 1rem; }
 }
 
@@ -2057,9 +1916,7 @@ onUnmounted(() => {
   .brand-name-large,
   .section-title,
   .offer-title,
-  .brand-name,
-  .brand-name-mobile,
-  .offer-title-mobile {
+  .brand-name {
     font-weight: 900;
   }
 }
@@ -2069,6 +1926,10 @@ onUnmounted(() => {
   .glass-card {
     background: var(--bg-secondary);
     backdrop-filter: none;
+  }
+  .image-gradient-overlay,
+  .offer-gradient-overlay {
+    background: rgba(0, 0, 0, 0.7);
   }
 }
 </style>
