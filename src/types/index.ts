@@ -1,10 +1,38 @@
+// ===============================
 // Luxury Types
-export type Language = 'en' | 'ar'
+// ===============================
+
+export type Language = 'en' | 'ar' | 'fa' | 'he'
 
 export interface Translation {
   en: string
   ar: string
 }
+
+// ===============================
+// Homepage
+// ===============================
+
+export interface HomepageData {
+  heroTitle: string
+  heroSubtitle: string
+  aboutWork: {
+    title: string
+    description: string
+  }
+  settings: {
+    isDarkMode: boolean
+    defaultLanguage: Language
+  }
+  activeOffers?: any[]
+  productCount?: number
+  lastUpdated?: string
+  source?: 'firebase' | 'local' | 'api'
+}
+
+// ===============================
+// Category
+// ===============================
 
 export interface Category {
   id: string
@@ -15,38 +43,55 @@ export interface Category {
   featured: boolean
 }
 
+// ===============================
+// Product
+// ===============================
+
 export interface Product {
   id: string
   slug: string
+
   name: Translation
+
+  // Brand
   brand: string
+  brandSlug?: string
+  brandId?: string
+  brandName?: string
+
   description: Translation
+
   price: number
   originalPrice?: number
+
   size: string
   concentration: string
+
   notes: {
     top: string[]
     heart: string[]
     base: string[]
   }
+
   imageUrl: string
+  image?: string
   images: string[]
+
   category: string
+
   isBestSeller: boolean
+  isFeatured?: boolean
+  isNew?: boolean
+  isActive?: boolean
+
   inStock: boolean
+
   rating?: number
   reviewCount?: number
-  createdAt?: {
-    seconds: number
-    nanoseconds: number
-    toDate: () => Date
-  }
-  updatedAt?: {
-    seconds: number
-    nanoseconds: number
-    toDate: () => Date
-  }
+
+  createdAt?: any
+  updatedAt?: any
+
   meta?: {
     weight?: string
     dimensions?: string
@@ -55,26 +100,9 @@ export interface Product {
   }
 }
 
-export interface CartItem {
-  id: string
-  name: Translation
-  imageUrl: string
-  price: number
-  size: string
-  concentration?: string
-  brand?: string
-  quantity: number
-  addedAt?: string
-}
-
-export interface AdminUser {
-  uid: string
-  email: string
-  displayName: string
-  photoURL?: string
-  role: 'admin' | 'super-admin'
-  lastLogin?: Date
-}
+// ===============================
+// Product Form
+// ===============================
 
 export interface ProductFormData {
   name: Translation
@@ -93,44 +121,113 @@ export interface ProductFormData {
   images: string[]
   category: string
   isBestSeller: boolean
+  isFeatured?: boolean
+  isNew?: boolean
+  isActive?: boolean
   inStock: boolean
 }
 
+// ===============================
+// Cart
+// ===============================
+
+export interface CartItem {
+  id: string
+  name: Translation
+  imageUrl: string
+  price: number
+  size: string
+  concentration?: string
+  brand?: string
+  quantity: number
+  addedAt?: string
+}
+
+// ===============================
+// Admin
+// ===============================
+
+export interface AdminUser {
+  uid: string
+  email: string
+  displayName: string
+  photoURL?: string
+  role: 'admin' | 'super-admin'
+  lastLogin?: Date
+}
+
+// ===============================
+// Filters
+// ===============================
+
 export interface FilterOptions {
   category?: string
+  categories?: string[]
+
   brand?: string
+  brands?: string[]
+  brandSlug?: string
+
+  size?: string
+  concentration?: string
+
+  price?: number
   minPrice?: number
   maxPrice?: number
-  concentration?: string
+
   minRating?: number
+
   bestseller?: boolean
+  isFeatured?: boolean
   newArrival?: boolean
+
   sortBy?: string
   searchTerm?: string
 }
 
+// ===============================
+// Orders
+// ===============================
+
+export interface OrderCustomer {
+  name: string
+  email: string
+  phone: string
+  userId?: string
+}
+
 export interface Order {
   id: string
-  userId?: string
+  orderNumber: string
+
+  customer: OrderCustomer
   items: CartItem[]
+
   subtotal: number
-  shipping: number
-  tax: number
+  shippingCost: number
+  tax?: number
+  discount?: number
   total: number
+
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
-  shippingAddress: {
-    fullName: string
-    address: string
-    city: string
-    country: string
-    postalCode: string
-    phone: string
-  }
+
   paymentMethod: string
-  paymentStatus: 'pending' | 'paid' | 'failed'
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
+
+  shippingAddress: string
+  trackingNumber?: string
+  notes?: string
+
   createdAt: Date
   updatedAt: Date
+  shippedAt?: Date
+  deliveredAt?: Date
+  cancelledAt?: Date
 }
+
+// ===============================
+// Review
+// ===============================
 
 export interface Review {
   id: string
@@ -143,12 +240,20 @@ export interface Review {
   helpful?: number
 }
 
+// ===============================
+// Wishlist
+// ===============================
+
 export interface WishlistItem {
   id: string
   productId: string
   userId: string
   addedAt: Date
 }
+
+// ===============================
+// Newsletter
+// ===============================
 
 export interface NewsletterSubscriber {
   id: string
@@ -162,7 +267,10 @@ export interface NewsletterSubscriber {
   }
 }
 
-// Luxury Response Types
+// ===============================
+// API
+// ===============================
+
 export interface ApiResponse<T> {
   success: boolean
   data?: T
@@ -178,7 +286,10 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-// Luxury Form Types
+// ===============================
+// Forms
+// ===============================
+
 export interface ContactFormData {
   name: string
   email: string
@@ -198,7 +309,10 @@ export interface NewsletterFormData {
   }
 }
 
-// Luxury UI Types
+// ===============================
+// Theme
+// ===============================
+
 export interface LuxuryTheme {
   colors: {
     darkBg: string
@@ -230,6 +344,10 @@ export interface LuxuryTheme {
   }
 }
 
+// ===============================
+// Brand
+// ===============================
+
 export interface Brand {
   id: string
   name: string
@@ -239,6 +357,7 @@ export interface Brand {
   description?: string
   category?: string
   price?: number
+  productCount?: number
   isActive: boolean
   productIds?: string[]
   createdAt: Date
@@ -257,89 +376,4 @@ export interface FeaturedBrand {
   price: number
   slug: string
   category?: string
-}
-
-// Update Product interface to include brand reference
-export interface Product {
-  id: string
-  slug: string
-  name: Translation
-  brand: string // Brand slug
-  brandId?: string // Brand document ID
-  description: Translation
-  price: number
-  originalPrice?: number
-  size: string
-  concentration: string
-  notes: {
-    top: string[]
-    heart: string[]
-    base: string[]
-  }
-  imageUrl: string
-  images: string[]
-  category: string
-  isBestSeller: boolean
-  inStock: boolean
-  rating?: number
-  reviewCount?: number
-  createdAt?: any
-  updatedAt?: any
-  meta?: {
-    weight?: string
-    dimensions?: string
-    ingredients?: string[]
-    howToUse?: Translation
-  }
-}
-// Export all types
-export type {
-  Language,
-  Translation,
-  Category,
-  Product,
-  CartItem,
-  AdminUser,
-  ProductFormData,
-  FilterOptions,
-  Order,
-  Review,
-  WishlistItem,
-  NewsletterSubscriber,
-  ApiResponse,
-  PaginatedResponse,
-  ContactFormData,
-  NewsletterFormData,
-  LuxuryTheme
-}
-// Add this interface to your existing index.ts file
-export interface OrderCustomer {
-  name: string
-  email: string
-  phone: string
-  userId?: string
-}
-
-// Also update the Order interface to match the store requirements
-export interface Order {
-  id: string
-  orderNumber: string
-  customer: OrderCustomer
-  items: CartItem[]
-  subtotal: number
-  shippingCost: number
-  tax?: number
-  discount?: number
-  total: number
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
-  paymentMethod: string
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
-  shippingAddress: string
-  trackingNumber?: string
-  notes?: string
-  createdAt: Date
-  updatedAt: Date
-  shippedAt?: Date
-  deliveredAt?: Date
-  cancelledAt?: Date
 }
