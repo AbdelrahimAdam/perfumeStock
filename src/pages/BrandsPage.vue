@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-white">
     <!-- SEO Head -->
     <SEOHead 
-      title="Brands | Luxury Perfume Collections"
-      description="Explore our luxury perfume collections from premium brands worldwide. All prices in EGP."
+      :title="seoTitle"
+      :description="seoDescription"
       type="website"
     />
 
@@ -12,12 +12,10 @@
       <div class="container mx-auto px-4 py-16 md:py-24">
         <div class="max-w-3xl" :class="{ 'text-right': isRTL }">
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-display-en font-bold mb-6">
-            {{ currentLanguage === 'en' ? 'Premium Perfume Brands' : 'ماركات العطور المميزة' }}
+            {{ pageTitle }}
           </h1>
           <p class="text-lg md:text-xl text-gray-300 mb-8">
-            {{ currentLanguage === 'en' 
-               ? 'Discover luxury fragrances from the world\'s most prestigious perfume houses. Each brand represents a unique olfactory journey.' 
-               : 'اكتشف العطور الفاخرة من أشهر دور العطور العالمية. كل ماركة تمثل رحلة شمية فريدة.' }}
+            {{ pageDescription }}
           </p>
         </div>
       </div>
@@ -28,11 +26,40 @@
       <nav class="flex items-center text-sm text-gray-600 mb-8" 
            :class="{ 'flex-row-reverse': isRTL }">
         <router-link to="/" class="hover:text-primary-600 transition-colors">
-          {{ currentLanguage === 'en' ? 'Home' : 'الرئيسية' }}
+          {{ t('Home') }}
         </router-link>
         <span class="mx-3">/</span>
-        <span class="text-gray-900 font-medium">{{ currentLanguage === 'en' ? 'Brands' : 'الماركات' }}</span>
+        <span class="text-gray-900 font-medium">{{ t('Brands') }}</span>
       </nav>
+
+      <!-- Category Filter -->
+      <div class="mb-8 flex flex-wrap items-center gap-3" :class="{ 'flex-row-reverse': isRTL }">
+        <span class="text-sm font-medium text-gray-700">{{ t('Filter by:') }}</span>
+        <button
+          @click="selectedCategory = null"
+          :class="[
+            'px-4 py-2 text-sm font-medium transition-colors',
+            !selectedCategory
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          {{ t('All Brands') }}
+        </button>
+        <button
+          v-for="category in uniqueCategories"
+          :key="category"
+          @click="selectedCategory = category"
+          :class="[
+            'px-4 py-2 text-sm font-medium transition-colors',
+            selectedCategory === category
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          {{ category }}
+        </button>
+      </div>
 
       <!-- Loading State -->
       <div v-if="brandsStore.isLoading" class="text-center py-12">
@@ -42,64 +69,87 @@
 
       <!-- Error State -->
       <div v-else-if="brandsStore.error" class="text-center py-12">
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="bg-red-50 border border-red-200 p-4">
           <p class="text-red-600">{{ brandsStore.error }}</p>
-          <button @click="loadBrands" class="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+          <button @click="loadBrands" class="mt-4 px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 transition-colors">
             {{ t('Try Again') }}
           </button>
         </div>
       </div>
 
       <!-- Brands Grid -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-else-if="filteredBrands.length > 0" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         <div
-          v-for="brand in displayBrands"
+          v-for="brand in filteredBrands"
           :key="brand.id"
-          class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-primary-300"
+          class="group relative bg-white overflow-hidden"
         >
           <router-link :to="`/brand/${brand.slug}`" class="block">
-            <!-- Brand Image -->
-            <div class="relative h-48 overflow-hidden">
+            <!-- Brand Image - Full Card -->
+            <div class="relative aspect-[4/5] md:aspect-[3/4]">
               <img 
-                :src="brand.image" 
+                :src="brand.image || defaultBrandImage"
                 :alt="brand.name"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                @error="handleImageError($event, brand)"
+                class="w-full h-full object-cover"
+                @error="handleImageError"
               />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-              <!-- Status Badge -->
-              <div class="absolute top-4 left-4">
+              
+              <!-- Status Badge - Always Visible -->
+              <div class="absolute top-4 left-4 z-10">
                 <span :class="[
-                  'px-3 py-1 rounded-full text-xs font-medium',
+                  'px-3 py-1 text-xs font-medium',
                   brand.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                 ]">
                   {{ brand.isActive ? t('Active') : t('Inactive') }}
                 </span>
               </div>
-            </div>
 
-            <!-- Brand Info -->
-            <div class="p-6">
-              <h3 class="text-xl font-display-en font-bold text-gray-900 mb-2">
-                {{ brand.name }}
-              </h3>
-              <p class="text-gray-600 mb-4 line-clamp-2">
-                {{ brand.signature || brand.description || `${brand.name} Collection` }}
-              </p>
-              
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="text-sm font-medium text-primary-600">
-                    {{ t('Products') }}: {{ getBrandProductsCount(brand.slug) }}
+              <!-- Desktop: Brand Details Overlay - Hidden by default, visible on hover -->
+              <div class="absolute inset-0 md:block hidden">
+                <!-- Gradient overlay that fades in on hover -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                <!-- Content overlay that slides up on hover -->
+                <div class="absolute inset-x-0 bottom-0 p-4 md:p-6 transform translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                  <h3 class="text-lg md:text-xl font-display-en font-bold text-white mb-1">
+                    {{ brand.name }}
+                  </h3>
+                  <p v-if="brand.signature" class="text-sm text-gray-200 mb-2 line-clamp-2">
+                    {{ brand.signature }}
+                  </p>
+                  <p v-else-if="brand.description" class="text-sm text-gray-200 mb-2 line-clamp-2">
+                    {{ brand.description }}
+                  </p>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-xs font-medium text-primary-300">
+                        {{ t('Products') }}: {{ getBrandProductsCount(brand.slug) }}
+                      </span>
+                      <span class="mx-2 text-gray-400">•</span>
+                      <span class="text-xs text-gray-300">
+                        {{ brand.category }}
+                      </span>
+                    </div>
+                    <span class="text-primary-300 text-sm">
+                      {{ isRTL ? 'استكشف ←' : 'Explore →' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mobile: Brand Details Static at Bottom -->
+              <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3 md:hidden">
+                <h3 class="text-sm font-display-en font-bold text-white mb-0.5 truncate">
+                  {{ brand.name }}
+                </h3>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-200">
+                    {{ getBrandProductsCount(brand.slug) }} {{ t('Products') }}
                   </span>
-                  <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-sm text-gray-500">
-                    {{ brand.category }}
+                  <span class="text-primary-300 text-xs">
+                    {{ isRTL ? 'استكشف' : 'Explore' }}
                   </span>
                 </div>
-                <span class="text-primary-500 group-hover:text-primary-600 transition-colors">
-                  {{ currentLanguage === 'en' ? 'Explore →' : 'استكشف →' }}
-                </span>
               </div>
             </div>
           </router-link>
@@ -107,7 +157,7 @@
       </div>
 
       <!-- No Brands Message -->
-      <div v-if="!brandsStore.isLoading && !brandsStore.error && displayBrands.length === 0" class="text-center py-20">
+      <div v-else class="text-center py-20">
         <div class="text-gray-400 mb-4">
           <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -115,12 +165,10 @@
           </svg>
         </div>
         <h3 class="text-xl font-medium text-gray-900 mb-2">
-          {{ currentLanguage === 'en' ? 'No Brands Available' : 'لا توجد ماركات متاحة' }}
+          {{ t('No Brands Available') }}
         </h3>
         <p class="text-gray-600">
-          {{ currentLanguage === 'en' 
-             ? 'Brands will be added soon by the administrator.' 
-             : 'سيتم إضافة الماركات قريباً من قبل المسؤول.' }}
+          {{ t('Brands will be added soon by the administrator.') }}
         </p>
       </div>
     </div>
@@ -128,61 +176,89 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
-import { useBrandsStore } from '@/stores/brands' // Import brands store
+import { useBrandsStore } from '@/stores/brands'
 import SEOHead from '@/components/UI/SEOHead.vue'
 
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
-const brandsStore = useBrandsStore() // Use brands store
+const brandsStore = useBrandsStore()
 
 const { currentLanguage, isRTL, t } = languageStore
 
-// COMPUTED: Get brands from brands store
-const displayBrands = computed(() => {
-  console.log('🔄 Getting brands from brands store:', brandsStore.brands.length)
+// State
+const selectedCategory = ref<string | null>(null)
+const defaultBrandImage = '/images/brand-default.jpg'
+
+// Page SEO
+const pageTitle = computed(() => 
+  currentLanguage.value === 'en' ? 'Premium Perfume Brands' : 'ماركات العطور المميزة'
+)
+
+const pageDescription = computed(() => 
+  currentLanguage.value === 'en'
+    ? 'Discover luxury fragrances from the world\'s most prestigious perfume houses. Each brand represents a unique olfactory journey.'
+    : 'اكتشف العطور الفاخرة من أشهر دور العطور العالمية. كل ماركة تمثل رحلة شمية فريدة.'
+)
+
+const seoTitle = computed(() => 
+  currentLanguage.value === 'en' ? 'Brands | Luxury Perfume Collections' : 'الماركات | مجموعات العطور الفاخرة'
+)
+
+const seoDescription = computed(() => 
+  currentLanguage.value === 'en'
+    ? 'Explore our luxury perfume collections from premium brands worldwide. All prices in EGP.'
+    : 'استكشف مجموعات العطور الفاخرة من أفضل الماركات العالمية. جميع الأسعار بالجنيه المصري.'
+)
+
+// Get active brands from store
+const activeBrands = computed(() => brandsStore.activeBrands)
+
+// Filter brands by category
+const filteredBrands = computed(() => {
+  let brands = activeBrands.value
   
-  return brandsStore.brands.map(brand => ({
-    id: brand.id,
-    name: brand.name,
-    slug: brand.slug,
-    signature: brand.signature,
-    image: brand.image || '/images/brand-default.jpg',
-    description: brand.description,
-    category: brand.category,
-    isActive: brand.isActive !== false,
-    productCount: brand.productIds?.length || 0
-  }))
+  if (selectedCategory.value) {
+    brands = brands.filter(b => b.category === selectedCategory.value)
+  }
+  
+  return brands
 })
 
-// Methods
+// Get unique categories from active brands
+const uniqueCategories = computed(() => {
+  const categories = new Set<string>()
+  activeBrands.value.forEach(brand => {
+    if (brand.category) categories.add(brand.category)
+  })
+  return Array.from(categories).sort()
+})
+
+// Get products count for a brand
 const getBrandProductsCount = (brandSlug: string) => {
-  const count = productsStore.getProductsByBrand(brandSlug).length
-  console.log(`📊 Products count for ${brandSlug}:`, count)
-  return count
+  const brand = brandsStore.brands.find(b => b.slug === brandSlug)
+  return brand?.productIds?.length || 0
 }
 
-const handleImageError = (event: Event, brand: any) => {
+// Handle image error
+const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.src = '/images/brand-default.jpg'
+  img.src = defaultBrandImage
 }
 
+// Load brands
 const loadBrands = async () => {
   await brandsStore.loadBrands()
 }
 
-// On mounted
+// Initialize
 onMounted(async () => {
-  console.log('🏠 BrandsPage mounted - Loading data...')
+  console.log('🏠 BrandsPage mounted - Initializing...')
   
-  // Load brands from brands store
-  if (brandsStore.brands.length === 0) {
-    console.log('📥 Loading brands from brands store...')
-    await brandsStore.loadBrands()
-    console.log('✅ Brands loaded:', brandsStore.brands.length)
-  }
+  // Initialize brands store
+  await brandsStore.initialize()
   
   // Load products if needed
   if (productsStore.products.length === 0) {
@@ -190,7 +266,7 @@ onMounted(async () => {
     await productsStore.fetchProducts()
   }
   
-  console.log('🎉 BrandsPage ready with', displayBrands.value.length, 'brands')
+  console.log('🎉 BrandsPage ready with', activeBrands.value.length, 'active brands')
 })
 </script>
 
@@ -202,7 +278,62 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.group:hover .group-hover\:scale-105 {
-  transform: scale(1.05);
+/* Card styling */
+.group {
+  position: relative;
+  width: 100%;
+}
+
+/* Ensure no rounded corners */
+.group,
+.group .relative,
+.group img,
+.group .absolute {
+  border-radius: 0 !important;
+}
+
+/* Aspect ratio for consistent card sizing */
+.aspect-\[4\/5\] {
+  aspect-ratio: 4/5;
+}
+
+.aspect-\[3\/4\] {
+  aspect-ratio: 3/4;
+}
+
+/* Desktop overlay animations */
+@media (min-width: 768px) {
+  .group .md\:group-hover\:translate-y-0 {
+    transform: translateY(0) !important;
+  }
+  
+  .group .translate-y-full {
+    transform: translateY(100%);
+  }
+  
+  .group .opacity-0 {
+    opacity: 0;
+  }
+  
+  .group:hover .md\:group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}
+
+/* Mobile grid adjustments */
+@media (max-width: 767px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .grid {
+    gap: 0.75rem;
+  }
+}
+
+/* Category filter buttons */
+button {
+  border-radius: 0 !important;
 }
 </style>

@@ -4,7 +4,7 @@
     <div class="luxury-header-container">
       <!-- Top Bar -->
       <div class="luxury-top-bar">
-        <!-- Left: Logo -->
+        <!-- Left: Logo with P.NOTES and PERFUME STORE subtitle -->
         <router-link to="/" class="luxury-logo-container">
           <div class="luxury-logo-icon">
             <div class="logo-inner">
@@ -12,58 +12,97 @@
             </div>
           </div>
           <div class="luxury-logo-text">
-            <h1 class="logo-title">{{ languageStore.t('brandName') }}</h1>
-            <p class="logo-subtitle">{{ languageStore.t('luxuryFragrances') }}</p>
+            <h1 class="logo-title">P.NOTES</h1>
+            <p class="logo-subtitle">PERFUME STORE</p>
           </div>
         </router-link>
         
-        <!-- Desktop Navigation -->
+        <!-- Desktop Navigation - REMOVED COLLECTIONS AND LUXURY LINKS -->
         <nav class="luxury-nav-desktop">
           <ul class="luxury-nav-list">
             <li class="luxury-nav-item">
               <router-link to="/" class="luxury-nav-link" active-class="active" exact>
                 {{ languageStore.t('home') }}
               </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Home</h4>
+                  <p class="preview-description">Discover our latest luxury fragrances and exclusive collections</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/shop" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('shop') }}
               </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Shop</h4>
+                  <p class="preview-description">Browse all our premium perfumes and fragrance collections</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/brands" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('brands') }}
               </router-link>
-            </li>
-            <li class="luxury-nav-item">
-              <router-link to="/collections" class="luxury-nav-link" active-class="active">
-                {{ languageStore.t('collections') }}
-              </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Brands</h4>
+                  <p class="preview-description">Explore luxury perfume houses and their signature scents</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/category/mens" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('mens') }}
               </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Men's Collection</h4>
+                  <p class="preview-description">Bold, sophisticated fragrances crafted for the modern gentleman</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/category/womens" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('womens') }}
               </router-link>
-            </li>
-            <li class="luxury-nav-item">
-              <router-link to="/category/luxury" class="luxury-nav-link" active-class="active">
-                {{ languageStore.t('luxury') }}
-              </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Women's Collection</h4>
+                  <p class="preview-description">Elegant, alluring perfumes that capture timeless beauty</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/about" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('about') }}
               </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">About Us</h4>
+                  <p class="preview-description">Our story, craftsmanship, and passion for luxury fragrances</p>
+                </div>
+              </div>
             </li>
             <li class="luxury-nav-item">
               <router-link to="/contact" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('contact') }}
               </router-link>
+              <!-- Preview Content on Hover -->
+              <div class="nav-preview">
+                <div class="preview-content">
+                  <h4 class="preview-title">Contact</h4>
+                  <p class="preview-description">Get in touch with our concierge team for personalized assistance</p>
+                </div>
+              </div>
             </li>
           </ul>
         </nav>
@@ -134,8 +173,8 @@
               </div>
             </div>
             <div class="mobile-logo-text">
-              <h3 class="mobile-logo-title">{{ languageStore.t('brandName') }}</h3>
-              <p class="mobile-logo-subtitle">{{ languageStore.t('luxuryFragrances') }}</p>
+              <h3 class="mobile-logo-title">P.NOTES</h3>
+              <p class="mobile-logo-subtitle">PERFUME STORE</p>
             </div>
           </div>
           <button class="mobile-menu-close" @click="closeMobileMenu" :aria-label="languageStore.t('close')">
@@ -152,7 +191,7 @@
             <LuxuryLanguageToggle />
           </div>
           
-          <!-- Mobile Navigation -->
+          <!-- Mobile Navigation - REMOVED COLLECTIONS AND LUXURY LINKS -->
           <nav class="mobile-nav">
             <ul class="mobile-nav-list">
               <li class="mobile-nav-item">
@@ -171,11 +210,6 @@
                 </router-link>
               </li>
               <li class="mobile-nav-item">
-                <router-link to="/collections" class="mobile-nav-link" @click="closeMobileMenu">
-                  {{ languageStore.t('collections') }}
-                </router-link>
-              </li>
-              <li class="mobile-nav-item">
                 <router-link to="/category/mens" class="mobile-nav-link" @click="closeMobileMenu">
                   {{ languageStore.t('mens') }}
                 </router-link>
@@ -183,11 +217,6 @@
               <li class="mobile-nav-item">
                 <router-link to="/category/womens" class="mobile-nav-link" @click="closeMobileMenu">
                   {{ languageStore.t('womens') }}
-                </router-link>
-              </li>
-              <li class="mobile-nav-item">
-                <router-link to="/category/luxury" class="mobile-nav-link" @click="closeMobileMenu">
-                  {{ languageStore.t('luxury') }}
                 </router-link>
               </li>
               <li class="mobile-nav-item">
@@ -298,7 +327,7 @@
     
     <!-- Search Modal -->
     <div v-if="searchOpen" class="luxury-search-overlay" @click="searchOpen = false">
-      <div class="search-modal" @click.stop>
+      <div class="search-modal" @click.stop">
         <div class="search-input-container">
           <input type="text" class="search-input" :placeholder="languageStore.t('search') + '...'" autofocus>
           <button class="search-close" @click="searchOpen = false">
@@ -376,14 +405,12 @@ const handleUserClick = () => {
       wishlistOpen.value = false
     }
   } else {
-    // Redirect to login page if not authenticated
     router.push('/admin/login')
     closeAllMenus()
   }
 }
 
 const toggleUserMenu = () => {
-  // Only toggle if authenticated, otherwise redirect to login
   if (isAuthenticated) {
     userMenuOpen.value = !userMenuOpen.value
     if (userMenuOpen.value) {
@@ -467,7 +494,6 @@ const handleLogout = async () => {
   }
 }
 
-// Close search on escape
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     if (searchOpen.value) {
@@ -480,7 +506,6 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
-// Update direction when language changes
 const updateDirection = () => {
   const direction = isRTL.value ? 'rtl' : 'ltr'
   document.documentElement.dir = direction
@@ -493,18 +518,15 @@ const updateDirection = () => {
   }
 }
 
-// Watch for language changes
 watch(() => languageStore.currentLanguage, () => {
   updateDirection()
 })
 
-// Lifecycle
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   window.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeydown)
   
-  // Set initial direction
   updateDirection()
   
   handleScroll()
@@ -574,7 +596,7 @@ onUnmounted(() => {
   }
 }
 
-/* Logo */
+/* Logo - UPDATED with P.NOTES and PERFUME STORE subtitle */
 .luxury-logo-container {
   display: flex;
   align-items: center;
@@ -699,8 +721,8 @@ onUnmounted(() => {
 
 .logo-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 0.75rem;
-  color: #f4e7c1;
+  font-size: 0.7rem;
+  color: #999999;
   margin: 0.25rem 0 0 0;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -708,18 +730,19 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 400;
 }
 
 @media (max-width: 768px) {
   .logo-subtitle {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 1.5px;
   }
 }
 
 @media (max-width: 640px) {
   .logo-subtitle {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     letter-spacing: 1px;
   }
 }
@@ -807,6 +830,84 @@ onUnmounted(() => {
 .luxury-nav-link.active {
   color: #d4af37;
   opacity: 1;
+}
+
+/* ===== NAVIGATION PREVIEW - PERFECT USE OF EMPTY SPACE ===== */
+.nav-preview {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  width: 280px;
+  background: rgba(10, 10, 10, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+  padding: 1.25rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1002;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.luxury-header.rtl .nav-preview {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%) translateY(10px);
+}
+
+.luxury-nav-item:hover .nav-preview {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(15px);
+}
+
+.luxury-header.rtl .luxury-nav-item:hover .nav-preview {
+  transform: translateX(50%) translateY(15px);
+}
+
+.preview-content {
+  text-align: left;
+}
+
+.luxury-header.rtl .preview-content {
+  text-align: right;
+}
+
+.preview-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #d4af37;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.5px;
+}
+
+.preview-description {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  color: #f4e7c1;
+  margin: 0;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* Responsive adjustments for preview */
+@media (max-width: 1279px) {
+  .nav-preview {
+    width: 240px;
+    padding: 1rem;
+  }
+  
+  .preview-title {
+    font-size: 1rem;
+  }
+  
+  .preview-description {
+    font-size: 0.75rem;
+  }
 }
 
 /* Header Right Actions */
@@ -1088,8 +1189,8 @@ onUnmounted(() => {
 
 .mobile-logo-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
-  color: #f4e7c1;
+  font-size: 0.65rem;
+  color: #999999;
   margin: 0.25rem 0 0 0;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -1097,11 +1198,12 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 400;
 }
 
 @media (max-width: 480px) {
   .mobile-logo-subtitle {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     letter-spacing: 1px;
   }
 }

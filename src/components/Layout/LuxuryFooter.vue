@@ -3,18 +3,18 @@
     <!-- Main Footer -->
     <div class="footer-main">
       <div class="footer-container">
-        <!-- Top Section - Mobile First Grid -->
+        <!-- Footer Grid - Optimized Spacing -->
         <div class="footer-grid">
-          <!-- Brand Column -->
+          <!-- Brand Column - Left -->
           <div class="footer-brand">
             <router-link to="/" class="footer-logo">
-              <!-- Luxurious "P" Letter -->
+              <!-- Luxurious "P" Logo -->
               <div class="footer-p-logo">
                 <div class="footer-p-letter">P</div>
               </div>
               <div class="footer-logo-text">
-                <h3 class="footer-logo-title">{{ $t('brandName') }}</h3>
-                <p class="footer-logo-subtitle">{{ $t('luxuryFragrances') }}</p>
+                <h3 class="footer-logo-title">P.NOTES</h3>
+                <p class="footer-logo-subtitle">PERFUME STORE</p>
               </div>
             </router-link>
             
@@ -22,12 +22,12 @@
               {{ $t('footerDescription') }}
             </p>
             
-            <!-- Social Links -->
+            <!-- Social Links - Updated Icons -->
             <div class="footer-social">
               <a href="https://facebook.com" class="social-link" target="_blank" rel="noopener" aria-label="Facebook">
                 <svg class="social-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" 
-                        stroke="currentColor" stroke-width="1.5"/>
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </a>
               <a href="https://instagram.com" class="social-link" target="_blank" rel="noopener" aria-label="Instagram">
@@ -37,61 +37,36 @@
                   <circle cx="18" cy="6" r="1" fill="currentColor"/>
                 </svg>
               </a>
-              <a href="https://twitter.com" class="social-link" target="_blank" rel="noopener" aria-label="Twitter">
+              <a href="https://x.com" class="social-link" target="_blank" rel="noopener" aria-label="X (Twitter)">
                 <svg class="social-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" 
-                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M17.751 3H20.818L13.918 10.78L22 20H15.828L10.994 14.487L5.464 20H2.394L9.809 11.611L2 3H8.328L12.692 7.958L17.751 3ZM16.675 18.272H18.368L7.404 4.633H5.58L16.675 18.272Z" 
+                        stroke="currentColor" stroke-width="1.5" fill="currentColor"/>
                 </svg>
               </a>
-              <a href="https://pinterest.com" class="social-link" target="_blank" rel="noopener" aria-label="Pinterest">
+              <a href="https://wa.me/1234567890" class="social-link" target="_blank" rel="noopener" aria-label="WhatsApp">
                 <svg class="social-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 21.5c-5.238 0-9.5-4.262-9.5-9.5S6.762 2.5 12 2.5s9.5 4.262 9.5 9.5-4.262 9.5-9.5 9.5zM9.5 8.5c0 .552-.448 1-1 1s-1-.448-1-1 .448-1 1-1 1 .448 1 1zm7 0c0 .552-.448 1-1 1s-1-.448-1-1 .448-1 1-1 1 .448 1 1zm-7 7c0 .552-.448 1-1 1s-1-.448-1-1 .448-1 1-1 1 .448 1 1zm7 0c0 .552-.448 1-1 1s-1-.448-1-1 .448-1 1-1 1 .448 1 1z" 
-                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M12.031 2C6.482 2 2 6.482 2 12.031c0 2.283.784 4.401 2.099 6.114L2.5 21.5l3.44-1.612A10.014 10.014 0 0012.031 22c5.549 0 10.031-4.482 10.031-10.031C22.062 6.482 17.58 2 12.031 2z" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M16.532 13.95c-.285.797-1.398 1.458-2.28 1.528-.86.067-1.5-.048-2.64-.668-1.246-.68-2.4-1.748-3.141-2.875-.441-.668-.825-1.489-.905-2.288-.08-.799.285-1.594.84-2.08.192-.168.42-.26.666-.267.243-.007.437.003.612.441.173.437.59 1.506.642 1.615.052.109.09.234.036.375-.055.141-.082.229-.17.354-.087.125-.185.273-.263.364-.088.105-.18.219-.076.429.105.209.466.77.999 1.247.686.614 1.264.804 1.442.886.18.082.284.068.39-.041.105-.109.45-.526.571-.706.12-.18.24-.15.405-.09.165.06 1.043.492 1.222.58.18.09.3.135.346.21.045.075.045.434-.24 1.231z" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                 </svg>
               </a>
             </div>
           </div>
 
-          <!-- Links Grid - 2 Columns on Mobile -->
-          <div class="footer-links-grid">
-            <!-- Column 1 -->
-            <div class="links-column">
-              <h4 class="links-column-title">{{ $t('quickLinks') }}</h4>
-              <ul class="links-list">
-                <li><router-link to="/" class="footer-link">{{ $t('home') }}</router-link></li>
-                <li><router-link to="/collections" class="footer-link">{{ $t('collections') }}</router-link></li>
-                <li><router-link to="/brands" class="footer-link">{{ $t('brands') }}</router-link></li>
-                <li><router-link to="/categories" class="footer-link">{{ $t('categories') }}</router-link></li>
-                <li><router-link to="/gifts" class="footer-link">{{ $t('gifts') }}</router-link></li>
-              </ul>
-            </div>
-
-            <!-- Column 2 -->
-            <div class="links-column">
-              <h4 class="links-column-title">{{ $t('customerService') }}</h4>
-              <ul class="links-list">
-                <li><router-link to="/contact" class="footer-link">{{ $t('contactUs') }}</router-link></li>
-                <li><router-link to="/shipping" class="footer-link">{{ $t('shippingInfo') }}</router-link></li>
-                <li><router-link to="/returns" class="footer-link">{{ $t('returnsExchanges') }}</router-link></li>
-                <li><router-link to="/faq" class="footer-link">{{ $t('faq') }}</router-link></li>
-                <li><router-link to="/size-guide" class="footer-link">{{ $t('sizeGuide') }}</router-link></li>
-              </ul>
-            </div>
-
-            <!-- Column 3 -->
-            <div class="links-column">
-              <h4 class="links-column-title">{{ $t('company') }}</h4>
-              <ul class="links-list">
-                <li><router-link to="/about" class="footer-link">{{ $t('aboutUs') }}</router-link></li>
-                <li><router-link to="/careers" class="footer-link">{{ $t('careers') }}</router-link></li>
-                <li><router-link to="/press" class="footer-link">{{ $t('press') }}</router-link></li>
-                <li><router-link to="/stores" class="footer-link">{{ $t('storeLocator') }}</router-link></li>
-                <li><router-link to="/blog" class="footer-link">{{ $t('blog') }}</router-link></li>
-              </ul>
-            </div>
+          <!-- Quick Links - Single Column -->
+          <div class="footer-links">
+            <h4 class="links-title">{{ $t('quickLinks') }}</h4>
+            <ul class="links-list">
+              <li><router-link to="/" class="footer-link">{{ $t('home') }}</router-link></li>
+              <li><router-link to="/shop" class="footer-link">{{ $t('shop') }}</router-link></li>
+              <li><router-link to="/brands" class="footer-link">{{ $t('brands') }}</router-link></li>
+              <li><router-link to="/about" class="footer-link">{{ $t('about') }}</router-link></li>
+              <li><router-link to="/contact" class="footer-link">{{ $t('contact') }}</router-link></li>
+            </ul>
           </div>
 
-          <!-- Newsletter Section -->
+          <!-- Newsletter - Right -->
           <div class="footer-newsletter">
             <h4 class="newsletter-title">{{ $t('stayUpdated') }}</h4>
             <p class="newsletter-description">
@@ -108,16 +83,13 @@
                   required
                   aria-label="Email for newsletter subscription"
                 />
-                <button type="submit" class="newsletter-button" aria-label="Subscribe to newsletter">
+                <button type="submit" class="newsletter-button" aria-label="Subscribe">
                   <svg class="newsletter-icon" viewBox="0 0 24 24" fill="none">
                     <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
                           stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
               </div>
-              <p class="newsletter-disclaimer">
-                {{ $t('privacyDisclaimer') }}
-              </p>
             </form>
           </div>
         </div>
@@ -125,29 +97,18 @@
         <!-- Divider -->
         <div class="footer-divider"></div>
 
-        <!-- Bottom Section -->
+        <!-- Bottom Section - Compact -->
         <div class="footer-bottom">
           <!-- Copyright -->
           <div class="footer-copyright">
-            <p class="copyright-text">&copy; {{ currentYear }} {{ $t('brandName') }}. {{ $t('allRightsReserved') }}</p>
-          </div>
-          
-          <!-- Payment Methods -->
-          <div class="footer-payments">
-            <div class="payment-icons">
-              <span class="payment-icon">💳</span>
-              <span class="payment-icon">🔒</span>
-              <span class="payment-icon">🏦</span>
-              <span class="payment-icon">📱</span>
-            </div>
-            <p class="payment-text">{{ $t('securePayment') }}</p>
+            <p class="copyright-text">© {{ currentYear }} P.NOTES. {{ $t('allRightsReserved') }}</p>
           </div>
           
           <!-- Legal Links -->
           <div class="footer-legal">
-            <router-link to="/privacy" class="legal-link">{{ $t('privacyPolicy') }}</router-link>
-            <router-link to="/terms" class="legal-link">{{ $t('termsOfService') }}</router-link>
-            <router-link to="/cookies" class="legal-link">{{ $t('cookiePolicy') }}</router-link>
+            <router-link to="/privacy" class="legal-link">{{ $t('privacy') }}</router-link>
+            <router-link to="/terms" class="legal-link">{{ $t('terms') }}</router-link>
+            <router-link to="/cookies" class="legal-link">{{ $t('cookies') }}</router-link>
           </div>
         </div>
       </div>
@@ -184,7 +145,6 @@ const subscribeNewsletter = async () => {
   if (!newsletterEmail.value) return
   
   try {
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     showNotification({
@@ -216,7 +176,6 @@ const scrollToTop = () => {
   })
 }
 
-// Lifecycle
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
 })
@@ -227,7 +186,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ===== MOBILE-FIRST FOOTER STYLES (ORIGINAL DARK/GOLD COLORS) ===== */
+/* ===== MOBILE-FIRST FOOTER - OPTIMIZED SPACING ===== */
 .luxury-footer {
   background: linear-gradient(180deg, #0a0a0a 0%, #1a120b 100%);
   border-top: 1px solid rgba(212, 175, 55, 0.1);
@@ -246,66 +205,64 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .footer-main {
-    padding: 3rem 1.5rem;
+    padding: 2.5rem 1.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .footer-main {
-    padding: 4rem 2rem;
+    padding: 3rem 2rem;
   }
 }
 
 .footer-container {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Footer Grid - Mobile First */
+/* ===== FOOTER GRID - CLEAN 3-COLUMN LAYOUT ===== */
 .footer-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
   margin-bottom: 2rem;
 }
 
 @media (min-width: 768px) {
   .footer-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
   }
 }
 
 @media (min-width: 1024px) {
   .footer-grid {
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: 4rem;
+    gap: 3rem;
   }
 }
 
-/* Brand Column */
+/* ===== BRAND COLUMN ===== */
 .footer-brand {
-  order: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .footer-logo {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   text-decoration: none;
-  margin-bottom: 1.5rem;
-}
-
-.luxury-footer.rtl .footer-logo {
-  flex-direction: row;
+  margin-bottom: 1.25rem;
 }
 
 .footer-p-logo {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -321,15 +278,14 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .footer-p-logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
+    width: 52px;
+    height: 52px;
   }
 }
 
 .footer-p-letter {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
@@ -337,7 +293,7 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .footer-p-letter {
-    font-size: 2.25rem;
+    font-size: 2rem;
   }
 }
 
@@ -351,9 +307,9 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 700;
   color: #d4af37;
-  margin: 0 0 0.25rem 0;
-  line-height: 1.2;
-  text-align: left;
+  margin: 0 0 0.15rem 0;
+  line-height: 1;
+  letter-spacing: 0.5px;
 }
 
 .luxury-footer.rtl .footer-logo-title {
@@ -362,132 +318,100 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .footer-logo-title {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
   }
 }
 
 .footer-logo-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
-  color: #f4e7c1;
-  letter-spacing: 1.5px;
+  font-size: 0.65rem;
+  color: #999999;
+  letter-spacing: 2px;
   text-transform: uppercase;
   margin: 0;
-  line-height: 1.2;
-  text-align: left;
+  line-height: 1;
+  font-weight: 400;
 }
 
 .luxury-footer.rtl .footer-logo-subtitle {
   text-align: right;
 }
 
-@media (min-width: 768px) {
-  .footer-logo-subtitle {
-    font-size: 0.9rem;
-  }
-}
-
 .footer-description {
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.85rem;
+  line-height: 1.5;
   color: #f4e7c1;
   opacity: 0.8;
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.luxury-footer.rtl .footer-description {
-  text-align: right;
+  margin-bottom: 1.25rem;
+  max-width: 280px;
 }
 
 @media (min-width: 768px) {
   .footer-description {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    max-width: 260px;
   }
 }
 
-/* Social Links */
+/* ===== SOCIAL LINKS - UPDATED ===== */
 .footer-social {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .social-link {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.15);
   color: #f4e7c1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .social-link:hover {
-  background: rgba(212, 175, 55, 0.2);
+  background: rgba(212, 175, 55, 0.15);
   border-color: #d4af37;
   color: #d4af37;
   transform: translateY(-2px);
 }
 
 .social-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+/* ===== QUICK LINKS - SINGLE COLUMN ===== */
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @media (min-width: 768px) {
-  .social-link {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .social-icon {
-    width: 22px;
-    height: 22px;
+  .footer-links {
+    align-items: center;
   }
 }
 
-/* Links Grid - 2 Columns on Mobile */
-.footer-links-grid {
-  order: 2;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .footer-links-grid {
-    order: 1;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-  }
-}
-
-.links-column {
-  text-align: left;
-}
-
-.luxury-footer.rtl .links-column {
-  text-align: right;
-}
-
-.links-column-title {
+.links-title {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.1rem;
   font-weight: 600;
   color: #d4af37;
   margin: 0 0 1rem 0;
-  line-height: 1.2;
+  letter-spacing: 0.5px;
 }
 
 @media (min-width: 768px) {
-  .links-column-title {
+  .links-title {
     font-size: 1.2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
   }
 }
 
@@ -503,17 +427,17 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .links-list li {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
   }
 }
 
 .footer-link {
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #f4e7c1;
   opacity: 0.8;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: inline-block;
   line-height: 1.4;
 }
@@ -521,27 +445,23 @@ onUnmounted(() => {
 .footer-link:hover {
   color: #d4af37;
   opacity: 1;
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .luxury-footer.rtl .footer-link:hover {
-  transform: translateX(-4px);
+  transform: translateX(-3px);
 }
 
-@media (min-width: 768px) {
-  .footer-link {
-    font-size: 0.95rem;
-  }
-}
-
-/* Newsletter Section */
+/* ===== NEWSLETTER ===== */
 .footer-newsletter {
-  order: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @media (min-width: 768px) {
   .footer-newsletter {
-    order: 2;
+    align-items: flex-end;
   }
 }
 
@@ -550,97 +470,90 @@ onUnmounted(() => {
   font-size: 1.1rem;
   font-weight: 600;
   color: #d4af37;
-  margin: 0 0 1rem 0;
-  line-height: 1.2;
-  text-align: left;
-}
-
-.luxury-footer.rtl .newsletter-title {
-  text-align: right;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: 0.5px;
 }
 
 @media (min-width: 768px) {
   .newsletter-title {
     font-size: 1.2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: right;
+  }
+  .luxury-footer.rtl .newsletter-title {
+    text-align: left;
   }
 }
 
 .newsletter-description {
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.85rem;
+  line-height: 1.5;
   color: #f4e7c1;
   opacity: 0.8;
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.luxury-footer.rtl .newsletter-description {
-  text-align: right;
+  margin-bottom: 1rem;
+  max-width: 280px;
 }
 
 @media (min-width: 768px) {
   .newsletter-description {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    text-align: right;
+    max-width: 260px;
   }
-}
-
-.newsletter-form {
-  margin-bottom: 1.5rem;
+  .luxury-footer.rtl .newsletter-description {
+    text-align: left;
+  }
 }
 
 .newsletter-input-group {
   position: relative;
-  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 280px;
 }
 
 .newsletter-input {
   width: 100%;
-  padding: 0.75rem 3rem 0.75rem 1rem;
+  padding: 0.7rem 2.8rem 0.7rem 1rem;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
   color: #f4e7c1;
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-  text-align: left;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
 }
 
 .luxury-footer.rtl .newsletter-input {
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  text-align: right;
+  padding: 0.7rem 1rem 0.7rem 2.8rem;
 }
 
 .newsletter-input:focus {
   outline: none;
   border-color: #d4af37;
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
 }
 
 .newsletter-button {
   position: absolute;
-  right: 0.5rem;
+  right: 0.3rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.1);
   border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 6px;
   color: #f4e7c1;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .luxury-footer.rtl .newsletter-button {
   right: auto;
-  left: 0.5rem;
+  left: 0.3rem;
 }
 
 .newsletter-button:hover {
@@ -650,37 +563,17 @@ onUnmounted(() => {
 }
 
 .newsletter-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
 }
 
-.newsletter-disclaimer {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.75rem;
-  color: #f4e7c1;
-  opacity: 0.6;
-  margin: 0;
-  line-height: 1.4;
-  text-align: left;
-}
-
-.luxury-footer.rtl .newsletter-disclaimer {
-  text-align: right;
-}
-
-@media (min-width: 768px) {
-  .newsletter-disclaimer {
-    font-size: 0.8rem;
-  }
-}
-
-/* Divider */
+/* ===== DIVIDER ===== */
 .footer-divider {
   height: 1px;
   background: linear-gradient(90deg, 
     transparent 0%, 
-    rgba(212, 175, 55, 0.3) 50%, 
+    rgba(212, 175, 55, 0.2) 50%, 
     transparent 100%);
   margin: 1.5rem 0;
 }
@@ -691,12 +584,12 @@ onUnmounted(() => {
   }
 }
 
-/* Bottom Section */
+/* ===== BOTTOM SECTION - COMPACT ===== */
 .footer-bottom {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  text-align: center;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 @media (min-width: 768px) {
@@ -704,11 +597,6 @@ onUnmounted(() => {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    text-align: left;
-  }
-  
-  .luxury-footer.rtl .footer-bottom {
-    flex-direction: row-reverse;
   }
 }
 
@@ -724,66 +612,32 @@ onUnmounted(() => {
 
 .copyright-text {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #f4e7c1;
   opacity: 0.7;
   margin: 0;
-  line-height: 1.4;
-}
-
-.footer-payments {
-  order: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-@media (min-width: 768px) {
-  .footer-payments {
-    order: 2;
-    flex-direction: row;
-    gap: 1rem;
-  }
-}
-
-.payment-icons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.payment-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
-  color: #f4e7c1;
-  opacity: 0.7;
-  margin: 0;
-  line-height: 1.4;
 }
 
 .footer-legal {
-  order: 3;
+  order: 1;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 @media (min-width: 768px) {
   .footer-legal {
-    order: 3;
-    gap: 2rem;
+    order: 2;
+    gap: 1.5rem;
   }
 }
 
 .legal-link {
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #f4e7c1;
   opacity: 0.7;
   text-decoration: none;
-  transition: all 0.3s ease;
-  line-height: 1.4;
+  transition: color 0.2s ease;
 }
 
 .legal-link:hover {
@@ -791,42 +645,42 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* Back to Top */
+/* ===== BACK TO TOP ===== */
 .back-to-top {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1rem;
-  width: 48px;
-  height: 48px;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 50%;
   color: #f4e7c1;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   z-index: 999;
   opacity: 0;
-  transform: translateY(20px);
+  visibility: hidden;
+  transform: translateY(10px);
 }
 
 .luxury-footer.rtl .back-to-top {
   right: auto;
-  left: 1rem;
+  left: 1.25rem;
 }
 
 .back-to-top:hover {
   background: rgba(212, 175, 55, 0.2);
   border-color: #d4af37;
   color: #d4af37;
-  transform: translateY(-2px);
 }
 
 .back-to-top.show {
   opacity: 1;
+  visibility: visible;
   transform: translateY(0);
 }
 
@@ -838,20 +692,14 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .back-to-top {
-    bottom: 2rem;
-    right: 2rem;
-    width: 50px;
-    height: 50px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 48px;
+    height: 48px;
   }
-  
   .luxury-footer.rtl .back-to-top {
-    left: 2rem;
+    left: 1.5rem;
     right: auto;
-  }
-  
-  .back-to-top-icon {
-    width: 24px;
-    height: 24px;
   }
 }
 </style>

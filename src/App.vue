@@ -293,7 +293,7 @@
             </div>
             
             <!-- Router View -->
-            <div class="admin-content min-h-[calc(100vh-12rem)]">
+            <div class="admin-content">
               <router-view v-slot="{ Component }">
                 <transition name="fade" mode="out-in">
                   <component :is="Component" />
@@ -334,12 +334,12 @@
       </div>
     </template>
     
-    <!-- DEFAULT LAYOUT (Main Store) -->
+    <!-- DEFAULT LAYOUT (Main Store) - OPTIMIZED SPACING -->
     <template v-else>
       <!-- Header Navigation -->
       <LuxuryHeader />
       
-      <!-- Main Content -->
+      <!-- Main Content - Optimized spacing -->
       <main 
         id="main-content" 
         class="main-content"
@@ -424,7 +424,7 @@ const scrollY = ref(0)
 const isMobile = ref(false)
 const fontsLoaded = ref(false)
 const prefersReducedMotion = ref(false)
-const headerHeight = ref(64) // Default mobile height
+const headerHeight = ref(72) // Optimized default (64px mobile, 80px desktop)
 
 // Admin state
 const isMobileMenuOpen = ref(false)
@@ -533,27 +533,22 @@ const safeTranslate = (key: string | { [key: string]: string } | undefined) => {
     if (typeof key === 'string') {
       const translations = appTranslations[key as keyof typeof appTranslations]
       if (translations) {
-        // Use languageStore's t function if available
         if (languageStore.t) {
           return languageStore.t(translations) || key
         }
-        // Fallback to direct translation
         return translations[currentLanguage.value] || translations.en || key
       }
-      // Fallback for non-translated strings
       if (languageStore.t) {
         return languageStore.t({ en: key, ar: key }) || key
       }
       return key
     }
     
-    // If key is a translation object
     if (languageStore.t) {
       return languageStore.t(key) || key.en || ''
     }
     return key[currentLanguage.value] || key.en || ''
   } catch (error) {
-    console.warn('Translation error:', error)
     if (typeof key === 'string') {
       const translations = appTranslations[key as keyof typeof appTranslations]
       if (translations) return translations.en || key
@@ -643,10 +638,10 @@ const formatTimeAgo = (date: Date) => {
   const diffDays = Math.floor(diffMs / 86400000)
 
   if (diffMins < 1) return safeTranslate('Just now')
-  if (diffMins < 60) return safeTranslate('minutes ago').replace('minutes ago', `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`)
-  if (diffHours < 24) return safeTranslate('hours ago').replace('hours ago', `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`)
+  if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`
+  if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`
   if (diffDays === 1) return safeTranslate('Yesterday')
-  return safeTranslate('days ago').replace('days ago', `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`)
+  return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`
 }
 
 // Click outside directive for admin dropdowns
@@ -723,8 +718,13 @@ const updateHeaderHeight = () => {
   const header = document.querySelector('.luxury-header')
   if (header) {
     const height = header.clientHeight
-    headerHeight.value = height
-    document.documentElement.style.setProperty('--header-height', `${height}px`)
+    // Optimize header height: 64px mobile, 80px desktop
+    headerHeight.value = window.innerWidth < 768 ? Math.max(64, height) : Math.max(80, height)
+    document.documentElement.style.setProperty('--header-height', `${headerHeight.value}px`)
+  } else {
+    // Set optimized defaults
+    headerHeight.value = window.innerWidth < 768 ? 64 : 80
+    document.documentElement.style.setProperty('--header-height', `${headerHeight.value}px`)
   }
 }
 
@@ -766,7 +766,7 @@ const handleOnlineStatus = () => {
 
 const updatePageTitle = () => {
   const routeTitle = route.meta.title as string | { [key: string]: string } | undefined
-  const appName = safeTranslate({ en: 'Perfume Stock', ar: 'بيرفيوم ستوك' })
+  const appName = safeTranslate({ en: 'P.NOTES', ar: 'بي.نوتس' })
   
   if (routeTitle) {
     if (typeof routeTitle === 'object') {
@@ -871,7 +871,9 @@ const handleEscapeKey = (event: KeyboardEvent) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🛍️ Initializing Luxury Perfume Store...')
+  // Set initial header height with optimized defaults
+  headerHeight.value = window.innerWidth < 768 ? 64 : 80
+  document.documentElement.style.setProperty('--header-height', `${headerHeight.value}px`)
   
   // Mark body as loaded to hide preloader
   document.body.classList.add('loaded')
@@ -908,13 +910,11 @@ onMounted(async () => {
   try {
     languageStore.initialize?.()
     
-    const results = await Promise.allSettled([
+    await Promise.allSettled([
       authStore.checkAuth?.() || Promise.resolve(),
       productsStore.fetchProducts?.() || Promise.resolve(),
       cartStore.initialize?.() || Promise.resolve()
     ])
-    
-    console.log('✅ Stores initialized')
   } catch (error) {
     console.error('❌ Store initialization failed:', error)
   }
@@ -926,7 +926,6 @@ onMounted(async () => {
   
   // Final setup
   updatePageTitle()
-  console.log('✨ Luxury Perfume Store is ready!')
 })
 
 onUnmounted(() => {
@@ -1002,10 +1001,18 @@ watch(() => route.path, (newPath) => {
 </script>
 
 <style>
-/* ========== GLOBAL STYLES ========== */
-/* CSS Variables */
+/* ========== GLOBAL STYLES - OPTIMIZED SPACING ========== */
+/* CSS Variables - Optimized */
 :root {
-  --header-height: 64px;
+  --header-height: 72px;
+  --header-height-mobile: 64px;
+  --header-height-desktop: 80px;
+  --content-spacing-mobile: 1rem;
+  --content-spacing-tablet: 1.5rem;
+  --content-spacing-desktop: 2rem;
+  --section-spacing-mobile: 2rem;
+  --section-spacing-tablet: 3rem;
+  --section-spacing-desktop: 4rem;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -1065,6 +1072,8 @@ watch(() => route.path, (newPath) => {
 /* Font loading states */
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 body.fonts-loaded #vue-app {
@@ -1072,7 +1081,7 @@ body.fonts-loaded #vue-app {
                'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Typography */
+/* Typography - Optimized spacing */
 body {
   font-size: 14px;
   line-height: 1.5;
@@ -1095,21 +1104,51 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-text-dark);
   line-height: 1.2;
   text-align: var(--text-start);
+  margin-top: 0;
 }
 
 h1 {
   font-size: clamp(1.75rem, 5vw, 2.5rem);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  h1 {
+    margin-bottom: 1rem;
+  }
 }
 
 h2 {
   font-size: clamp(1.5rem, 4vw, 2rem);
-  margin-bottom: 0.875rem;
+  margin-bottom: 0.625rem;
+}
+
+@media (min-width: 768px) {
+  h2 {
+    margin-bottom: 0.75rem;
+  }
 }
 
 h3 {
   font-size: clamp(1.25rem, 3.5vw, 1.75rem);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  h3 {
+    margin-bottom: 0.625rem;
+  }
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  p {
+    margin-bottom: 1.25rem;
+  }
 }
 
 /* Luxury Loading Spinner */
@@ -1357,13 +1396,14 @@ h3 {
 </style>
 
 <style scoped>
-/* ========== APP-SPECIFIC STYLES ========== */
+/* ========== APP-SPECIFIC STYLES - OPTIMIZED SPACING ========== */
 /* Main Content Area - Default Layout */
 .main-content {
   min-height: calc(100dvh - var(--header-height));
   position: relative;
-  padding-top: var(--header-height);
+  padding-top: 0;
   margin: 0;
+  width: 100%;
 }
 
 /* Luxury Loading Overlay */
@@ -1383,7 +1423,7 @@ h3 {
   padding-right: var(--safe-area-inset-right);
 }
 
-/* Container utilities */
+/* Container utilities - Optimized spacing */
 .luxury-container {
   width: 100%;
   max-width: min(1400px, 95vw);
@@ -1406,6 +1446,43 @@ h3 {
 @media (min-width: 1024px) {
   .luxury-container {
     padding-inline: 2.5rem;
+  }
+}
+
+/* Section spacing utilities */
+.section {
+  margin-bottom: 2rem;
+  padding: 1.5rem 0;
+}
+
+@media (min-width: 768px) {
+  .section {
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section {
+    margin-bottom: 4rem;
+    padding: 2.5rem 0;
+  }
+}
+
+/* Grid gap utilities */
+.grid-gap {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .grid-gap {
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-gap {
+    gap: 1.5rem;
   }
 }
 

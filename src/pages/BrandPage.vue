@@ -1,241 +1,387 @@
 <template>
-  <div class="min-h-screen bg-white">
-    <!-- Loading State -->
-    <div v-if="loading" class="min-h-screen flex items-center justify-center">
-      <LoadingSpinner size="lg" />
+  <div v-if="isLoading" class="min-h-screen flex items-center justify-center">
+    <LoadingSpinner size="lg" />
+  </div>
+
+  <div v-else-if="error" class="min-h-screen flex items-center justify-center">
+    <div class="text-center">
+      <p class="text-gray-600 mb-4">{{ error }}</p>
+      <router-link to="/brands" class="text-primary-600 hover:underline">
+        {{ t('Back to Brands') }}
+      </router-link>
     </div>
+  </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="min-h-screen flex items-center justify-center">
-      <div class="text-center">
-        <p class="text-gray-600 mb-4">{{ error }}</p>
-        <router-link to="/" class="text-primary-600 hover:underline">
-          {{ t('Back to Home') }}
-        </router-link>
-      </div>
-    </div>
+  <div v-else-if="currentBrand" class="min-h-screen bg-white">
+    <!-- SEO Head -->
+    <SEOHead 
+      :title="seoTitle"
+      :description="seoDescription"
+      :image="brandImage"
+      type="website"
+    />
 
-    <!-- Brand Content -->
-    <div v-else-if="currentBrand" class="container mx-auto px-4 py-8">
-      <!-- SEO Head -->
-      <SEOHead 
-        :title="brandTitle"
-        :description="brandDescription"
-        :image="brandImage"
-        type="website"
-      />
-
-      <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-600 mb-8" 
+    <!-- Breadcrumb - Compact -->
+    <div class="container mx-auto px-4 pt-6 lg:pt-8">
+      <nav class="flex items-center text-xs lg:text-sm text-gray-600 mb-6 lg:mb-8" 
            :class="{ 'flex-row-reverse': isRTL }">
         <router-link to="/" class="hover:text-primary-600 transition-colors">
           {{ t('Home') }}
         </router-link>
-        <span class="mx-3">/</span>
+        <span class="mx-2 lg:mx-3">/</span>
         <router-link to="/brands" class="hover:text-primary-600 transition-colors">
           {{ t('Brands') }}
         </router-link>
-        <span class="mx-3">/</span>
-        <span class="text-gray-900 font-medium">{{ brandName }}</span>
+        <span class="mx-2 lg:mx-3">/</span>
+        <span class="text-gray-900 font-medium truncate max-w-[150px] lg:max-w-none">{{ currentBrand.name }}</span>
       </nav>
+    </div>
 
-      <!-- Brand Header with Admin Actions -->
-      <div class="mb-12">
-        <div class="flex items-start justify-between gap-6 mb-6" :class="{ 'flex-row-reverse': isRTL }">
-          <div class="flex items-center gap-6">
-            <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+    <!-- Brand Header - Mobile Optimized -->
+    <div class="container mx-auto px-4 pb-8 lg:pb-12">
+      <!-- Mobile: Horizontal layout with image left, text right -->
+      <div class="flex items-start gap-4 lg:hidden mb-6">
+        <!-- Brand Logo - Left aligned, not centered -->
+        <div class="w-20 h-20 flex-shrink-0 rounded-full overflow-hidden border-3 border-white shadow-md">
+          <img 
+            :src="brandLogo" 
+            :alt="currentBrand.name"
+            class="w-full h-full object-cover"
+            @error="handleBrandImageError"
+          />
+        </div>
+        
+        <!-- Brand Name & Signature - Right aligned -->
+        <div class="flex-1 min-w-0" :class="{ 'text-right': isRTL }">
+          <h1 class="text-2xl font-display-en font-bold text-gray-900 mb-1 truncate">
+            {{ currentBrand.name }}
+          </h1>
+          <p v-if="currentBrand.signature" class="text-sm text-gray-600 line-clamp-2">
+            {{ currentBrand.signature }}
+          </p>
+          
+          <!-- Category Badge - Mobile -->
+          <div class="flex items-center gap-2 mt-2" :class="{ 'justify-end': isRTL }">
+            <span class="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
+              {{ currentBrand.category || t('Luxury Brand') }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop: Brand Hero -->
+      <div class="hidden lg:block bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl shadow-luxury-lg overflow-hidden mb-8">
+        <div class="grid lg:grid-cols-3 gap-8 p-8 lg:p-10">
+          <!-- Brand Logo & Info - Desktop -->
+          <div class="lg:col-span-1 flex flex-col items-start text-left" 
+               :class="{ 'lg:text-right lg:items-end': isRTL }">
+            <div class="w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg mb-5">
               <img 
                 :src="brandLogo" 
-                :alt="brandName"
+                :alt="currentBrand.name"
                 class="w-full h-full object-cover"
                 @error="handleBrandImageError"
               />
             </div>
-            <div :class="{ 'text-right': isRTL }">
-              <h1 class="text-4xl lg:text-5xl font-display-en font-bold text-gray-900 mb-2">
-                {{ brandName }}
+            
+            <div :class="{ 'lg:text-right': isRTL }">
+              <h1 class="text-3xl lg:text-4xl xl:text-5xl font-display-en font-bold text-gray-900 mb-2">
+                {{ currentBrand.name }}
               </h1>
-              <p class="text-lg text-gray-600">{{ brandSignature }}</p>
-              
-              <!-- Admin Actions (Only visible for authenticated admins) -->
-              <div v-if="authStore.isAuthenticated && authStore.isAdmin" 
-                   class="mt-4 flex items-center gap-3" :class="{ 'justify-end': isRTL }">
-                <router-link
-                  :to="`/admin/brands/edit/${currentBrand.id}`"
-                  class="px-4 py-2 text-sm bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                  {{ t('Edit Brand in Admin') }}
-                </router-link>
-                <router-link
-                  :to="`/admin/products/new?brand=${currentBrand.slug}`"
-                  class="px-4 py-2 text-sm bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                  </svg>
-                  {{ t('Add Product to Brand') }}
-                </router-link>
+              <p v-if="currentBrand.signature" class="text-lg text-gray-600">
+                {{ currentBrand.signature }}
+              </p>
+            </div>
+
+            <!-- Brand Badges - Desktop -->
+            <div class="flex items-center gap-3 mt-4" :class="{ 'flex-row-reverse': isRTL }">
+              <span class="px-4 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
+                {{ currentBrand.category || t('Luxury Brand') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Brand Description & Stats - Desktop -->
+          <div class="lg:col-span-2 flex flex-col justify-center" :class="{ 'lg:text-right': isRTL }">
+            <div class="prose max-w-none mb-6">
+              <p class="text-gray-700 leading-relaxed whitespace-pre-line text-lg">
+                {{ brandDescription }}
+              </p>
+            </div>
+
+            <!-- Brand Stats Cards - Desktop -->
+            <div class="grid grid-cols-3 gap-4 mt-2">
+              <div class="bg-white/80 backdrop-blur-sm rounded-xl p-5 shadow-sm">
+                <div class="text-2xl font-bold text-primary-600 mb-1">{{ brandProducts.length }}</div>
+                <div class="text-sm text-gray-600">{{ t('Products') }}</div>
+              </div>
+              <div v-if="brandProducts.length > 0" class="bg-white/80 backdrop-blur-sm rounded-xl p-5 shadow-sm">
+                <div class="text-2xl font-bold text-primary-600 mb-1">
+                  {{ formatCompactPrice(brandPriceRange.min) }} - {{ formatCompactPrice(brandPriceRange.max) }}
+                </div>
+                <div class="text-sm text-gray-600">{{ t('Price Range') }}</div>
+              </div>
+              <div v-if="currentBrand.createdAt" class="bg-white/80 backdrop-blur-sm rounded-xl p-5 shadow-sm">
+                <div class="text-2xl font-bold text-primary-600 mb-1">{{ formatYear(currentBrand.createdAt) }}</div>
+                <div class="text-sm text-gray-600">{{ t('Since') }}</div>
               </div>
             </div>
           </div>
-          
-          <!-- Brand Stats -->
-          <div class="hidden lg:block">
-            <div class="bg-gray-50 rounded-xl p-4 min-w-48">
-              <div class="space-y-3">
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-900">{{ brandProducts.length }}</div>
-                  <div class="text-sm text-gray-600">{{ t('Products') }}</div>
-                </div>
-                <div v-if="brandProducts.length > 0" class="text-center">
-                  <div class="text-xl font-bold text-primary-600">
-                    ${{ brandPriceRange.min }} - ${{ brandPriceRange.max }}
-                  </div>
-                  <div class="text-sm text-gray-600">{{ t('Price Range') }}</div>
-                </div>
-                <div v-if="authStore.isAuthenticated && authStore.isAdmin" class="pt-3 border-t border-gray-200">
-                  <div class="text-xs text-gray-500">{{ t('Brand ID') }}:</div>
-                  <div class="text-xs font-mono text-gray-700 truncate">{{ currentBrand.id }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Brand Description -->
-        <div class="mt-6">
-          <div class="prose max-w-none" :class="{ 'text-right': isRTL }">
-            <p class="text-gray-700 leading-relaxed whitespace-pre-line">
-              {{ brandDescription }}
-            </p>
-          </div>
-          
-          <!-- Brand Details (For Admin/Detailed View) -->
-          <div v-if="showBrandDetails || (authStore.isAuthenticated && authStore.isAdmin)" 
-               class="mt-6 p-4 bg-gray-50 rounded-xl">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <div class="text-sm font-medium text-gray-500">{{ t('URL Slug') }}</div>
-                <div class="font-mono text-gray-900">{{ currentBrand.slug }}</div>
-              </div>
-              <div>
-                <div class="text-sm font-medium text-gray-500">{{ t('Category') }}</div>
-                <div class="text-gray-900">{{ currentBrand.category || 'Not specified' }}</div>
-              </div>
-              <div>
-                <div class="text-sm font-medium text-gray-500">{{ t('Status') }}</div>
-                <div class="flex items-center gap-2">
-                  <span :class="currentBrand.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'" 
-                        class="px-2 py-1 text-xs font-semibold rounded-full">
-                    {{ currentBrand.isActive ? t('Active') : t('Inactive') }}
-                  </span>
-                  <button
-                    v-if="authStore.isAuthenticated && authStore.isAdmin"
-                    @click="toggleBrandStatus"
-                    class="text-xs text-gray-600 hover:text-gray-900"
-                  >
-                    {{ currentBrand.isActive ? t('Deactivate') : t('Activate') }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Toggle Details Button -->
-          <button
-            v-if="!authStore.isAuthenticated || !authStore.isAdmin"
-            @click="showBrandDetails = !showBrandDetails"
-            class="mt-4 text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-          >
-            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showBrandDetails }" 
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
-            {{ showBrandDetails ? t('Hide Details') : t('Show Brand Details') }}
-          </button>
         </div>
       </div>
 
-      <!-- Brand Products -->
+      <!-- Mobile: Compact Stats Row - 3 column grid -->
+      <div class="lg:hidden grid grid-cols-3 gap-2 mb-6">
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-primary-600">{{ brandProducts.length }}</div>
+          <div class="text-xs text-gray-600">{{ t('Products') }}</div>
+        </div>
+        <div v-if="brandProducts.length > 0" class="bg-gray-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-primary-600">
+            {{ formatCompactPrice(brandPriceRange.min) }}
+          </div>
+          <div class="text-xs text-gray-600">{{ t('From') }}</div>
+        </div>
+        <div v-if="currentBrand.createdAt" class="bg-gray-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-primary-600">{{ formatYear(currentBrand.createdAt) }}</div>
+          <div class="text-xs text-gray-600">{{ t('Since') }}</div>
+        </div>
+      </div>
+
+      <!-- Mobile: Brand Description - Collapsible -->
+      <div class="lg:hidden mb-4">
+        <p class="text-sm text-gray-600 leading-relaxed line-clamp-3" :class="{ 'expanded': !isDescriptionCollapsed }">
+          {{ brandDescription }}
+        </p>
+        <button 
+          v-if="brandDescription.length > 120"
+          @click="isDescriptionCollapsed = !isDescriptionCollapsed"
+          class="text-xs text-primary-600 font-medium mt-1"
+        >
+          {{ isDescriptionCollapsed ? t('Read more') : t('Show less') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Collection Header & Filters -->
+    <div class="container mx-auto px-4 pb-16 lg:pb-20">
       <div v-if="brandProducts.length > 0">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+        <!-- Collection Title - Mobile Optimized -->
+        <div class="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-6 lg:mb-8 gap-4">
           <div>
-            <h2 class="text-2xl font-display-en font-bold text-gray-900">
-              {{ t('Brand Collection') }} 
-              <span class="text-primary-500">({{ brandProducts.length }})</span>
+            <h2 class="text-2xl lg:text-3xl font-display-en font-bold text-gray-900 mb-1">
+              {{ t('Collection') }}
             </h2>
-            <p class="text-gray-600 mt-1">
-              {{ t('Explore our collection of') }} {{ brandName }} {{ t('luxury perfumes') }}
+            <p class="text-sm lg:text-base text-gray-600">
+              {{ brandProducts.length }} {{ t('fragrances') }}
             </p>
           </div>
-          
-          <!-- Filter Options -->
-          <div class="flex flex-wrap items-center gap-4">
-            <!-- Sort -->
-            <select 
-              v-model="sortBy"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="newest">{{ t('Newest First') }}</option>
-              <option value="price-low">{{ t('Price: Low to High') }}</option>
-              <option value="price-high">{{ t('Price: High to Low') }}</option>
-              <option value="name">{{ t('Name') }}</option>
-              <option value="rating">{{ t('Highest Rated') }}</option>
-            </select>
-            
-            <!-- In Stock Filter -->
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                v-model="inStockOnly"
-                class="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
-              />
-              <span class="text-sm text-gray-700">{{ t('In Stock Only') }}</span>
-            </label>
-            
-            <!-- Concentration Filter -->
-            <select 
-              v-model="concentrationFilter"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="">{{ t('All Concentrations') }}</option>
-              <option value="Eau de Parfum">Eau de Parfum</option>
-              <option value="Eau de Toilette">Eau de Toilette</option>
-              <option value="Parfum">Parfum</option>
-              <option value="Cologne">Cologne</option>
-            </select>
-            
-            <!-- Admin Actions -->
-            <div v-if="authStore.isAuthenticated && authStore.isAdmin" class="flex items-center gap-2">
-              <button
-                @click="exportBrandProducts"
-                class="px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+
+          <!-- Search & Filters - Mobile Stacked -->
+          <div v-if="brandProducts.length > 1" class="w-full lg:w-auto">
+            <div class="flex flex-col sm:flex-row gap-2 lg:gap-3">
+              <!-- Search Input - Mobile Full Width -->
+              <div class="relative flex-1 lg:w-64">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  :placeholder="t('Search...')"
+                  class="w-full px-4 py-2.5 pl-10 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                />
+                <svg class="absolute left-3 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                {{ t('Export') }}
-              </button>
-              <button
-                @click="refreshBrandProducts"
-                class="px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                :disabled="loading"
-              >
-                <svg class="w-4 h-4" :class="{ 'animate-spin': loading }" 
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                {{ t('Refresh') }}
-              </button>
+              </div>
+
+              <!-- Filter Button -->
+              <div class="relative" ref="filterDropdownRef">
+                <button
+                  @click="showFilters = !showFilters"
+                  class="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-300 rounded-xl hover:border-primary-500 transition-colors flex items-center justify-center gap-2 text-sm"
+                  :class="{ 'border-primary-500': showFilters }"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                  </svg>
+                  {{ t('Filter') }}
+                  <span v-if="activeFiltersCount > 0" class="bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full text-xs">
+                    {{ activeFiltersCount }}
+                  </span>
+                </button>
+
+                <!-- Filter Dropdown Panel - Mobile Responsive -->
+                <div v-if="showFilters" 
+                     class="fixed lg:absolute inset-x-0 bottom-0 lg:inset-auto lg:right-0 lg:mt-2 lg:w-96 bg-white rounded-t-2xl lg:rounded-xl shadow-luxury-lg border border-gray-200 p-5 z-50 animate-slide-up lg:animate-fade-in"
+                     :class="{ 'lg:left-0': isRTL }">
+                  
+                  <!-- Mobile Drag Handle -->
+                  <div class="lg:hidden flex justify-center mb-4">
+                    <div class="w-12 h-1 bg-gray-300 rounded-full"></div>
+                  </div>
+                  
+                  <!-- Mobile Header -->
+                  <div class="flex items-center justify-between lg:hidden mb-5">
+                    <h3 class="text-lg font-bold text-gray-900">{{ t('Filters') }}</h3>
+                    <button @click="showFilters = false" class="text-gray-500 hover:text-gray-700">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div class="space-y-5 max-h-[70vh] lg:max-h-none overflow-y-auto">
+                    <!-- Sort -->
+                    <div>
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{{ t('Sort by') }}</label>
+                      <select 
+                        v-model="sortBy"
+                        @change="handleSortChange"
+                        class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                      >
+                        <option value="newest">{{ t('Newest') }}</option>
+                        <option value="price-low">{{ t('Price: Low to High') }}</option>
+                        <option value="price-high">{{ t('Price: High to Low') }}</option>
+                        <option value="name-asc">{{ t('Name') }}</option>
+                        <option value="rating">{{ t('Highest Rated') }}</option>
+                      </select>
+                    </div>
+
+                    <!-- Price Range Filter -->
+                    <div>
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{{ t('Price Range') }}</label>
+                      <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                          <div class="flex-1">
+                            <input
+                              v-model.number="minPrice"
+                              type="number"
+                              :placeholder="t('Min')"
+                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              @input="applyPriceFilter"
+                            />
+                          </div>
+                          <span class="text-gray-500">-</span>
+                          <div class="flex-1">
+                            <input
+                              v-model.number="maxPrice"
+                              type="number"
+                              :placeholder="t('Max')"
+                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              @input="applyPriceFilter"
+                            />
+                          </div>
+                        </div>
+                        
+                        <!-- Quick Price Presets -->
+                        <div class="flex flex-wrap gap-2">
+                          <button
+                            v-for="preset in pricePresets"
+                            :key="preset.label"
+                            @click="setPricePreset(preset)"
+                            class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                          >
+                            {{ preset.label }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Concentration Filter -->
+                    <div v-if="uniqueConcentrations.length > 0">
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{{ t('Concentration') }}</label>
+                      <div class="flex flex-wrap gap-2">
+                        <button
+                          v-for="concentration in uniqueConcentrations"
+                          :key="concentration"
+                          @click="toggleConcentration(concentration)"
+                          :class="[
+                            'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                            concentrationFilter === concentration
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ]"
+                        >
+                          {{ concentration }}
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- In Stock Filter -->
+                    <div class="flex items-center justify-between pt-2">
+                      <span class="text-sm font-medium text-gray-700">{{ t('In Stock Only') }}</span>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          v-model="inStockOnly"
+                          @change="filterLocally"
+                          class="sr-only peer"
+                        />
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Mobile Action Buttons -->
+                  <div class="flex gap-3 mt-6 lg:hidden">
+                    <button
+                      @click="clearAllFilters"
+                      class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
+                    >
+                      {{ t('Clear') }}
+                    </button>
+                    <button
+                      @click="showFilters = false"
+                      class="flex-1 px-4 py-3 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600"
+                    >
+                      {{ t('Apply') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Active Filters Tags - Compact -->
+        <div v-if="activeFiltersCount > 0" class="flex flex-wrap items-center gap-2 mb-6">
+          <span v-if="searchQuery" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs">
+            "{{ truncateString(searchQuery, 15) }}"
+            <button @click="searchQuery = ''" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+          <span v-if="minPrice || maxPrice" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs">
+            {{ formatCompactPrice(minPrice || 0) }} - {{ formatCompactPrice(maxPrice || brandPriceRange.max) }}
+            <button @click="clearPriceFilter" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+          <span v-if="concentrationFilter" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs">
+            {{ concentrationFilter }}
+            <button @click="concentrationFilter = ''" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+          <span v-if="inStockOnly" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs">
+            {{ t('In Stock') }}
+            <button @click="inStockOnly = false" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </span>
+          <button
+            @click="clearAllFilters"
+            class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+          >
+            {{ t('Clear all') }}
+          </button>
         </div>
 
         <!-- Products Grid -->
@@ -243,108 +389,116 @@
           :products="filteredProducts"
           @view-product="viewProduct"
           @add-to-cart="addToCart"
-          :show-admin-actions="authStore.isAuthenticated && authStore.isAdmin"
-          @edit-product="editProductInAdmin"
-          @delete-product="deleteProductFromBrand"
+          :show-admin-actions="false"
         />
 
-        <!-- Load More Button (if we implement pagination later) -->
-        <div v-if="hasMoreProducts && brandProducts.length >= 12" class="text-center mt-12">
+        <!-- No Results Message - Compact -->
+        <div v-if="filteredProducts.length === 0" class="text-center py-12 lg:py-16">
+          <div class="text-gray-300 mb-3">
+            <svg class="w-12 h-12 lg:w-16 lg:h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-lg lg:text-xl font-medium text-gray-900 mb-2">{{ t('No products found') }}</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            {{ t('Try adjusting your filters') }}
+          </p>
           <button
-            @click="loadMoreProducts"
-            :disabled="loadingMore"
-            class="px-8 py-3 bg-white border-2 border-primary-500 text-primary-600 
-                   rounded-lg font-medium hover:bg-primary-50 transition-colors
-                   disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="clearAllFilters"
+            class="text-sm text-primary-600 hover:text-primary-700 font-medium"
           >
-            <span v-if="!loadingMore">{{ t('Load More Products') }}</span>
-            <span v-else class="flex items-center gap-2">
-              <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" 
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              {{ t('Loading...') }}
-            </span>
+            {{ t('Clear filters') }}
           </button>
         </div>
       </div>
 
-      <!-- No Products Message -->
-      <div v-else class="text-center py-20">
-        <div class="text-gray-400 mb-4">
-          <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- No Products Message - Compact -->
+      <div v-else-if="!productsLoading && !brandsStore.isLoading" class="text-center py-16 lg:py-20">
+        <div class="text-gray-300 mb-4">
+          <svg class="w-16 h-16 lg:w-20 lg:h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h3 class="text-xl font-medium text-gray-900 mb-2">{{ t('No Products Found') }}</h3>
-        <p class="text-gray-600 mb-6">
+        <h3 class="text-xl lg:text-2xl font-display-en font-bold text-gray-900 mb-2">{{ t('No Products Available') }}</h3>
+        <p class="text-sm lg:text-base text-gray-600 mb-6 max-w-sm mx-auto">
           {{ t('There are no products available for this brand yet.') }}
         </p>
-        <div class="flex justify-center gap-4">
-          <router-link to="/brands" class="text-primary-600 hover:underline font-medium">
-            {{ t('Browse All Brands') }}
-          </router-link>
-          <router-link
-            v-if="authStore.isAuthenticated && authStore.isAdmin"
-            :to="`/admin/products/new?brand=${currentBrand.slug}`"
-            class="bg-primary-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-          >
-            {{ t('Add First Product') }}
-          </router-link>
-        </div>
+        <router-link to="/brands" class="inline-flex items-center gap-2 text-sm lg:text-base text-primary-600 hover:text-primary-700 font-medium">
+          {{ t('Browse Other Brands') }}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </router-link>
       </div>
+    </div>
 
-      <!-- Related Brands -->
-      <div v-if="relatedBrands.length > 0" class="mt-20 pt-12 border-t border-gray-200">
-        <h2 class="text-2xl font-display-en font-bold text-gray-900 mb-8">
-          {{ t('Explore Other Luxury Brands') }}
-        </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <!-- Related Brands - Mobile Optimized -->
+    <div v-if="relatedBrands.length > 0" class="bg-gray-50 py-12 lg:py-16">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-8 lg:mb-10">
+          <h2 class="text-2xl lg:text-3xl font-display-en font-bold text-gray-900 mb-2">
+            {{ t('More Luxury Brands') }}
+          </h2>
+          <p class="text-sm lg:text-base text-gray-600">
+            {{ t('Discover exclusive fragrance houses') }}
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 lg:gap-6">
           <router-link
             v-for="brand in relatedBrands"
             :key="brand.id"
             :to="`/brand/${brand.slug}`"
             class="group block"
           >
-            <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 p-4 flex items-center justify-center transition-all group-hover:shadow-lg">
+            <div class="aspect-square bg-white rounded-xl lg:rounded-2xl p-3 lg:p-6 flex items-center justify-center 
+                        transition-all duration-300 group-hover:shadow-lg border border-gray-100">
               <img 
-                :src="brand.image || '/images/brand-default.jpg'" 
+                :src="brand.image || defaultBrandImage" 
                 :alt="brand.name"
-                class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                @error="handleImageError"
+                class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                @error="handleBrandImageError"
               />
             </div>
-            <p class="text-center text-sm font-medium text-gray-900 mt-2 group-hover:text-primary-600">
+            <p class="text-center text-xs lg:text-sm font-medium text-gray-900 mt-2 group-hover:text-primary-600 truncate">
               {{ brand.name }}
             </p>
           </router-link>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Brand Not Found -->
-    <div v-else-if="!loading" class="min-h-screen flex items-center justify-center">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ t('Brand Not Found') }}</h2>
-        <p class="text-gray-600 mb-6">{{ t('The brand you are looking for does not exist.') }}</p>
-        <router-link to="/brands" class="text-primary-600 hover:underline font-medium">
-          {{ t('View All Brands') }}
-        </router-link>
+  <!-- Brand Not Found - Compact -->
+  <div v-else-if="!brandsStore.isLoading" class="min-h-screen flex items-center justify-center">
+    <div class="text-center px-4">
+      <div class="text-gray-300 mb-4">
+        <svg class="w-16 h-16 lg:w-20 lg:h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
       </div>
+      <h2 class="text-2xl lg:text-3xl font-display-en font-bold text-gray-900 mb-3">{{ t('Brand Not Found') }}</h2>
+      <p class="text-sm lg:text-base text-gray-600 mb-6">{{ t('The brand you are looking for does not exist.') }}</p>
+      <router-link to="/brands" class="inline-flex items-center gap-2 text-sm lg:text-base text-primary-600 hover:text-primary-700 font-medium">
+        {{ t('View All Brands') }}
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </router-link>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
 import { useBrandsStore } from '@/stores/brands'
 import { useCartStore } from '@/stores/cart'
-import { useAuthStore } from '@/stores/auth'
 import ProductGrid from '@/components/Products/ProductGrid.vue'
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue'
 import SEOHead from '@/components/UI/SEOHead.vue'
@@ -356,40 +510,109 @@ const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
 const brandsStore = useBrandsStore()
 const cartStore = useCartStore()
-const authStore = useAuthStore()
 
-const { t, isRTL } = languageStore
+const { t, isRTL, currentLanguage } = languageStore
 
 // State
-const loading = ref(false)
-const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const sortBy = ref('newest')
 const inStockOnly = ref(false)
 const concentrationFilter = ref('')
 const showBrandDetails = ref(false)
-const currentPage = ref(1)
-const itemsPerPage = 12
+const defaultBrandImage = '/images/brand-default.jpg'
+const productsLoading = ref(false)
+const searchQuery = ref('')
+const showFilters = ref(false)
+const filterDropdownRef = ref<HTMLElement | null>(null)
+const isDescriptionCollapsed = ref(true)
+
+// Price filter state
+const minPrice = ref<number | null>(null)
+const maxPrice = ref<number | null>(null)
+
+// Price presets
+const pricePresets = [
+  { label: t('Under $100'), min: 0, max: 100 },
+  { label: t('$100 - $200'), min: 100, max: 200 },
+  { label: t('$200 - $300'), min: 200, max: 300 },
+  { label: t('Over $300'), min: 300, max: null }
+]
 
 // Computed properties
 const brandSlug = computed(() => route.params.slug as string)
+
+// Get current brand from store
 const currentBrand = computed(() => brandsStore.currentBrand)
+
+// Get brand products directly from currentBrand
 const brandProducts = computed(() => {
   if (!currentBrand.value) return []
   return currentBrand.value.products || []
 })
 
+// Unique concentrations for filter
+const uniqueConcentrations = computed(() => {
+  const concentrations = new Set<string>()
+  brandProducts.value.forEach(product => {
+    if (product.concentration) {
+      concentrations.add(product.concentration)
+    }
+  })
+  return Array.from(concentrations).sort()
+})
+
+// Active filters count
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (searchQuery.value) count++
+  if (sortBy.value !== 'newest') count++
+  if (concentrationFilter.value) count++
+  if (inStockOnly.value) count++
+  if (minPrice.value !== null || maxPrice.value !== null) count++
+  return count
+})
+
+// Filtered and sorted products with clever search and price range
 const filteredProducts = computed(() => {
   let products = [...brandProducts.value]
   
-  // Apply filters
+  // Apply search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    products = products.filter(product => {
+      const nameEn = product.name?.en?.toLowerCase() || ''
+      const nameAr = product.name?.ar?.toLowerCase() || ''
+      const descEn = product.description?.en?.toLowerCase() || ''
+      const descAr = product.description?.ar?.toLowerCase() || ''
+      const concentration = product.concentration?.toLowerCase() || ''
+      const size = product.size?.toLowerCase() || ''
+      
+      return nameEn.includes(query) || 
+             nameAr.includes(query) || 
+             descEn.includes(query) || 
+             descAr.includes(query) || 
+             concentration.includes(query) || 
+             size.includes(query)
+    })
+  }
+  
+  // Apply price range filter
+  if (minPrice.value !== null) {
+    products = products.filter(product => product.price >= minPrice.value!)
+  }
+  if (maxPrice.value !== null) {
+    products = products.filter(product => product.price <= maxPrice.value!)
+  }
+  
+  // Apply in stock filter
   if (inStockOnly.value) {
     products = products.filter(product => product.inStock !== false)
   }
   
+  // Apply concentration filter
   if (concentrationFilter.value) {
     products = products.filter(product => 
-      product.concentration?.toLowerCase() === concentrationFilter.value.toLowerCase()
+      product.concentration === concentrationFilter.value
     )
   }
   
@@ -401,31 +624,50 @@ const filteredProducts = computed(() => {
       return products.sort((a, b) => b.price - a.price)
     case 'rating':
       return products.sort((a, b) => (b.rating || 0) - (a.rating || 0))
-    case 'name':
+    case 'popular':
+      return products.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))
+    case 'name-asc':
       return products.sort((a, b) => {
-        const nameA = getProductName(a)
-        const nameB = getProductName(b)
+        const nameA = a.name?.en || ''
+        const nameB = b.name?.en || ''
         return nameA.localeCompare(nameB)
       })
     case 'newest':
     default:
       return products.sort((a, b) => {
-        const dateA = getProductDate(a.createdAt)
-        const dateB = getProductDate(b.createdAt)
-        return dateB.getTime() - dateA.getTime()
+        const dateA = a.createdAt?.seconds || 0
+        const dateB = b.createdAt?.seconds || 0
+        return dateB - dateA
       })
   }
 })
 
-const brandName = computed(() => currentBrand.value?.name || formatBrandName(brandSlug.value))
-const brandSignature = computed(() => currentBrand.value?.signature || '')
-const brandImage = computed(() => currentBrand.value?.image || '/images/brand-default.jpg')
-const brandLogo = computed(() => currentBrand.value?.image || '/images/brand-default.jpg')
+// Loading state
+const isLoading = computed(() => 
+  brandsStore.isLoading || productsLoading.value
+)
+
+// SEO
+const seoTitle = computed(() => 
+  currentBrand.value 
+    ? `${currentBrand.value.name} | ${t('Luxury Perfumes')}`
+    : t('Brand Not Found')
+)
+
+const seoDescription = computed(() => 
+  currentBrand.value?.signature || 
+  currentBrand.value?.description ||
+  t('Explore our collection of {brand} luxury perfumes', { brand: currentBrand.value?.name })
+)
+
+const brandImage = computed(() => currentBrand.value?.image || defaultBrandImage)
+const brandLogo = computed(() => currentBrand.value?.image || defaultBrandImage)
+
 const brandDescription = computed(() => {
-  return currentBrand.value?.description || 
-    t('Explore our collection of {brand} luxury perfumes', { brand: brandName.value })
+  if (!currentBrand.value) return ''
+  return currentBrand.value.description || 
+    t('Explore our collection of {brand} luxury perfumes', { brand: currentBrand.value.name })
 })
-const brandTitle = computed(() => `${brandName.value} | ${t('Luxury Perfumes')}`)
 
 const brandPriceRange = computed(() => {
   const products = brandProducts.value
@@ -438,64 +680,28 @@ const brandPriceRange = computed(() => {
   }
 })
 
-const hasMoreProducts = computed(() => {
-  return filteredProducts.value.length > currentPage.value * itemsPerPage
-})
-
 const relatedBrands = computed(() => {
-  // Get all active brands except current one
-  const allBrands = brandsStore.brands.filter(brand => 
-    brand.isActive !== false && brand.slug !== brandSlug.value
-  )
+  if (!currentBrand.value) return []
   
-  // Take up to 6 brands
-  return allBrands.slice(0, 6)
+  // Get all active brands except current one
+  return brandsStore.activeBrands
+    .filter(brand => brand.slug !== brandSlug.value)
+    .slice(0, 6)
 })
 
-// Helper functions
-const getProductDate = (date: any): Date => {
-  try {
-    if (date instanceof Date) return date
-    if (date?.toDate && typeof date.toDate === 'function') return date.toDate()
-    if (typeof date === 'string' || typeof date === 'number') return new Date(date)
-    if (date?.seconds) return new Date(date.seconds * 1000)
-    return new Date()
-  } catch {
-    return new Date()
-  }
-}
-
-const getProductName = (product: Product): string => {
-  if (!product) return ''
-  if (typeof product.name === 'string') return product.name
-  return product.name?.en || 'Unnamed Product'
-}
-
-const formatBrandName = (slug: string): string => {
-  return slug
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-// Load brand data
+// Methods
 const loadBrandData = async () => {
   try {
-    loading.value = true
     error.value = null
+    productsLoading.value = true
     
     console.log(`🔄 Loading brand: ${brandSlug.value}`)
     
-    // Clear previous brand data
-    brandsStore.currentBrand = null
-    
-    // First, make sure all brands are loaded
+    // Load brands if not loaded
     if (brandsStore.brands.length === 0) {
-      console.log('📥 Loading all brands first...')
       await brandsStore.loadBrands()
     }
     
-    // Load brand with products using brands store
     const brand = await brandsStore.getBrandBySlug(brandSlug.value)
     
     if (!brand) {
@@ -509,58 +715,111 @@ const loadBrandData = async () => {
     // Update page title
     document.title = `${brand.name} | ${t('Luxury Perfumes')}`
     
-    // Also load products store if empty
-    if (productsStore.products.length === 0) {
-      console.log('📦 Loading products...')
-      await productsStore.fetchProducts()
-    }
-    
   } catch (err: any) {
     console.error('❌ Error loading brand data:', err)
-    error.value = t('Failed to load brand: ') + (err.message || 'Unknown error')
+    error.value = t('Failed to load brand: ') + (err.message || t('Unknown error'))
   } finally {
-    loading.value = false
+    productsLoading.value = false
   }
 }
 
-// Watch for route changes
-watch(
-  brandSlug,
-  async (newSlug) => {
-    if (newSlug) {
-      currentPage.value = 1
-      await loadBrandData()
-    }
-  },
-  { immediate: true }
-)
+// Filter methods
+const filterLocally = () => {
+  console.log('Filters updated')
+}
 
-// On mounted
-onMounted(() => {
-  if (brandSlug.value) {
-    document.title = brandTitle.value
+const handleSortChange = () => {
+  console.log('Sort changed to:', sortBy.value)
+}
+
+const toggleConcentration = (concentration: string) => {
+  if (concentrationFilter.value === concentration) {
+    concentrationFilter.value = ''
+  } else {
+    concentrationFilter.value = concentration
   }
-})
-
-// Image error handlers
-const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = '/images/placeholder-product.jpg'
-  img.onerror = null
 }
 
-const handleBrandImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = '/images/brand-default.jpg'
-  img.onerror = null
+// Price filter methods
+const applyPriceFilter = () => {
+  // Just trigger computed property update
 }
 
-// Methods
+const setPricePreset = (preset: { min: number; max: number | null }) => {
+  minPrice.value = preset.min
+  maxPrice.value = preset.max
+  applyPriceFilter()
+}
+
+const clearPriceFilter = () => {
+  minPrice.value = null
+  maxPrice.value = null
+}
+
+const clearAllFilters = () => {
+  searchQuery.value = ''
+  sortBy.value = 'newest'
+  concentrationFilter.value = ''
+  inStockOnly.value = false
+  minPrice.value = null
+  maxPrice.value = null
+  showFilters.value = false
+}
+
+const getSortLabel = (sortValue: string) => {
+  const labels: Record<string, string> = {
+    'newest': t('Newest'),
+    'price-low': t('Price: Low to High'),
+    'price-high': t('Price: High to Low'),
+    'name-asc': t('Name'),
+    'rating': t('Highest Rated')
+  }
+  return labels[sortValue] || sortValue
+}
+
+// Format helpers
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat(currentLanguage.value === 'ar' ? 'ar-EG' : 'en-EG', {
+    style: 'currency',
+    currency: 'EGP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price)
+}
+
+const formatCompactPrice = (price: number) => {
+  if (price >= 1000) {
+    return `EGP ${(price / 1000).toFixed(1)}k`
+  }
+  return `EGP ${price}`
+}
+
+const formatYear = (date: any) => {
+  try {
+    if (!date) return ''
+    if (date.toDate) return date.toDate().getFullYear()
+    if (date.seconds) return new Date(date.seconds * 1000).getFullYear()
+    return new Date(date).getFullYear()
+  } catch {
+    return ''
+  }
+}
+
+const truncateString = (str: string, length: number) => {
+  if (str.length <= length) return str
+  return str.substring(0, length) + '...'
+}
+
+// Click outside to close filter dropdown
+const handleClickOutside = (event: MouseEvent) => {
+  if (filterDropdownRef.value && !filterDropdownRef.value.contains(event.target as Node)) {
+    showFilters.value = false
+  }
+}
+
 const viewProduct = (product: Product) => {
   if (product.slug) {
     router.push(`/product/${product.slug}`)
-  } else if (product.id) {
-    router.push(`/product/${product.id}`)
   }
 }
 
@@ -568,164 +827,135 @@ const addToCart = (product: Product, quantity: number = 1) => {
   cartStore.addToCart(product, quantity)
 }
 
-const loadMoreProducts = () => {
-  loadingMore.value = true
-  setTimeout(() => {
-    currentPage.value++
-    loadingMore.value = false
-  }, 500)
+// Image error handlers
+const handleBrandImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = defaultBrandImage
+  img.onerror = null
 }
 
-// Admin Methods
-const editProductInAdmin = (product: Product) => {
-  router.push(`/admin/products/edit/${product.id}`)
-}
+// Watch for route changes
+watch(
+  brandSlug,
+  async (newSlug, oldSlug) => {
+    if (newSlug !== oldSlug) {
+      await loadBrandData()
+      clearAllFilters()
+      isDescriptionCollapsed.value = true
+    }
+  },
+  { immediate: true }
+)
 
-const deleteProductFromBrand = async (product: Product) => {
-  if (!confirm(`Are you sure you want to delete "${getProductName(product)}"?`)) return
-  
-  try {
-    await productsStore.removeProduct(product.id)
-    // Refresh brand data to update the product list
-    await loadBrandData()
-  } catch (error) {
-    console.error('Error deleting product:', error)
-    alert('Failed to delete product')
-  }
-}
+// Watch search query with debounce
+let searchTimeout: NodeJS.Timeout
+watch(searchQuery, () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    filterLocally()
+  }, 300)
+})
 
-const toggleBrandStatus = async () => {
-  if (!currentBrand.value || !authStore.isAuthenticated || !authStore.isAdmin) return
-  
-  const newStatus = !currentBrand.value.isActive
-  const confirmed = confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this brand?`)
-  
-  if (!confirmed) return
-  
-  try {
-    await brandsStore.updateBrand(currentBrand.value.id, { isActive: newStatus })
-    await loadBrandData()
-    
-    alert(`Brand ${newStatus ? 'activated' : 'deactivated'} successfully!`)
-  } catch (error) {
-    console.error('Error updating brand status:', error)
-    alert('Failed to update brand status')
-  }
-}
+// Initialize on mount
+onMounted(async () => {
+  await brandsStore.initialize()
+  document.addEventListener('click', handleClickOutside)
+})
 
-const exportBrandProducts = () => {
-  if (!currentBrand.value) return
-  
-  const data = {
-    brand: {
-      id: currentBrand.value.id,
-      name: currentBrand.value.name,
-      slug: currentBrand.value.slug,
-      description: currentBrand.value.description,
-      category: currentBrand.value.category
-    },
-    products: brandProducts.value.map(product => ({
-      id: product.id,
-      name: getProductName(product),
-      price: product.price,
-      size: product.size,
-      concentration: product.concentration,
-      inStock: product.inStock
-    })),
-    exportDate: new Date().toISOString(),
-    totalProducts: brandProducts.value.length,
-    priceRange: brandPriceRange.value
-  }
-  
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${brandSlug.value}-products-${new Date().toISOString().split('T')[0]}.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-  
-  alert('Products exported successfully!')
-}
-
-const refreshBrandProducts = async () => {
-  try {
-    await loadBrandData()
-  } catch (error) {
-    console.error('Error refreshing products:', error)
-  }
-}
+// Clean up
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  clearTimeout(searchTimeout)
+})
 </script>
 
 <style scoped>
-/* Custom styles */
-.brand-logo {
-  transition: transform 0.3s ease;
+/* Luxury shadows */
+.shadow-luxury-lg {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
 }
 
-.brand-logo:hover {
-  transform: scale(1.05);
+/* Font styles */
+.font-display-en {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .flex.items-start.justify-between {
-    flex-direction: column;
-    gap: 2rem;
-  }
-  
-  .w-24.h-24 {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .text-4xl {
-    font-size: 2rem;
-  }
-}
-
-/* Loading animation */
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.prose p {
-  animation: fadeIn 0.5s ease-out;
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
-/* Smooth transitions */
-.transition-all {
-  transition: all 0.3s ease;
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
 }
 
-/* Hover effects */
-.group:hover .group-hover\:scale-105 {
-  transform: scale(1.05);
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
 }
 
-.group:hover .group-hover\:shadow-lg {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+/* Line clamp for mobile description */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.line-clamp-3.expanded {
+  -webkit-line-clamp: unset;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+/* Mobile filter drawer */
+@media (max-width: 1023px) {
+  .fixed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+/* Better touch targets */
+@media (max-width: 768px) {
+  button, 
+  .router-link,
+  select,
+  input,
+  label {
+    min-height: 44px;
+  }
+  
+  .min-h-44 {
+    min-height: 44px;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Toggle switch styles */
+.peer:checked ~ .peer-checked\:bg-primary-500 {
+  background-color: #3b82f6;
+}
+.peer:checked ~ .peer-checked\:after\:translate-x-full::after {
+  transform: translateX(100%);
+}
+[dir="rtl"] .peer:checked ~ .peer-checked\:after\:-translate-x-full::after {
+  transform: translateX(-100%);
 }
 </style>
