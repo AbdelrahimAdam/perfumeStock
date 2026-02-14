@@ -1,4 +1,4 @@
-<!-- src/pages/HomePage.vue - CLEAN BANNER, JUST SHOP NOW BUTTON -->
+<!-- src/pages/HomePage.vue -->
 <template>
   <div class="luxury-perfume-homepage" :class="{ 'dark-mode': isDarkMode, 'rtl-direction': isRTL, 'ltr-direction': !isRTL }">
     <!-- Loading Spinner -->
@@ -10,86 +10,31 @@
       </div>
     </div>
 
-    <!-- Debug Panel (Development Only) -->
-    <div v-if="isDevelopment" class="debug-panel">
-      <details>
-        <summary>📊 Store Debug</summary>
-        <div class="debug-info">
-          <div><strong>Status:</strong> {{ homepageStore.isLoading ? 'Loading...' : 'Ready' }}</div>
-          <div><strong>Brands Store Status:</strong> {{ brandsStore.isLoading ? 'Loading...' : 'Ready' }}</div>
-          <div><strong>Error:</strong> {{ homepageStore.error || 'None' }}</div>
-          <div><strong>Brands Error:</strong> {{ brandsStore.error || 'None' }}</div>
-          <div><strong>Source:</strong> {{ dataSource }}</div>
-          <div><strong>Display Brands:</strong> {{ displayBrands.length }}</div>
-          <div><strong>Active Brands:</strong> {{ activeBrands.length }}</div>
-          <div><strong>All Brands:</strong> {{ allBrands.length }}</div>
-          <div><strong>Offers:</strong> {{ activeOffers.length }}</div>
-          <div><strong>Marquee:</strong> {{ displayBrandsForMarquee.length }}</div>
-          <div><strong>Last Firebase Update:</strong> {{ lastUpdatedFormatted }}</div>
-          <div class="debug-actions">
-            <button @click="forceRefreshAllData">🔄 Refresh All</button>
-            <button @click="clearCacheAndRefresh">🧹 Clear Cache</button>
-            <button @click="checkFirebaseConnection">🔗 Check Firebase</button>
-          </div>
-        </div>
-      </details>
-    </div>
-
-    <!-- Hero Banner - Clean, Minimal, Half Height -->
+    <!-- Hero Banner - Sticky at Top -->
     <section class="hero-banner">
-      <div class="banner-video-container">
-        <div class="hero-background" :style="{ backgroundImage: `url('${heroBanner.imageUrl || '/images/banner.jpg'}')` }"></div>
+      <div class="banner-image-wrapper">
+        <img 
+          :src="heroBanner.imageUrl || '/images/banner.jpg'" 
+          alt="Luxury Perfume Banner"
+          class="hero-image"
+          @error="handleImageError"
+        />
         <div class="gradient-overlay"></div>
       </div>
       
       <div class="banner-container">
-        <!-- Only Shop Now Button - No Card, No Text, No Logo, No Decorations -->
-        <button class="shop-now-button" @click="navigateToShop">
-          <span class="button-icon">↗</span>
-          <span class="button-text">{{ t('shopNow') }}</span>
-        </button>
-      </div>
-      
-      <!-- Floating Brand Logos - Fixed Marquee -->
-      <div class="floating-brands">
-        <div class="marquee-container">
-          <div class="marquee-track" :class="{ 'rtl-animation': isRTL }">
-            <template v-if="displayBrandsForMarquee.length > 0">
-              <template v-for="set in 2" :key="'set-' + set">
-                <div 
-                  v-for="brand in displayBrandsForMarquee" 
-                  :key="`${brand.id || brand.name}-${set}`"
-                  class="brand-item"
-                >
-                  <router-link
-                    :to="`/brand/${brand.slug || brand.id || 'brand'}`"
-                    class="brand-link"
-                  >
-                    <img 
-                      :src="brand.image || brand.logo || '/images/default-logo.png'" 
-                      :alt="brand.name || 'Brand'" 
-                      class="brand-logo" 
-                      @error="handleImageError"
-                      loading="lazy"
-                    />
-                  </router-link>
-                </div>
-              </template>
-            </template>
-            <div v-else class="no-brands-message">
-              <span>{{ t('loadingBrands') }}</span>
-            </div>
-          </div>
-        </div>
+        <router-link :to="heroBanner.linkUrl || '/shop'" class="shop-now-link">
+          <span class="link-icon">↗</span>
+          <span class="link-text">{{ heroBanner.linkText || t('shopNow') }}</span>
+        </router-link>
       </div>
     </section>
 
-    <!-- Main Content - Compact Mobile First -->
+    <!-- Main Content -->
     <section class="main-content-section">
       <div class="content-container">
-        <!-- MOBILE LAYOUT - COMPACT, NO WASTED SPACE -->
+        <!-- MOBILE LAYOUT (with slider) -->
         <div class="mobile-content-layout">
-          <!-- Section Header - Minimal -->
           <div class="section-header">
             <h2 class="section-title">{{ t('featuredBrands') }}</h2>
             <div class="section-header-right">
@@ -100,9 +45,7 @@
             </div>
           </div>
           
-          <!-- Main Content Layout - 3 Column Grid -->
           <div class="main-content-layout">
-            <!-- Featured Brands - 2 Columns -->
             <div class="featured-brands-section">
               <div v-if="displayBrands.length > 0" class="brands-grid">
                 <router-link
@@ -138,33 +81,49 @@
               </div>
             </div>
 
-            <!-- Today's Offer - 1 Column -->
+            <!-- Mobile Offer Card - with slider -->
             <aside class="offer-sidebar">
-              <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card">
+              <div v-if="activeOffers.length > 0" class="offer-card offer-card-slider">
                 <div class="offer-badge">{{ t('offer') }}</div>
-                <div class="offer-content">
-                  <div class="offer-image-full">
-                    <img
-                      :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
-                      :alt="activeOffers[0].title || t('exclusiveOffer')"
-                      class="offer-image"
-                      loading="lazy"
-                      @error="handleOfferImageError"
-                    />
-                    <div class="offer-gradient-overlay"></div>
-                  </div>
-                  <div class="offer-details-overlay">
-                    <h3 class="offer-title">{{ activeOffers[0].title || t('specialOffer') }}</h3>
-                    <p class="offer-subtitle">{{ activeOffers[0].subtitle || t('limitedTime') }}</p>
-                    <div class="offer-pricing">
-                      <span class="old-price">{{ formatPrice(activeOffers[0].oldPrice || 0) }}</span>
-                      <span class="new-price">{{ formatPrice(activeOffers[0].newPrice || 0) }}</span>
+                
+                <Transition name="fade" mode="out-in">
+                  <div
+                    v-if="activeOffers.length > 0"
+                    :key="currentOfferIndex"
+                    class="offer-slide"
+                  >
+                    <div class="offer-image-full">
+                      <img
+                        :src="activeOffers[currentOfferIndex].imageUrl || '/images/default-offer.jpg'"
+                        :alt="activeOffers[currentOfferIndex].title || t('exclusiveOffer')"
+                        class="offer-image"
+                        @error="handleOfferImageError"
+                      />
+                      <div class="offer-gradient-overlay"></div>
                     </div>
-                    <button class="buy-now-button" @click="navigateToOffer(activeOffers[0])">
-                      <span class="button-text">{{ t('buyNow') }}</span>
-                      <span class="button-icon">↗</span>
-                    </button>
+                    <div class="offer-details-overlay">
+                      <h3 class="offer-title">{{ activeOffers[currentOfferIndex].title || t('specialOffer') }}</h3>
+                      <p class="offer-subtitle">{{ activeOffers[currentOfferIndex].subtitle || t('limitedTime') }}</p>
+                      <div class="offer-pricing">
+                        <span class="old-price">{{ formatPrice(activeOffers[currentOfferIndex].oldPrice || 0) }}</span>
+                        <span class="new-price">{{ formatPrice(activeOffers[currentOfferIndex].newPrice || 0) }}</span>
+                      </div>
+                      <button class="buy-now-button" @click="navigateToOffer(activeOffers[currentOfferIndex])">
+                        <span class="button-text">{{ t('buyNow') }}</span>
+                        <span class="button-icon">↗</span>
+                      </button>
+                    </div>
                   </div>
+                </Transition>
+                
+                <div v-if="activeOffers.length > 1" class="slide-indicators">
+                  <span
+                    v-for="(offer, index) in activeOffers"
+                    :key="index"
+                    class="indicator-dot"
+                    :class="{ active: index === currentOfferIndex }"
+                    @click="goToOffer(index)"
+                  ></span>
                 </div>
               </div>
               <div v-else class="no-offer-message">
@@ -174,9 +133,8 @@
           </div>
         </div>
 
-        <!-- DESKTOP LAYOUT - COMPACT -->
+        <!-- DESKTOP LAYOUT (with slider) -->
         <div class="desktop-content-layout">
-          <!-- Featured Brands -->
           <div class="featured-brands">
             <div class="section-header">
               <h2 class="section-title">{{ t('featuredBrands') }}</h2>
@@ -216,32 +174,49 @@
             </div>
           </div>
 
-          <!-- Today's Offer -->
+          <!-- Desktop Offer Card - with slider -->
           <aside class="offer-sidebar">
-            <div v-if="activeOffers.length > 0 && activeOffers[0]" class="offer-card">
+            <div v-if="activeOffers.length > 0" class="offer-card offer-card-slider">
               <div class="offer-badge">{{ t('exclusive') }}</div>
-              <div class="offer-content">
-                <div class="offer-image-wrapper">
-                  <img
-                    :src="activeOffers[0].imageUrl || '/images/default-offer.jpg'"
-                    :alt="activeOffers[0].title || t('exclusiveOffer')"
-                    class="offer-bottle"
-                    loading="lazy"
-                    @error="handleOfferImageError"
-                  />
-                </div>
-                <div class="offer-details">
-                  <h3 class="offer-title">{{ activeOffers[0].title || t('specialOffer') }}</h3>
-                  <p class="offer-subtitle">{{ activeOffers[0].subtitle || t('limitedTime') }}</p>
-                  <div class="offer-pricing">
-                    <span class="old-price">{{ formatPrice(activeOffers[0].oldPrice || 0) }}</span>
-                    <span class="new-price">{{ formatPrice(activeOffers[0].newPrice || 0) }}</span>
+              
+              <Transition name="fade" mode="out-in">
+                <div
+                  v-if="activeOffers.length > 0"
+                  :key="currentOfferIndex"
+                  class="offer-slide"
+                >
+                  <div class="offer-image-full">
+                    <img
+                      :src="activeOffers[currentOfferIndex].imageUrl || '/images/default-offer.jpg'"
+                      :alt="activeOffers[currentOfferIndex].title || t('exclusiveOffer')"
+                      class="offer-image"
+                      @error="handleOfferImageError"
+                    />
+                    <div class="offer-gradient-overlay"></div>
                   </div>
-                  <button class="buy-now-button" @click="navigateToOffer(activeOffers[0])">
-                    <span class="button-text">{{ t('buyNow') }}</span>
-                    <span class="button-icon">↗</span>
-                  </button>
+                  <div class="offer-details-overlay">
+                    <h3 class="offer-title">{{ activeOffers[currentOfferIndex].title || t('specialOffer') }}</h3>
+                    <p class="offer-subtitle">{{ activeOffers[currentOfferIndex].subtitle || t('limitedTime') }}</p>
+                    <div class="offer-pricing">
+                      <span class="old-price">{{ formatPrice(activeOffers[currentOfferIndex].oldPrice || 0) }}</span>
+                      <span class="new-price">{{ formatPrice(activeOffers[currentOfferIndex].newPrice || 0) }}</span>
+                    </div>
+                    <button class="buy-now-button" @click="navigateToOffer(activeOffers[currentOfferIndex])">
+                      <span class="button-text">{{ t('buyNow') }}</span>
+                      <span class="button-icon">↗</span>
+                    </button>
+                  </div>
                 </div>
+              </Transition>
+              
+              <div v-if="activeOffers.length > 1" class="slide-indicators">
+                <span
+                  v-for="(offer, index) in activeOffers"
+                  :key="index"
+                  class="indicator-dot"
+                  :class="{ active: index === currentOfferIndex }"
+                  @click="goToOffer(index)"
+                ></span>
               </div>
             </div>
             <div v-else class="no-offer-message">
@@ -255,7 +230,6 @@
 </template>
 
 <script setup lang="ts">
-// [Script section remains exactly the same as original - no logic changes]
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
@@ -271,6 +245,7 @@ const { t, formatDate } = languageStore
 
 const isDevelopment = import.meta.env.DEV
 
+// =================== COMPUTED ===================
 const homepageData = computed(() => homepageStore.homepageData || {})
 const heroBanner = computed(() => homepageData.value.heroBanner || {})
 const activeOffers = computed(() => homepageData.value.activeOffers || [])
@@ -297,11 +272,6 @@ const displayBrands = computed(() => {
   return brands.slice(0, 6)
 })
 
-const displayBrandsForMarquee = computed(() => {
-  const brands = activeBrands.value.length > 0 ? activeBrands.value : allBrands.value
-  return brands.slice(0, 8)
-})
-
 const getProductCount = (brand: Brand) => {
   if (!brand.id) return 0
   if (Array.isArray(brand.productIds) && brand.productIds.length > 0) {
@@ -311,103 +281,48 @@ const getProductCount = (brand: Brand) => {
   return 0
 }
 
-let unsubscribeHomepageStore: (() => void) | null = null
+// =================== OFFER SLIDER STATE ===================
+const currentOfferIndex = ref(0)
+let offerTimer: NodeJS.Timeout | null = null
 
-watch(() => homepageStore.homepageData, (newData) => {
-  console.log('🏪 Homepage data updated:', {
-    source: newData?.source,
-    offers: newData?.activeOffers?.length || 0,
-    lastUpdated: newData?.lastUpdated || 'Never'
-  })
-  
-  if (newData?.settings?.isDarkMode) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
+// Start auto-rotation if more than one offer
+const startOfferRotation = () => {
+  if (offerTimer) clearInterval(offerTimer)
+  if (activeOffers.value.length > 1) {
+    offerTimer = setInterval(() => {
+      currentOfferIndex.value = (currentOfferIndex.value + 1) % activeOffers.value.length
+    }, 10000) // 10 seconds
   }
+}
+
+const stopOfferRotation = () => {
+  if (offerTimer) {
+    clearInterval(offerTimer)
+    offerTimer = null
+  }
+}
+
+const goToOffer = (index: number) => {
+  currentOfferIndex.value = index
+  // Reset timer on manual navigation
+  stopOfferRotation()
+  startOfferRotation()
+}
+
+// Watch for changes in offers (admin updates)
+watch(activeOffers, (newOffers) => {
+  currentOfferIndex.value = 0
+  stopOfferRotation()
+  startOfferRotation()
 }, { deep: true })
 
-watch(() => homepageStore.error, (error) => {
-  if (error) console.error('❌ Homepage store error:', error)
-})
-
-watch(() => brandsStore.error, (error) => {
-  if (error) console.error('❌ Brands store error:', error)
-})
-
-const forceRefreshAllData = async () => {
-  console.log('🔄 Force refreshing all data...')
-  try {
-    await Promise.all([
-      homepageStore.forceRefresh(),
-      brandsStore.loadBrands()
-    ])
-    console.log('✅ All data force refreshed')
-  } catch (error: any) {
-    console.error('❌ Error refreshing data:', error.message)
-  }
-}
-
-const clearCacheAndRefresh = async () => {
-  console.log('🧹 Clearing cache and refreshing...')
-  homepageStore.clearCache()
-  await forceRefreshAllData()
-}
-
-const checkFirebaseConnection = async () => {
-  console.log('🔗 Checking Firebase connection...')
-  try {
-    const connection = await homepageStore.checkConnection()
-    console.log('✅ Firebase connection:', connection)
-    
-    alert(`Firebase Status:
-Connected: ${connection.connected ? 'Yes' : 'No'}
-Last Update: ${connection.lastUpdate || 'Never'}
-Homepage Listening: ${homepageStore.isListening ? 'Yes' : 'No'}
-Homepage Error: ${homepageStore.error || 'None'}
-Brands Count: ${allBrands.value.length}
-Active Brands: ${activeBrands.value.length}
-Brands Error: ${brandsStore.error || 'None'}`)
-  } catch (error) {
-    console.error('❌ Connection check failed:', error)
-    alert('Connection check failed. Check console for details.')
-  }
-}
-
-const navigateToShop = () => router.push('/shop')
-const navigateToOffer = (offer: any) => {
-  if (offer?.slug) router.push(`/offer/${offer.slug}`)
-  else if (offer?.id) router.push(`/offer/${offer.id}`)
-  else router.push('/offers')
-}
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-EG', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(price)
-}
-
-const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = '/images/default-logo.png'
-}
-
-const handleBrandImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = '/images/default-brand.jpg'
-}
-
-const handleOfferImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.src = '/images/default-offer.jpg'
-}
-
+// =================== LIFECYCLE ===================
 onMounted(async () => {
   console.log('🏠 HomePage.vue mounted - Initializing...')
   document.documentElement.style.scrollBehavior = 'smooth'
   
-  unsubscribeHomepageStore = homepageStore.subscribeToUpdates((data) => {
+  // Subscribe to homepage updates
+  const unsubscribe = homepageStore.subscribeToUpdates((data) => {
     console.log('📡 Homepage store update notification:', {
       source: data.source,
       offers: data.activeOffers?.length,
@@ -432,20 +347,14 @@ onMounted(async () => {
       brandsStoreError: brandsStore.error
     })
     
-    console.log('📋 Available brands:', allBrands.value.map(b => ({
-      id: b.id,
-      name: b.name,
-      slug: b.slug,
-      productIds: b.productIds?.length || 0,
-      productCount: getProductCount(b),
-      image: b.image ? 'Has image' : 'No image',
-      isActive: b.isActive
-    })))
+    // Start offer rotation after data loaded
+    startOfferRotation()
     
   } catch (err: any) {
     console.error('❌ Could not load homepage data:', err.message)
   }
   
+  // Intersection observer for animations (unchanged)
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -465,14 +374,57 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (unsubscribeHomepageStore) unsubscribeHomepageStore()
+  stopOfferRotation()
   homepageStore.stopListening()
 })
+
+// =================== OTHER METHODS ===================
+const navigateToShop = () => router.push('/shop')
+
+// Updated navigateToOffer with linkUrl support
+const navigateToOffer = (offer: any) => {
+  if (offer?.linkUrl) {
+    // Check if it's an external link
+    if (offer.linkUrl.startsWith('http')) {
+      window.open(offer.linkUrl, '_blank')
+    } else {
+      router.push(offer.linkUrl)
+    }
+  } else if (offer?.slug) {
+    router.push(`/offer/${offer.slug}`)
+  } else if (offer?.id) {
+    router.push(`/offer/${offer.id}`)
+  } else {
+    router.push('/offers')
+  }
+}
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-EG', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price)
+}
+
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-logo.png'
+}
+
+const handleBrandImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-brand.jpg'
+}
+
+const handleOfferImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/images/default-offer.jpg'
+}
 </script>
 
 <style scoped>
 /* ============================================= */
-/* CLEAN, MINIMAL BANNER - HALF HEIGHT, JUST SHOP NOW BUTTON */
+/* STICKY BANNER - FIXED AT TOP */
 /* ============================================= */
 
 .luxury-perfume-homepage {
@@ -498,6 +450,8 @@ onUnmounted(() => {
   overflow-x: hidden;
   min-height: 100vh;
   transition: all 0.3s ease;
+  margin: 0;
+  padding: 0;
 }
 
 /* Dark Mode */
@@ -518,67 +472,16 @@ onUnmounted(() => {
   --offer-badge: linear-gradient(to right, #e63946, #ff6b6b);
 }
 
-/* ===== DEBUG PANEL ===== */
-.debug-panel {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  z-index: 9999;
-  max-width: 280px;
-  max-height: 280px;
-  overflow: auto;
-}
-
-.debug-panel summary {
-  cursor: pointer;
-  font-weight: bold;
-  color: var(--gold-primary);
-  padding: 4px;
-}
-
-.debug-info {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.debug-info div {
-  margin: 4px 0;
-  line-height: 1.3;
-}
-
-.debug-actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 4px;
-}
-
-.debug-actions button {
-  flex: 1;
-  padding: 5px 8px;
-  background: var(--gold-primary);
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 10px;
-}
-
 /* ===== NO ROUNDED EDGES ===== */
-.banner-video-container,
-.shop-now-button,
+.banner-image-wrapper,
+.shop-now-link,
 .brand-card,
 .offer-card,
 .buy-now-button,
 .explore-more-link,
 .view-more-brands,
 .product-count,
-.debug-panel {
+.slide-indicators .indicator-dot {
   border-radius: 0 !important;
 }
 
@@ -637,207 +540,112 @@ onUnmounted(() => {
   50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-/* ===== HERO BANNER - CLEAN, MINIMAL, HALF HEIGHT ===== */
+/* ===== HERO BANNER ===== */
 .hero-banner {
-  position: relative;
-  height: 180px;
-  min-height: 180px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin-top: 0;
+  padding-top: 0;
+  background: var(--bg-primary);
 }
 
-@media (min-width: 768px) {
-  .hero-banner {
-    height: 220px;
-    min-height: 220px;
-  }
+.banner-image-wrapper {
+  position: relative;
+  width: 100%;
+  line-height: 0;
 }
 
-@media (min-width: 1024px) {
-  .hero-banner {
-    height: 260px;
-    min-height: 260px;
-  }
+.hero-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: center;
 }
 
-.banner-video-container {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.hero-background {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  z-index: 1;
-}
-
-.hero-background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(45deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
-  z-index: 1;
-}
-
-/* Single gradient overlay - cleaner */
 .gradient-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.4) 100%);
   z-index: 2;
+  pointer-events: none;
 }
 
 .banner-container {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 4;
-  flex: 1;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
+  padding: 1.5rem 1rem;
+  pointer-events: none;
 }
 
-/* ===== REMOVED ALL GLASS CARD STYLES ===== */
-/* .glass-card, .brand-name-large, .app-subtitle, .premium-badge, 
-   .decorative-lines, .line-wrapper, .gold-line, .diamond, 
-   .mobile-simple-view, .desktop-full-view - ALL REMOVED */
-
-/* ===== SHOP NOW BUTTON - CLEAN, CENTERED ===== */
-.shop-now-button {
+.shop-now-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-tertiary) 100%);
-  color: #ffffff !important;
-  border: none;
-  padding: 0.85rem 2.2rem;
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  color: var(--gold-primary) !important;
   font-weight: 700;
+  font-size: 1rem;
   letter-spacing: 2px;
   text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
-  min-width: 180px;
-  position: relative;
-  overflow: hidden;
+  text-decoration: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 0;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
 }
 
-.shop-now-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: 0.5s;
+.shop-now-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
-.shop-now-button:hover::before {
-  left: 100%;
-}
-
-.shop-now-button:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 12px 30px rgba(212, 175, 55, 0.5);
-  background: linear-gradient(135deg, #e6c158 0%, var(--gold-primary) 100%);
-}
-
-@media (max-width: 767px) {
-  .shop-now-button {
-    padding: 0.75rem 1.8rem;
-    font-size: 0.85rem;
-    min-width: 160px;
-  }
-}
-
-.button-icon {
+.link-icon {
   font-size: 1.1rem;
   font-weight: bold;
+  color: inherit;
 }
 
-/* ===== MARQUEE - POSITIONED AT BOTTOM ===== */
-.floating-brands {
-  position: absolute;
-  bottom: 20px;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  overflow: hidden;
-  width: 100%;
-  height: 45px;
-  display: flex;
-  align-items: center;
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+.link-text {
+  color: inherit;
 }
 
-@media (min-width: 768px) {
-  .floating-brands {
-    bottom: 25px;
-    height: 50px;
+@media (max-width: 480px) {
+  .shop-now-link {
+    font-size: 0.85rem;
+    gap: 0.3rem;
+  }
+  .link-icon {
+    font-size: 0.95rem;
   }
 }
 
-.marquee-container {
-  position: absolute;
-  left: 0;
-  right: 0;
-  overflow: hidden;
-  width: 100%;
+@media (min-width: 481px) and (max-width: 768px) {
+  .shop-now-link {
+    font-size: 0.9rem;
+  }
 }
 
-.marquee-track {
-  display: flex;
-  gap: 3rem;
-  padding: 0.4rem 0;
-  align-items: center;
-  width: max-content;
-  will-change: transform;
-  animation: marquee-ltr 30s linear infinite;
+.luxury-perfume-homepage.dark-mode .shop-now-link {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
-.marquee-track.rtl-animation {
-  animation: marquee-rtl 30s linear infinite;
-}
-
-@keyframes marquee-ltr {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@keyframes marquee-rtl {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0); }
-}
-
-.brand-logo {
-  height: 25px;
-  width: auto;
-  max-width: 100px;
-  object-fit: contain;
-  opacity: 0.9;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-@media (min-width: 768px) {
-  .brand-logo { height: 30px; max-width: 120px; }
-}
-
-/* ===== MAIN CONTENT - COMPACT ===== */
+/* ===== MAIN CONTENT ===== */
 .main-content-section {
   padding: 1.5rem 1rem;
   background: var(--bg-primary);
+  position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 640px) {
@@ -854,7 +662,7 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* ===== MOBILE LAYOUT - COMPACT ===== */
+/* ===== MOBILE LAYOUT (with slider) ===== */
 .mobile-content-layout {
   display: block;
 }
@@ -863,7 +671,7 @@ onUnmounted(() => {
   .mobile-content-layout { display: none; }
 }
 
-/* Section Header - Minimal */
+/* Section Header */
 .mobile-content-layout .section-header {
   display: flex;
   justify-content: space-between;
@@ -918,14 +726,14 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Brands Grid - 2 Columns */
+/* Brands Grid */
 .mobile-content-layout .brands-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
-/* Brand Card - NO ROUNDED EDGES */
+/* Brand Card */
 .mobile-content-layout .brand-card-link {
   display: block;
   text-decoration: none;
@@ -1021,36 +829,29 @@ onUnmounted(() => {
   letter-spacing: 0.6px;
 }
 
-/* Mobile Offer Card - NO ROUNDED EDGES */
-.mobile-content-layout .offer-card {
+/* Mobile Offer Card - Slider Version */
+.mobile-content-layout .offer-card-slider {
+  position: relative;
   background: var(--bg-secondary);
   border: 2px solid var(--gold-primary);
   overflow: hidden;
   height: 100%;
   min-height: 380px;
-  position: relative;
   width: 100%;
 }
 
-.mobile-content-layout .offer-badge {
-  background: var(--offer-badge);
-  color: #ffffff;
-  text-align: center;
-  padding: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+.mobile-content-layout .offer-slide {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .mobile-content-layout .offer-image-full {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -1059,6 +860,7 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  display: block;
 }
 
 .mobile-content-layout .offer-gradient-overlay {
@@ -1079,11 +881,11 @@ onUnmounted(() => {
   padding: 1rem;
   z-index: 2;
   text-align: center;
+  color: #ffffff;
 }
 
 .mobile-content-layout .offer-title {
   font-size: 1.1rem;
-  color: #ffffff;
   letter-spacing: 1px;
   margin: 0 0 0.2rem 0;
   font-weight: 600;
@@ -1092,7 +894,6 @@ onUnmounted(() => {
 
 .mobile-content-layout .offer-subtitle {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.6rem;
   font-style: italic;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -1138,12 +939,53 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* ===== MOBILE SPACING OPTIMIZATION ===== */
+.mobile-content-layout .offer-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: var(--offer-badge);
+  color: #ffffff;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Slide indicators */
+.mobile-content-layout .slide-indicators {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.mobile-content-layout .indicator-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mobile-content-layout .indicator-dot.active {
+  background: var(--gold-primary);
+  transform: scale(1.2);
+}
+
+/* Mobile spacing optimizations */
 @media (max-width: 767px) {
   .mobile-content-layout .main-content-layout { gap: 0.625rem; }
   .mobile-content-layout .brands-grid { gap: 0.625rem; }
   .mobile-content-layout .brand-card { aspect-ratio: 3/4; }
-  .mobile-content-layout .offer-card { min-height: 340px; }
+  .mobile-content-layout .offer-card-slider { min-height: 340px; }
   .mobile-content-layout .brand-name { font-size: 0.8rem; }
   .mobile-content-layout .brand-signature { font-size: 0.6rem; }
   .mobile-content-layout .brand-info-overlay { padding: 0.6rem; }
@@ -1153,7 +995,7 @@ onUnmounted(() => {
   .mobile-content-layout .brands-grid { gap: 0.5rem; }
   .mobile-content-layout .brand-card { min-height: 160px; }
   .mobile-content-layout .brand-name { font-size: 0.75rem; }
-  .mobile-content-layout .offer-card { min-height: 320px; }
+  .mobile-content-layout .offer-card-slider { min-height: 320px; }
 }
 
 @media (max-width: 480px) {
@@ -1163,7 +1005,7 @@ onUnmounted(() => {
   .mobile-content-layout .brand-name { font-size: 0.7rem; letter-spacing: 0.6px; }
   .mobile-content-layout .brand-signature { font-size: 0.55rem; }
   .mobile-content-layout .brand-info-overlay { padding: 0.5rem; }
-  .mobile-content-layout .offer-card { min-height: 300px; }
+  .mobile-content-layout .offer-card-slider { min-height: 300px; }
 }
 
 @media (max-width: 360px) {
@@ -1171,10 +1013,10 @@ onUnmounted(() => {
   .mobile-content-layout .brand-card { min-height: 120px; }
   .mobile-content-layout .brand-name { font-size: 0.65rem; }
   .mobile-content-layout .brand-signature { font-size: 0.5rem; }
-  .mobile-content-layout .offer-card { min-height: 280px; }
+  .mobile-content-layout .offer-card-slider { min-height: 280px; }
 }
 
-/* ===== DESKTOP LAYOUT - COMPACT ===== */
+/* ===== DESKTOP LAYOUT (with slider) ===== */
 .desktop-content-layout {
   display: none;
 }
@@ -1228,7 +1070,7 @@ onUnmounted(() => {
   gap: 1.5rem;
 }
 
-/* Desktop Brand Cards - NO ROUNDED EDGES */
+/* Desktop Brand Cards */
 .desktop-content-layout .brand-card-link {
   text-decoration: none;
   color: inherit;
@@ -1296,7 +1138,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* Desktop Offer Card - NO ROUNDED EDGES */
+/* Desktop Offer Card - Slider Version */
 .desktop-content-layout .offer-sidebar {
   width: 100%;
   max-width: 360px;
@@ -1305,59 +1147,72 @@ onUnmounted(() => {
   top: 100px;
 }
 
-.desktop-content-layout .offer-card {
+.desktop-content-layout .offer-card-slider {
+  position: relative;
   background: var(--bg-secondary);
   border: 2px solid var(--gold-primary);
   overflow: hidden;
-  box-shadow: 0 15px 30px rgba(212, 175, 55, 0.15);
+  min-height: 800px; /* Increased to match height of two brand cards */
+  width: 100%;
 }
 
-.desktop-content-layout .offer-badge {
-  background: var(--offer-badge);
+.desktop-content-layout .offer-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.desktop-content-layout .offer-image-full {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.desktop-content-layout .offer-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.desktop-content-layout .offer-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    rgba(0, 0, 0, 0.4) 50%, 
+    rgba(0, 0, 0, 0.9) 100%);
+  pointer-events: none;
+}
+
+.desktop-content-layout .offer-details-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  z-index: 2;
+  text-align: center;
   color: #ffffff;
-  text-align: center;
-  padding: 0.75rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.desktop-content-layout .offer-image-wrapper {
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f8f5f0 0%, #ffffff 100%);
-  text-align: center;
-}
-
-.luxury-perfume-homepage.dark-mode .desktop-content-layout .offer-image-wrapper {
-  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-}
-
-.desktop-content-layout .offer-bottle {
-  max-height: 200px;
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
-}
-
-.desktop-content-layout .offer-details {
-  padding: 1.5rem;
-  text-align: center;
 }
 
 .desktop-content-layout .offer-title {
   font-size: 1.6rem;
-  color: var(--text-primary);
   letter-spacing: 1.5px;
   margin: 0 0 0.3rem 0;
   font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .desktop-content-layout .offer-subtitle {
   font-size: 0.85rem;
-  color: var(--text-secondary);
   margin-bottom: 1rem;
   font-style: italic;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .desktop-content-layout .offer-pricing {
@@ -1370,7 +1225,7 @@ onUnmounted(() => {
 
 .desktop-content-layout .old-price {
   font-size: 1.1rem;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: line-through;
 }
 
@@ -1378,6 +1233,7 @@ onUnmounted(() => {
   font-size: 2rem;
   color: var(--gold-primary);
   font-weight: 800;
+  text-shadow: 0 2px 8px rgba(212, 175, 55, 0.5);
 }
 
 .desktop-content-layout .buy-now-button {
@@ -1404,10 +1260,61 @@ onUnmounted(() => {
   box-shadow: 0 12px 25px rgba(212, 175, 55, 0.4);
 }
 
+.desktop-content-layout .offer-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: var(--offer-badge);
+  color: #ffffff;
+  text-align: center;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Slide indicators for desktop */
+.desktop-content-layout .slide-indicators {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.desktop-content-layout .indicator-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.desktop-content-layout .indicator-dot.active {
+  background: var(--gold-primary);
+  transform: scale(1.2);
+}
+
+/* Fade transition for slides (shared) */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* ===== NO DATA MESSAGES ===== */
 .no-data-message,
-.no-offer-message,
-.no-brands-message {
+.no-offer-message {
   text-align: center;
   padding: 2rem 1rem;
   color: var(--text-secondary);
@@ -1427,7 +1334,7 @@ onUnmounted(() => {
 
 .luxury-perfume-homepage.rtl-direction .explore-more-link,
 .luxury-perfume-homepage.rtl-direction .view-more-brands,
-.luxury-perfume-homepage.rtl-direction .shop-now-button,
+.luxury-perfume-homepage.rtl-direction .shop-now-link,
 .luxury-perfume-homepage.rtl-direction .buy-now-button {
   flex-direction: row-reverse;
 }
@@ -1435,14 +1342,9 @@ onUnmounted(() => {
 /* ===== PERFORMANCE & ACCESSIBILITY ===== */
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-  .marquee-track { animation: none; }
-}
-
-@media (max-width: 767px) and (orientation: landscape) {
-  .hero-banner { height: 160px; min-height: 160px; }
 }
 
 @media print {
-  .hero-banner, .floating-brands, .shop-now-button, .buy-now-button { display: none; }
+  .hero-banner, .shop-now-link, .buy-now-button { display: none; }
 }
 </style>

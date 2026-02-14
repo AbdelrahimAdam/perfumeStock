@@ -10,30 +10,28 @@
       <!-- Background -->
       <div class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black">
         <img 
-          v-if="categoryImage"
           :src="categoryImage"
           :alt="categoryName"
           class="w-full h-full object-cover opacity-40"
+          @error="handleImageError"
         />
       </div>
       
-      <!-- Content -->
-      <div class="relative z-10 text-center px-4 max-w-4xl mx-auto">
-        <nav class="flex items-center justify-center text-sm text-white/80 mb-6" 
+      <!-- Navigation Links - Top Corner -->
+      <div class="absolute top-6 left-6 md:top-8 md:left-8 z-20">
+        <nav class="flex items-center text-sm text-white/80" 
              :class="{ 'flex-row-reverse': isRTL }">
           <router-link to="/" class="hover:text-white transition-colors">
             {{ t('Home') }}
           </router-link>
           <span class="mx-3">/</span>
-          <span class="text-white">{{ categoryName }}</span>
+          <span class="text-white font-medium">{{ categoryName }}</span>
         </nav>
-        
-        <h1 class="text-4xl md:text-6xl font-display-en font-bold text-white mb-4">
-          {{ categoryName }}
-        </h1>
-        <p v-if="categoryDescription" class="text-xl text-gray-300 max-w-2xl mx-auto">
-          {{ categoryDescription }}
-        </p>
+      </div>
+      
+      <!-- Empty content area - no text -->
+      <div class="relative z-10 w-full h-full">
+        <!-- No text content here -->
       </div>
     </div>
 
@@ -153,6 +151,7 @@ const { categories, products, filterProducts } = productsStore
 
 const filters = ref<FilterOptions>({})
 const categorySlug = computed(() => route.params.slug as string)
+const imageError = ref(false)
 
 // Computed properties
 const currentCategory = computed(() => {
@@ -168,15 +167,48 @@ const categoryDescription = computed(() => {
 })
 
 const categoryImage = computed(() => {
-  return currentCategory.value?.image
+  // Reset image error when category changes
+  imageError.value = false
+  
+  const slug = categorySlug.value.toLowerCase()
+  
+  // Return specific images for women and men collections
+  if (slug === 'women' || slug === 'womens' || slug === 'woman') {
+    return '/images/women-collection.jpg'
+  } else if (slug === 'men' || slug === 'mens' || slug === 'man') {
+    return '/images/men-collection.jpg'
+  }
+  
+  // Return default category image for other categories
+  return currentCategory.value?.image || '/images/default-category.jpg'
 })
 
 const categoryTitle = computed(() => {
   return `${categoryName.value} | ${t('Luxury Perfumes')}`
 })
 
+// Format price in Egyptian Pound
+const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat('ar-EG', {
+    style: 'currency',
+    currency: 'EGP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price)
+}
+
+// Process products to ensure prices are in EGP
+const processedProducts = computed(() => {
+  return products.map(product => ({
+    ...product,
+    formattedPrice: formatPrice(product.price),
+    // If you have a sale price, format that too
+    formattedSalePrice: product.salePrice ? formatPrice(product.salePrice) : null
+  }))
+})
+
 const filteredProducts = computed(() => {
-  let filtered = products
+  let filtered = processedProducts.value
   
   // Apply category filter
   if (categorySlug.value && categorySlug.value !== 'best-sellers' && categorySlug.value !== 'new-arrivals') {
@@ -213,6 +245,11 @@ const viewProduct = (product: Product) => {
 
 const addToCart = (product: Product) => {
   cartStore.addToCart(product)
+}
+
+const handleImageError = () => {
+  imageError.value = true
+  console.error(`Failed to load image for category: ${categorySlug.value}`)
 }
 
 // Watch for route changes

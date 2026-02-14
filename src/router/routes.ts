@@ -132,6 +132,44 @@ export const routes: Array<RouteRecordRaw> = [
     }
   },
 
+  // ===== OFFER ROUTES =====
+  {
+    path: '/offers',
+    name: 'offers',
+    component: () => import('@/pages/OfferPage.vue'), // Fixed: now points to OffersPage, not OfferPage
+    meta: {
+      title: {
+        en: 'Special Offers | Luxury Perfume Deals',
+        ar: 'عروض خاصة | تخفيضات العطور الفاخرة'
+      },
+      description: {
+        en: 'Check out our latest exclusive offers and discounts on luxury perfumes. Limited time deals.',
+        ar: 'اطلع على أحدث عروضنا الحصرية وتخفيضات العطور الفاخرة. عروض لفترة محدودة.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+  {
+    path: '/offer/:slug',
+    name: 'offer',
+    component: () => import('@/pages/OfferPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Special Offer | Luxury Perfume',
+        ar: 'عرض خاص | عطر فاخر'
+      },
+      description: {
+        en: 'Discover this exclusive offer on luxury perfume. Limited time discount.',
+        ar: 'اكتشف هذا العرض الحصري على العطور الفاخرة. خصم لفترة محدودة.'
+      },
+      requiresAuth: false,
+      layout: 'default'
+    }
+  },
+  // ===== END OFFER ROUTES =====
+
   {
     path: '/cart',
     name: 'cart',

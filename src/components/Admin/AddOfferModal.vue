@@ -50,6 +50,24 @@
               <p v-if="errors.title" class="mt-1 text-sm text-red-600">{{ errors.title }}</p>
             </div>
 
+            <!-- Slug (for URL) -->
+            <div>
+              <label for="offer-slug" class="block text-sm font-medium text-gray-700 mb-1">
+                {{ t('Slug') }} *
+              </label>
+              <input
+                id="offer-slug"
+                v-model="formData.slug"
+                type="text"
+                :placeholder="t('e.g., summer-sale-2025')"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                :class="{ 'border-red-300': errors.slug }"
+                required
+              />
+              <p v-if="errors.slug" class="mt-1 text-sm text-red-600">{{ errors.slug }}</p>
+              <p class="mt-1 text-xs text-gray-500">{{ t('Used in the URL: /offer/[slug]') }}</p>
+            </div>
+
             <!-- Image URL -->
             <div>
               <label for="offer-image" class="block text-sm font-medium text-gray-700 mb-1">
@@ -87,6 +105,23 @@
                   />
                 </div>
               </div>
+            </div>
+
+            <!-- Link URL (optional) -->
+            <div>
+              <label for="offer-link" class="block text-sm font-medium text-gray-700 mb-1">
+                {{ t('Link URL') }} ({{ t('optional') }})
+              </label>
+              <input
+                id="offer-link"
+                v-model="formData.linkUrl"
+                type="text"
+                :placeholder="t('e.g., /product/chanel-5 or https://example.com')"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+              <p class="mt-1 text-xs text-gray-500">
+                {{ t('Where users go when they click Buy Now. Leave empty to use offer detail page.') }}
+              </p>
             </div>
 
             <!-- Subtitle -->
@@ -251,7 +286,7 @@
               <div class="flex items-center gap-4">
                 <label class="inline-flex items-center">
                   <input
-                    v-model="formData.isActive"
+                    v-model="formData.active"
                     type="radio"
                     :value="true"
                     class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
@@ -260,7 +295,7 @@
                 </label>
                 <label class="inline-flex items-center">
                   <input
-                    v-model="formData.isActive"
+                    v-model="formData.active"
                     type="radio"
                     :value="false"
                     class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
@@ -324,8 +359,10 @@ const emit = defineEmits<{
 // Form data
 const formData = reactive({
   id: '',
+  slug: '',
   title: '',
   imageUrl: '',
+  linkUrl: '',
   subtitle: '',
   oldPrice: 0,
   newPrice: 0,
@@ -334,12 +371,13 @@ const formData = reactive({
   offerType: 'percentage',
   description: '',
   terms: '',
-  isActive: true
+  active: true
 })
 
 // Form state
 const errors = reactive({
   title: '',
+  slug: '',
   imageUrl: '',
   oldPrice: '',
   newPrice: ''
@@ -360,8 +398,10 @@ onMounted(() => {
   if (props.offer) {
     Object.assign(formData, {
       id: props.offer.id || '',
+      slug: props.offer.slug || '',
       title: props.offer.title || '',
       imageUrl: props.offer.imageUrl || '',
+      linkUrl: props.offer.linkUrl || '',
       subtitle: props.offer.subtitle || '',
       oldPrice: props.offer.oldPrice || 0,
       newPrice: props.offer.newPrice || 0,
@@ -370,7 +410,7 @@ onMounted(() => {
       offerType: props.offer.offerType || 'percentage',
       description: props.offer.description || '',
       terms: props.offer.terms || '',
-      isActive: props.offer.isActive !== undefined ? props.offer.isActive : true
+      active: props.offer.active !== undefined ? props.offer.active : true
     })
     
     if (formData.imageUrl) {
@@ -425,6 +465,15 @@ const validateForm = () => {
     isValid = false
   }
   
+  // Validate slug
+  if (!formData.slug.trim()) {
+    errors.slug = t('Slug is required')
+    isValid = false
+  } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+    errors.slug = t('Slug must contain only lowercase letters, numbers, and hyphens')
+    isValid = false
+  }
+  
   // Validate image URL
   if (!formData.imageUrl.trim()) {
     errors.imageUrl = t('Image URL is required')
@@ -454,7 +503,7 @@ const validateForm = () => {
   
   // Validate date range if both dates are provided
   if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
-    errors.endDate = t('End date must be after start date')
+    alert(t('End date must be after start date'))
     isValid = false
   }
   
@@ -473,7 +522,7 @@ const save = async () => {
     // Calculate discount percentage
     const discount = calculateDiscount.value
     
-    // Emit the form data with discount
+    // Emit the form data with discount and savings
     emit('save', { 
       ...formData, 
       discount,

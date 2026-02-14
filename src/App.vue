@@ -370,15 +370,18 @@
       <LuxuryNotificationCenter />
     </template>
     
-    <!-- Loading Overlay (Shared across all layouts) -->
+    <!-- Loading Overlay (Shared across all layouts) - UPDATED to match HTML preloader -->
     <transition name="fade">
       <div
         v-if="globalLoading"
-        class="luxury-loading-overlay fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center safe-top safe-bottom"
+        class="luxury-loading-overlay fixed inset-0 bg-[#0a0a0a] z-[100] flex items-center justify-center safe-top safe-bottom"
       >
         <div class="text-center">
-          <div class="luxury-loading-spinner mb-4 md:mb-6"></div>
-          <p class="text-gold-light text-lg md:text-xl font-['Cormorant_Garamond'] font-medium">
+          <div class="preloader-logo mb-4 md:mb-6">
+            <div class="preloader-brand">P.NOTES</div>
+            <div class="preloader-subtitle">PERFUME STORE</div>
+          </div>
+          <p class="preloader-text text-gold-light text-sm md:text-base font-['Inter'] font-medium tracking-widest uppercase">
             {{ safeTranslate('loading') }}
           </p>
         </div>
@@ -1151,29 +1154,60 @@ p {
   }
 }
 
-/* Luxury Loading Spinner */
-.luxury-loading-spinner {
-  width: 50px;
-  height: 50px;
-  margin: 0 auto;
-  border: 2px solid rgba(212, 175, 55, 0.2);
-  border-top: 2px solid #d4af37;
-  border-radius: 50%;
-  animation: luxury-spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: transform;
+/* ========== PRELOADER STYLES (matching index.html) ========== */
+.preloader-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 1.5s infinite;
 }
 
-@keyframes luxury-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.preloader-brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  color: #d4af37;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
 }
 
-@media (min-width: 768px) {
-  .luxury-loading-spinner {
-    width: 60px;
-    height: 60px;
-    border-width: 3px;
-  }
+.preloader-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: #999999;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.preloader-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #999999;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.9;
+  font-weight: 400;
+  margin-top: 8px;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.03); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Override text color for the loading message (keep it gold) */
+.preloader-text.text-gold-light {
+  color: #f4e7c1;
+}
+
+/* Ensure no rounded edges */
+.preloader-logo {
+  border-radius: 0 !important;
 }
 
 /* ========== PAGE TRANSITIONS ========== */
@@ -1283,7 +1317,7 @@ p {
     transition: opacity 0.01ms !important;
   }
   
-  .luxury-loading-spinner {
+  .preloader-logo {
     animation: none !important;
   }
 }
@@ -1406,10 +1440,10 @@ p {
   width: 100%;
 }
 
-/* Luxury Loading Overlay */
+/* Luxury Loading Overlay - now matches preloader */
 .luxury-loading-overlay {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 245, 240, 0.95) 100%);
-  backdrop-filter: blur(4px);
+  background: #0a0a0a;
+  backdrop-filter: none;
 }
 
 /* Safe area support */
