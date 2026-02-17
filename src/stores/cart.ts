@@ -5,6 +5,15 @@ import { useLocalStorage } from '@vueuse/core'
 import { showNotification } from '@/utils/notifications'
 import { showConfirmation } from '@/utils/confirmation'
 
+// Egyptian Pound configuration
+const CURRENCY = {
+  code: 'EGP',
+  symbol: 'LE ',
+  freeShippingThreshold: 5000, // 5000 EGP for free shipping
+  shippingRate: 150, // 150 EGP shipping
+  taxRate: 0.14 // 14% VAT (Egyptian standard)
+}
+
 export const useCartStore = defineStore('cart', () => {
   // State
   const items = useLocalStorage<CartItem[]>('luxury_perfume_cart', [])
@@ -21,12 +30,14 @@ export const useCartStore = defineStore('cart', () => {
     items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   )
 
+  // Egyptian shipping - free over 5000 EGP
   const shipping = computed(() => 
-    subtotal.value > 200 ? 0 : 15
+    subtotal.value > CURRENCY.freeShippingThreshold ? 0 : CURRENCY.shippingRate
   )
 
+  // Egyptian VAT (14%)
   const tax = computed(() => 
-    subtotal.value * 0.08
+    subtotal.value * CURRENCY.taxRate
   )
 
   const total = computed(() => 
@@ -47,6 +58,21 @@ export const useCartStore = defineStore('cart', () => {
       totalPrice: item.price * item.quantity
     }))
   )
+
+  // Format price in Egyptian Pounds
+  const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('en-EG', {
+      style: 'currency',
+      currency: CURRENCY.code,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price).replace(CURRENCY.code, CURRENCY.symbol)
+  }
+
+  // Format price for display in notifications
+  const formatPriceForDisplay = (price: number): string => {
+    return formatPrice(price)
+  }
 
   // Actions
   const addToCart = (product: Product, quantity: number = 1) => {
@@ -74,7 +100,7 @@ export const useCartStore = defineStore('cart', () => {
       items.value.push(newItem)
       showNotification({
         title: 'Added to Cart',
-        message: `${product.name.en} added to your luxury collection`,
+        message: `${product.name.en} added to your luxury collection - ${formatPriceForDisplay(product.price)}`,
         type: 'success'
       })
     }
@@ -155,13 +181,22 @@ export const useCartStore = defineStore('cart', () => {
 
   const getItem = (id: string) => items.value.find(item => item.id === id)
   const hasItem = (id: string) => items.value.some(item => item.id === id)
+  
   const getCartSummary = () => ({
     totalItems: totalItems.value,
     subtotal: subtotal.value,
+    subtotalFormatted: formatPrice(subtotal.value),
     shipping: shipping.value,
+    shippingFormatted: shipping.value === 0 ? 'FREE' : formatPrice(shipping.value),
     tax: tax.value,
+    taxFormatted: formatPrice(tax.value),
     total: total.value,
-    items: luxuryItems.value
+    totalFormatted: formatPrice(total.value),
+    items: luxuryItems.value.map(item => ({
+      ...item,
+      priceFormatted: formatPrice(item.price),
+      totalPriceFormatted: formatPrice(item.totalPrice)
+    }))
   })
 
   const calculateSavings = () => {
@@ -169,6 +204,23 @@ export const useCartStore = defineStore('cart', () => {
       return item.originalPrice ? sum + ((item.originalPrice - item.price) * item.quantity) : sum
     }, 0)
   }
+
+  // Get free shipping progress
+  const getFreeShippingProgress = () => {
+    const remaining = Math.max(0, CURRENCY.freeShippingThreshold - subtotal.value)
+    const percentage = Math.min(100, (subtotal.value / CURRENCY.freeShippingThreshold) * 100)
+    
+    return {
+      remaining,
+      remainingFormatted: formatPrice(remaining),
+      percentage,
+      threshold: CURRENCY.freeShippingThreshold,
+      thresholdFormatted: formatPrice(CURRENCY.freeShippingThreshold)
+    }
+  }
+
+  // Check if free shipping is available
+  const hasFreeShipping = computed(() => subtotal.value > CURRENCY.freeShippingThreshold)
 
   // ✅ Restore cart method (for main.ts)
   const restoreCart = () => {
@@ -186,11 +238,13 @@ export const useCartStore = defineStore('cart', () => {
   const initialize = () => restoreCart()
 
   return {
+    // State
     items,
     isOpen,
     isLoading,
     lastAddedItem,
 
+    // Basic getters
     totalItems,
     subtotal,
     shipping,
@@ -200,6 +254,14 @@ export const useCartStore = defineStore('cart', () => {
     itemCount,
     luxuryItems,
 
+    // Egyptian Pound specific getters
+    hasFreeShipping,
+    formatPrice,
+    getCartSummary,
+    getFreeShippingProgress,
+    calculateSavings,
+
+    // Actions
     addToCart,
     removeFromCart,
     updateQuantity,
@@ -209,11 +271,9 @@ export const useCartStore = defineStore('cart', () => {
     toggleCart,
     getItem,
     hasItem,
-    getCartSummary,
-    calculateSavings,
 
     // Initialization methods
     initialize,
-    restoreCart // <— now available for main.ts
+    restoreCart
   }
 })

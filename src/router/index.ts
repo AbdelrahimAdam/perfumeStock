@@ -3,6 +3,24 @@ import { routes } from './routes'
 import { seoGuard } from './guards'
 import { useAuthStore } from '@/stores/auth'
 
+// List of public routes that don't need any authentication checks
+const publicRoutes = [
+  'home',
+  'shop',
+  'category',
+  'brands',
+  'brand',
+  'collections',
+  'product',
+  'offers',
+  'offer',      // Your offer detail page - PUBLIC
+  'cart',
+  'checkout',
+  'contact',
+  'about',
+  'not-found'
+]
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
@@ -11,7 +29,7 @@ const router = createRouter({
   }
 })
 
-// Apply SEO guard first
+// Apply SEO guard first for all routes
 router.beforeEach(seoGuard)
 
 // Main authentication & admin guard
@@ -24,11 +42,25 @@ router.beforeEach(async (to, from, next) => {
     name: to.name,
     requiresAuth: to.meta.requiresAuth,
     requiresAdmin: to.meta.requiresAdmin,
-    requiresSuperAdmin: to.meta.requiresSuperAdmin
+    requiresSuperAdmin: to.meta.requiresSuperAdmin,
+    isPublicRoute: publicRoutes.includes(to.name as string)
   })
 
+  // ============================================
+  // 🟢 PUBLIC ROUTES - ALLOW WITHOUT ANY CHECKS
+  // ============================================
+  if (publicRoutes.includes(to.name as string)) {
+    console.log('🌍 Public route detected - allowing access without auth checks')
+    return next()
+  }
+
+  // ============================================
+  // 🔐 PROTECTED ROUTES - REQUIRE AUTHENTICATION
+  // ============================================
+  
   // Ensure authentication is up-to-date
   if (!authStore.isAuthenticated) {
+    console.log('🔐 Checking authentication status...')
     await authStore.checkAuth()
   }
 
@@ -58,23 +90,25 @@ router.beforeEach(async (to, from, next) => {
         query: { redirect: to.fullPath, error: 'superadmin_required' }
       })
     }
+    console.log('✅ Super admin access granted')
     return next()
   }
 
-  // 3️⃣ Admin routes (optional if you only have super-admin)
+  // 3️⃣ Admin routes
   if (to.meta.requiresAdmin) {
     console.log('👑 Checking admin access...')
-    if (!authStore.isAuthenticated || !authStore.isSuperAdmin) {
+    if (!authStore.isAuthenticated || (!authStore.isAdmin && !authStore.isSuperAdmin)) {
       console.log('🚫 Admin access denied')
       return next({
         name: 'admin-login',
         query: { redirect: to.fullPath, error: 'admin_required' }
       })
     }
+    console.log('✅ Admin access granted')
     return next()
   }
 
-  // 4️⃣ Authenticated routes
+  // 4️⃣ Authenticated routes (general auth required)
   if (to.meta.requiresAuth) {
     console.log('🔐 Checking authentication...')
     if (!authStore.isAuthenticated) {
@@ -84,10 +118,12 @@ router.beforeEach(async (to, from, next) => {
         query: { redirect: to.fullPath }
       })
     }
+    console.log('✅ Authentication granted')
     return next()
   }
 
-  // 5️⃣ Public routes
+  // 5️⃣ Any other routes (shouldn't reach here, but just in case)
+  console.log('⚠️ Unhandled route - allowing by default')
   return next()
 })
 

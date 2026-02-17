@@ -202,7 +202,7 @@
                       <span class="new-price">{{ formatPrice(activeOffers[currentOfferIndex].newPrice || 0) }}</span>
                     </div>
                     <button class="buy-now-button" @click="navigateToOffer(activeOffers[currentOfferIndex])">
-                      <span class="button-text">{{ t('buyNow') }}</span>
+                      <span class="button-text">{{ t('View Offer') }}</span>
                       <span class="button-icon">↗</span>
                     </button>
                   </div>

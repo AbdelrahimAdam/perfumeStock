@@ -225,14 +225,35 @@
                 @click="addToCart"
                 class="w-full bg-primary-500 text-white py-3 lg:py-4 font-bold 
                        hover:bg-primary-600 transition-all duration-300 
-                       hover:-translate-y-0.5 shadow-gold-lg text-sm lg:text-base"
-                :disabled="!product.isActive"
+                       hover:-translate-y-0.5 shadow-gold-lg text-sm lg:text-base
+                       relative overflow-hidden"
+                :disabled="!product.isActive || isAddingToCart"
               >
-                <template v-if="!product.isActive">
-                  {{ t('Out of Stock') }}
-                </template>
+                <!-- Loading state -->
+                <span v-if="isAddingToCart" class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>{{ t('Adding...') }}</span>
+                </span>
+                
+                <!-- Success animation -->
+                <span v-else-if="showQuantityAnimation" class="flex items-center justify-center gap-2">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <span>{{ t('Added!') }}</span>
+                </span>
+                
+                <!-- Normal state -->
                 <template v-else>
-                  {{ t('Add to Cart') }} • {{ t('currencyLE') }} {{ (product.price * quantity).toFixed(2) }}
+                  <template v-if="!product.isActive">
+                    {{ t('Out of Stock') }}
+                  </template>
+                  <template v-else>
+                    {{ t('Add to Cart') }} • {{ t('currencyLE') }} {{ (product.price * quantity).toFixed(2) }}
+                  </template>
                 </template>
               </button>
               
@@ -285,7 +306,7 @@
         <ProductGrid 
           :products="relatedProducts" 
           @view-product="viewProduct"
-          @add-to-cart="addToCart"
+          @add-to-cart="handleRelatedProductAdd"
           class="grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
         />
       </div>
@@ -320,6 +341,8 @@ const error = ref<string | null>(null)
 const quantity = ref(1)
 const selectedImage = ref('')
 const brandDetails = ref<any>(null)
+const isAddingToCart = ref(false)
+const showQuantityAnimation = ref(false)
 
 // Computed properties
 const productImage = computed(() => {
@@ -420,24 +443,71 @@ const increaseQuantity = () => {
 }
 
 const addToCart = async () => {
-  if (product.value && product.value.isActive) {
-    try {
-      await cartStore.addToCart(product.value, quantity.value)
-      console.log('Added to cart:', product.value.name[currentLanguage])
-    } catch (error) {
-      console.error('Failed to add to cart:', error)
+  if (!product.value || !product.value.isActive) return
+  
+  isAddingToCart.value = true
+  
+  try {
+    // Prepare product data for cart
+    const cartProduct = {
+      id: product.value.id,
+      name: product.value.name,
+      imageUrl: product.value.imageUrl,
+      price: product.value.price,
+      originalPrice: product.value.originalPrice,
+      size: product.value.size,
+      concentration: product.value.concentration,
+      brand: product.value.brand,
+      brandSlug: product.value.brandSlug
     }
+    
+    // Add to cart using the store
+    cartStore.addToCart(cartProduct, quantity.value)
+    
+    // Show success animation
+    showQuantityAnimation.value = true
+    setTimeout(() => {
+      showQuantityAnimation.value = false
+    }, 1000)
+    
+    // Optional: You can reset quantity after adding if desired
+    // quantity.value = 1
+    
+  } catch (error) {
+    console.error('Failed to add to cart:', error)
+    // You could show an error notification here
+  } finally {
+    isAddingToCart.value = false
   }
 }
 
 const addToWishlist = () => {
   if (product.value) {
+    // This can be integrated with a wishlist store later
     console.log('Added to wishlist:', product.value.name[currentLanguage])
+    // You could show a notification here
   }
 }
 
 const viewProduct = (relatedProduct: Product) => {
   router.push(`/product/${relatedProduct.slug}`)
+}
+
+const handleRelatedProductAdd = (relatedProduct: Product) => {
+  // Prepare product data for cart
+  const cartProduct = {
+    id: relatedProduct.id,
+    name: relatedProduct.name,
+    imageUrl: relatedProduct.imageUrl,
+    price: relatedProduct.price,
+    originalPrice: relatedProduct.originalPrice,
+    size: relatedProduct.size,
+    concentration: relatedProduct.concentration,
+    brand: relatedProduct.brand,
+    brandSlug: relatedProduct.brandSlug
+  }
+  
+  cartStore.addToCart(cartProduct, 1)
 }
 
 const loadBrandDetails = async () => {
@@ -619,5 +689,19 @@ img,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Animation for cart button */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 0.5s ease-in-out;
 }
 </style>

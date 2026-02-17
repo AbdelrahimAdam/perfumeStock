@@ -18,6 +18,30 @@ import {
 import { auth, db } from '@/firebase/config'
 import { authNotification } from '@/utils/notifications'
 
+// List of public paths that don't need authentication
+const PUBLIC_PATHS = [
+  '/',
+  '/shop',
+  '/offers',
+  '/offer',
+  '/brands',
+  '/brand',
+  '/cart',
+  '/checkout',
+  '/contact',
+  '/about',
+  '/collections',
+  '/product',
+  '/category',
+  '/admin/login'
+]
+
+const isPublicPath = (path: string): boolean => {
+  return PUBLIC_PATHS.some(publicPath => 
+    path === publicPath || path.startsWith(publicPath + '/')
+  )
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // Super-admin state
   const user = ref<AdminUser | null>(null)
@@ -25,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
   const lastLogin = ref<Date | null>(null)
   const sessionExpiry = ref<Date | null>(null)
+  const authListenerInitialized = ref(false)
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -124,8 +149,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Check session/auth state
-  const checkAuth = async () => {
+  // Check session/auth state - only called on protected routes
+  const checkAuth = async (force: boolean = false) => {
+    // Skip auth check on public pages unless forced
+    if (!force && isPublicPath(window.location.pathname)) {
+      console.log('🌍 Public page - skipping auth check')
+      user.value = null
+      sessionExpiry.value = null
+      return
+    }
+
     isLoading.value = true
     try {
       const saved = localStorage.getItem('luxury_admin_session')
@@ -221,16 +254,45 @@ export const useAuthStore = defineStore('auth', () => {
   // Clear error
   const clearError = () => { error.value = null }
 
-  // Initialize listener
+  // Initialize listener - only call this from admin pages
   const init = () => {
+    // Only initialize auth listener on non-public pages
+    if (isPublicPath(window.location.pathname)) {
+      console.log('🌍 Public page - skipping auth listener initialization')
+      return
+    }
+
+    if (authListenerInitialized.value) return
+    
+    console.log('🔐 Initializing auth listener for protected page')
+    authListenerInitialized.value = true
+    
     onAuthStateChanged(auth, async (firebaseUser) => {
+      // Skip updates on public pages
+      if (isPublicPath(window.location.pathname)) {
+        console.log('🌍 Public page - ignoring auth state change')
+        return
+      }
+
       if (firebaseUser) {
         const adminData = await getSuperAdminFromFirestore(firebaseUser)
-        user.value = adminData
+        if (adminData) {
+          user.value = adminData
+        } else {
+          user.value = null
+        }
       } else {
         user.value = null
       }
     })
+  }
+
+  // Reset auth state (useful when navigating from protected to public pages)
+  const resetAuthState = () => {
+    if (isPublicPath(window.location.pathname)) {
+      user.value = null
+      sessionExpiry.value = null
+    }
   }
 
   return {
@@ -249,6 +311,7 @@ export const useAuthStore = defineStore('auth', () => {
     createSuperAdmin,
     refreshSession,
     clearError,
-    init
+    init,
+    resetAuthState
   }
 })

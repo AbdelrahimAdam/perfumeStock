@@ -133,10 +133,11 @@ export const routes: Array<RouteRecordRaw> = [
   },
 
   // ===== OFFER ROUTES =====
+  // Offers listing page
   {
     path: '/offers',
     name: 'offers',
-    component: () => import('@/pages/OfferPage.vue'), // Fixed: now points to OffersPage, not OfferPage
+    component: () => import('@/pages/OffersPage.vue'), // ✅ Fixed: Now points to OffersPage.vue
     meta: {
       title: {
         en: 'Special Offers | Luxury Perfume Deals',
@@ -150,6 +151,8 @@ export const routes: Array<RouteRecordRaw> = [
       layout: 'default'
     }
   },
+  
+  // Single offer detail page
   {
     path: '/offer/:slug',
     name: 'offer',
@@ -165,6 +168,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اكتشف هذا العرض الحصري على العطور الفاخرة. خصم لفترة محدودة.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },

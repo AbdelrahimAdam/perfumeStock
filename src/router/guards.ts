@@ -1,6 +1,42 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+// List of public routes that don't require authentication
+const publicRoutes = [
+  'home',
+  'shop',
+  'category',
+  'brands',
+  'brand',
+  'collections',
+  'product',
+  'offers',
+  'offer',
+  'cart',
+  'checkout',
+  'contact',
+  'about'
+]
+
+// List of admin routes that require authentication
+const adminRoutes = [
+  'admin-dashboard',
+  'admin-products',
+  'admin-product-new',
+  'admin-product-edit',
+  'admin-orders',
+  'admin-customers',
+  'admin-brands',
+  'admin-brand-new',
+  'admin-brand-edit',
+  'admin-profile',
+  'admin-settings',
+  'admin-homepage',
+  'admin-homepage-preview',
+  'admin-admins',
+  'admin-superadmin'
+]
+
 // Auth guard for protected routes (requires authentication)
 export const authGuard = async (
   to: RouteLocationNormalized,
@@ -10,57 +46,68 @@ export const authGuard = async (
   const authStore = useAuthStore()
 
   console.log('🛡️ Auth guard triggered for:', to.path)
-  console.log('🔍 Current auth state:', {
-    isAuthenticated: authStore.isAuthenticated.value,
-    isSuperAdmin: authStore.isSuperAdmin.value,
-    user: authStore.user
-  })
+  console.log('Route name:', to.name)
 
-  // Check authentication status
-  if (!authStore.isAuthenticated.value) {
-    console.log('🔐 Not authenticated, checking auth...')
-    await authStore.checkAuth()
+  // Check if this is a public route
+  if (publicRoutes.includes(to.name as string)) {
+    console.log('🌍 Public route - allowing access without authentication')
+    return next()
   }
 
-  // If still not authenticated, redirect to login
-  if (!authStore.isAuthenticated.value) {
-    console.log('🚫 Not authenticated, redirecting to login')
-    next({
-      name: 'admin-login',
-      query: {
-        redirect: to.fullPath,
-        error: 'authentication_required'
-      }
-    })
-    return
+  // Check if this is an admin route
+  if (adminRoutes.includes(to.name as string)) {
+    console.log('🔐 Admin route - checking authentication')
+    
+    // Check authentication status
+    if (!authStore.isAuthenticated.value) {
+      console.log('🔐 Not authenticated, checking auth...')
+      await authStore.checkAuth()
+    }
+
+    // If still not authenticated, redirect to login
+    if (!authStore.isAuthenticated.value) {
+      console.log('🚫 Not authenticated, redirecting to login')
+      next({
+        name: 'admin-login',
+        query: {
+          redirect: to.fullPath,
+          error: 'authentication_required'
+        }
+      })
+      return
+    }
+
+    // Check if route requires admin access
+    if (to.meta.requiresAdmin && !authStore.isAdmin.value && !authStore.isSuperAdmin.value) {
+      console.log('🚫 Admin access required but user is not admin')
+      next({
+        name: 'admin-login',
+        query: {
+          redirect: to.fullPath,
+          error: 'admin_access_required'
+        }
+      })
+      return
+    }
+
+    // Check if route requires super admin access
+    if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin.value) {
+      console.log('🚫 Super admin access required but user is not super admin')
+      next({
+        name: 'admin-dashboard',
+        query: {
+          error: 'superadmin_required'
+        }
+      })
+      return
+    }
+
+    console.log('✅ Access granted to admin route:', to.path)
+    return next()
   }
 
-  // Check if route requires admin access
-  if (to.meta.requiresAdmin && !authStore.isAdmin.value && !authStore.isSuperAdmin.value) {
-    console.log('🚫 Admin access required but user is not admin')
-    next({
-      name: 'admin-login',
-      query: {
-        redirect: to.fullPath,
-        error: 'admin_access_required'
-      }
-    })
-    return
-  }
-
-  // Check if route requires super admin access
-  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin.value) {
-    console.log('🚫 Super admin access required but user is not super admin')
-    next({
-      name: 'admin-dashboard',
-      query: {
-        error: 'superadmin_required'
-      }
-    })
-    return
-  }
-
-  console.log('✅ Access granted, proceeding to:', to.path)
+  // For any other routes (like 404), allow access
+  console.log('🌍 Other route - allowing access')
   next()
 }
 
@@ -118,7 +165,7 @@ export const adminGuard = async (
   }
 }
 
-// SEO guard to update meta tags
+// SEO guard to update meta tags (should run for ALL routes)
 export const seoGuard = (
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,

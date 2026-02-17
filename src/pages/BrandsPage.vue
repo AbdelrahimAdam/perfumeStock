@@ -7,19 +7,7 @@
       type="website"
     />
 
-    <!-- Hero Section -->
-    <div class="relative bg-gradient-to-r from-primary-900 to-primary-800 text-white">
-      <div class="container mx-auto px-4 py-16 md:py-24">
-        <div class="max-w-3xl" :class="{ 'text-right': isRTL }">
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-display-en font-bold mb-6">
-            {{ pageTitle }}
-          </h1>
-          <p class="text-lg md:text-xl text-gray-300 mb-8">
-            {{ pageDescription }}
-          </p>
-        </div>
-      </div>
-    </div>
+   
 
     <div class="container mx-auto px-4 py-8">
       <!-- Breadcrumb -->

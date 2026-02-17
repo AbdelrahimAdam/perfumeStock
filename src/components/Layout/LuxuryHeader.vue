@@ -4,7 +4,7 @@
     <div class="luxury-header-container">
       <!-- Top Bar -->
       <div class="luxury-top-bar">
-        <!-- Left: Logo with P.NOTES and PERFUME STORE subtitle -->
+        <!-- Left: Logo -->
         <router-link to="/" class="luxury-logo-container">
           <div class="luxury-logo-icon">
             <div class="logo-inner">
@@ -17,18 +17,17 @@
           </div>
         </router-link>
         
-        <!-- Desktop Navigation - REMOVED COLLECTIONS AND LUXURY LINKS -->
+        <!-- Desktop Navigation -->
         <nav class="luxury-nav-desktop">
           <ul class="luxury-nav-list">
             <li class="luxury-nav-item">
               <router-link to="/" class="luxury-nav-link" active-class="active" exact>
                 {{ languageStore.t('home') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Home</h4>
-                  <p class="preview-description">Discover our latest luxury fragrances and exclusive collections</p>
+                  <p class="preview-description">Discover our latest luxury fragrances</p>
                 </div>
               </div>
             </li>
@@ -36,11 +35,10 @@
               <router-link to="/shop" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('shop') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Shop</h4>
-                  <p class="preview-description">Browse all our premium perfumes and fragrance collections</p>
+                  <p class="preview-description">Browse all our premium perfumes</p>
                 </div>
               </div>
             </li>
@@ -48,11 +46,10 @@
               <router-link to="/brands" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('brands') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Brands</h4>
-                  <p class="preview-description">Explore luxury perfume houses and their signature scents</p>
+                  <p class="preview-description">Explore luxury perfume houses</p>
                 </div>
               </div>
             </li>
@@ -60,11 +57,10 @@
               <router-link to="/category/mens" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('mens') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Men's Collection</h4>
-                  <p class="preview-description">Bold, sophisticated fragrances crafted for the modern gentleman</p>
+                  <p class="preview-description">Bold fragrances for the modern gentleman</p>
                 </div>
               </div>
             </li>
@@ -72,11 +68,10 @@
               <router-link to="/category/womens" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('womens') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Women's Collection</h4>
-                  <p class="preview-description">Elegant, alluring perfumes that capture timeless beauty</p>
+                  <p class="preview-description">Elegant perfumes that capture timeless beauty</p>
                 </div>
               </div>
             </li>
@@ -84,11 +79,10 @@
               <router-link to="/about" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('about') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">About Us</h4>
-                  <p class="preview-description">Our story, craftsmanship, and passion for luxury fragrances</p>
+                  <p class="preview-description">Our story and passion for luxury fragrances</p>
                 </div>
               </div>
             </li>
@@ -96,11 +90,10 @@
               <router-link to="/contact" class="luxury-nav-link" active-class="active">
                 {{ languageStore.t('contact') }}
               </router-link>
-              <!-- Preview Content on Hover -->
               <div class="nav-preview">
                 <div class="preview-content">
                   <h4 class="preview-title">Contact</h4>
-                  <p class="preview-description">Get in touch with our concierge team for personalized assistance</p>
+                  <p class="preview-description">Get in touch with our concierge team</p>
                 </div>
               </div>
             </li>
@@ -109,16 +102,13 @@
         
         <!-- Right: Actions -->
         <div class="luxury-header-right">
-          <!-- Desktop Toggles & Actions -->
+          <!-- Desktop Actions -->
           <div class="luxury-desktop-section">
-            <!-- Language Toggle Only -->
             <div class="luxury-header-toggles">
               <LuxuryLanguageToggle />
             </div>
             
-            <!-- Actions -->
             <div class="luxury-header-actions">
-              <!-- Search -->
               <button class="luxury-header-action" @click="toggleSearch" :aria-label="languageStore.t('search')">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" 
@@ -126,7 +116,6 @@
                 </svg>
               </button>
               
-              <!-- User -->
               <button class="luxury-header-action" @click="handleUserClick" :aria-label="languageStore.t('account')">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
@@ -136,25 +125,57 @@
                 </svg>
               </button>
               
-              <!-- Wishlist -->
-              <button class="luxury-header-action" @click="toggleWishlist" :aria-label="languageStore.t('wishlist')">
+              <!-- Simple Wishlist Link - Redirects to wishlist page -->
+              <router-link to="/wishlist" class="luxury-header-action">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" 
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-              </button>
+                <span v-if="wishlistStore.totalItems > 0" class="wishlist-badge">{{ wishlistStore.totalItems > 99 ? '99+' : wishlistStore.totalItems }}</span>
+              </router-link>
               
-              <!-- Cart -->
-              <LuxuryCartIcon />
+              <router-link to="/cart" class="luxury-header-action">
+                <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span v-if="cartStore.totalItems > 0" class="cart-badge">{{ cartStore.totalItems > 99 ? '99+' : cartStore.totalItems }}</span>
+              </router-link>
             </div>
           </div>
           
-          <!-- Mobile Menu Toggle -->
-          <button class="luxury-mobile-toggle" @click="toggleMobileMenu" :class="{ 'open': mobileMenuOpen }" :aria-label="languageStore.t('menu')">
-            <span class="mobile-toggle-line"></span>
-            <span class="mobile-toggle-line"></span>
-            <span class="mobile-toggle-line"></span>
-          </button>
+          <!-- Mobile Actions Row -->
+          <div class="mobile-actions-row">
+            <!-- Simple Wishlist Link (Mobile) -->
+            <router-link to="/wishlist" class="mobile-action-icon-link">
+              <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span v-if="wishlistStore.totalItems > 0" class="mobile-wishlist-badge">{{ wishlistStore.totalItems > 99 ? '99+' : wishlistStore.totalItems }}</span>
+            </router-link>
+            
+            <!-- Simple Cart Link (Mobile) -->
+            <router-link to="/cart" class="mobile-action-icon-link">
+              <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span v-if="cartStore.totalItems > 0" class="mobile-cart-badge">{{ cartStore.totalItems > 99 ? '99+' : cartStore.totalItems }}</span>
+            </router-link>
+            
+            <!-- Language Toggle (Mobile) -->
+            <div class="mobile-language-toggle">
+              <LuxuryLanguageToggle />
+            </div>
+            
+            <!-- Menu Toggle -->
+            <button class="luxury-mobile-toggle" @click="toggleMobileMenu" :class="{ 'open': mobileMenuOpen }" :aria-label="languageStore.t('menu')">
+              <span class="mobile-toggle-line"></span>
+              <span class="mobile-toggle-line"></span>
+              <span class="mobile-toggle-line"></span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -162,7 +183,7 @@
     <!-- Mobile Menu Overlay -->
     <div v-if="mobileMenuOpen" class="luxury-mobile-overlay" @click="closeMobileMenu"></div>
     
-    <!-- Mobile Menu -->
+    <!-- Mobile Menu (Sliding from right) - Half Screen -->
     <div class="luxury-mobile-menu" :class="{ 'open': mobileMenuOpen }">
       <div class="mobile-menu-container">
         <div class="mobile-menu-header">
@@ -186,12 +207,7 @@
         </div>
         
         <div class="mobile-menu-content">
-          <!-- Mobile Language Toggle -->
-          <div class="mobile-toggles">
-            <LuxuryLanguageToggle />
-          </div>
-          
-          <!-- Mobile Navigation - REMOVED COLLECTIONS AND LUXURY LINKS -->
+          <!-- Mobile Navigation -->
           <nav class="mobile-nav">
             <ul class="mobile-nav-list">
               <li class="mobile-nav-item">
@@ -252,21 +268,25 @@
               <span>{{ languageStore.t('account') }}</span>
             </button>
             
-            <button class="mobile-action-btn" @click="handleMobileAction('wishlist')">
+            <!-- Simple Wishlist Link in Mobile Menu -->
+            <router-link to="/wishlist" class="mobile-action-btn" @click="closeMobileMenu">
               <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" 
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>{{ languageStore.t('wishlist') }}</span>
-            </button>
+              <span v-if="wishlistStore.totalItems > 0" class="mobile-wishlist-badge">{{ wishlistStore.totalItems }}</span>
+            </router-link>
             
-            <button class="mobile-action-btn" @click="handleMobileAction('cart')">
+            <!-- Simple Cart Link in Mobile Menu -->
+            <router-link to="/cart" class="mobile-action-btn" @click="closeMobileMenu">
               <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" 
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>{{ languageStore.t('cart') }}</span>
-            </button>
+              <span v-if="cartStore.totalItems > 0" class="mobile-cart-badge">{{ cartStore.totalItems }}</span>
+            </router-link>
           </div>
         </div>
       </div>
@@ -304,6 +324,14 @@
             <span>{{ languageStore.t('orders') }}</span>
           </router-link>
           
+          <router-link to="/wishlist" class="dropdown-item" @click="userMenuOpen = false">
+            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>{{ languageStore.t('wishlist') }}</span>
+          </router-link>
+          
           <router-link v-if="isAdmin" to="/admin" class="dropdown-item" @click="userMenuOpen = false">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
               <path d="M10.325 4.317C10.751 2.561 13.249 2.561 13.675 4.317C13.861 5.151 14.687 5.657 15.514 5.421C17.227 4.926 18.675 6.374 18.18 8.087C17.944 8.914 18.45 9.74 19.284 9.926C21.04 10.352 21.04 12.85 19.284 13.276C18.45 13.462 17.944 14.288 18.18 15.115C18.675 16.828 17.227 18.276 15.514 17.781C14.687 17.545 13.861 18.051 13.675 18.885C13.249 20.641 10.751 20.641 10.325 18.885C10.139 18.051 9.313 17.545 8.486 17.781C6.773 18.276 5.325 16.828 5.82 15.115C6.056 14.288 5.55 13.462 4.716 13.276C2.96 12.85 2.96 10.352 4.716 9.926C5.55 9.74 6.056 8.914 5.82 8.087C5.325 6.374 6.773 4.926 8.486 5.421C9.313 5.657 10.139 5.151 10.325 4.317Z" 
@@ -327,7 +355,7 @@
     
     <!-- Search Modal -->
     <div v-if="searchOpen" class="luxury-search-overlay" @click="searchOpen = false">
-      <div class="search-modal" @click.stop">
+      <div class="search-modal" @click.stop>
         <div class="search-input-container">
           <input type="text" class="search-input" :placeholder="languageStore.t('search') + '...'" autofocus>
           <button class="search-close" @click="searchOpen = false">
@@ -348,13 +376,14 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLanguageStore } from '@/stores/language'
 import { useCartStore } from '@/stores/cart'
+import { useWishlistStore } from '@/stores/wishlist'
 import LuxuryLanguageToggle from '@/components/UI/LuxuryLanguageToggle.vue'
-import LuxuryCartIcon from '@/components/Cart/LuxuryCartIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const languageStore = useLanguageStore()
 const cartStore = useCartStore()
+const wishlistStore = useWishlistStore()
 
 const { user, isAuthenticated, isAdmin, logout } = authStore
 
@@ -363,7 +392,6 @@ const scrolled = ref(false)
 const mobileMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 const searchOpen = ref(false)
-const wishlistOpen = ref(false)
 
 // Computed
 const userInitials = computed(() => {
@@ -385,7 +413,6 @@ const toggleMobileMenu = () => {
     document.body.classList.add('no-scroll')
     userMenuOpen.value = false
     searchOpen.value = false
-    wishlistOpen.value = false
   } else {
     document.body.classList.remove('no-scroll')
   }
@@ -402,7 +429,6 @@ const handleUserClick = () => {
     if (userMenuOpen.value) {
       mobileMenuOpen.value = false
       searchOpen.value = false
-      wishlistOpen.value = false
     }
   } else {
     router.push('/admin/login')
@@ -416,7 +442,6 @@ const toggleUserMenu = () => {
     if (userMenuOpen.value) {
       mobileMenuOpen.value = false
       searchOpen.value = false
-      wishlistOpen.value = false
     }
   } else {
     router.push('/admin/login')
@@ -430,23 +455,15 @@ const toggleSearch = () => {
     document.body.classList.add('no-scroll')
     mobileMenuOpen.value = false
     userMenuOpen.value = false
-    wishlistOpen.value = false
   } else {
     document.body.classList.remove('no-scroll')
   }
-}
-
-const toggleWishlist = () => {
-  wishlistOpen.value = !wishlistOpen.value
-  const event = new CustomEvent('toggle-wishlist', { detail: wishlistOpen.value })
-  window.dispatchEvent(event)
 }
 
 const closeAllMenus = () => {
   mobileMenuOpen.value = false
   userMenuOpen.value = false
   searchOpen.value = false
-  wishlistOpen.value = false
   document.body.classList.remove('no-scroll')
 }
 
@@ -463,12 +480,6 @@ const handleMobileAction = (action: string) => {
         router.push('/admin/login')
       }
       break
-    case 'wishlist':
-      toggleWishlist()
-      break
-    case 'cart':
-      cartStore.openCart()
-      break
   }
 }
 
@@ -476,9 +487,18 @@ const handleScroll = () => {
   scrolled.value = window.scrollY > 20
 }
 
+// Fixed click outside handler
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
-  if (!target.closest('.user-dropdown') && 
+  
+  // Close mobile menu if clicking on overlay
+  if (mobileMenuOpen.value && target.closest('.luxury-mobile-overlay')) {
+    closeMobileMenu()
+  }
+  
+  // Close user dropdown if clicking outside
+  if (userMenuOpen.value && 
+      !target.closest('.user-dropdown') && 
       !target.closest('.luxury-header-action[aria-label="Account"]')) {
     userMenuOpen.value = false
   }
@@ -503,6 +523,9 @@ const handleKeydown = (event: KeyboardEvent) => {
     if (userMenuOpen.value) {
       userMenuOpen.value = false
     }
+    if (mobileMenuOpen.value) {
+      closeMobileMenu()
+    }
   }
 }
 
@@ -524,7 +547,7 @@ watch(() => languageStore.currentLanguage, () => {
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
-  window.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeydown)
   
   updateDirection()
@@ -534,7 +557,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
 })
@@ -591,12 +614,12 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .luxury-top-bar {
-    padding: 0.875rem 0;
+    padding: 0.75rem 0;
     gap: 1rem;
   }
 }
 
-/* Logo - UPDATED with P.NOTES and PERFUME STORE subtitle */
+/* Logo */
 .luxury-logo-container {
   display: flex;
   align-items: center;
@@ -620,13 +643,6 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .luxury-logo-icon {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 480px) {
   .luxury-logo-icon {
     width: 40px;
     height: 40px;
@@ -668,12 +684,6 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .luxury-p-logo {
-    font-size: 1.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .luxury-p-logo {
     font-size: 1.5rem;
   }
 }
@@ -703,19 +713,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .logo-title {
-    font-size: 1.25rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .logo-title {
     font-size: 1.1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .logo-title {
-    font-size: 1rem;
   }
 }
 
@@ -734,13 +732,6 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .logo-subtitle {
-    font-size: 0.6rem;
-    letter-spacing: 1.5px;
-  }
-}
-
-@media (max-width: 640px) {
   .logo-subtitle {
     font-size: 0.55rem;
     letter-spacing: 1px;
@@ -832,7 +823,7 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* ===== NAVIGATION PREVIEW - PERFECT USE OF EMPTY SPACE ===== */
+/* Navigation Preview */
 .nav-preview {
   position: absolute;
   top: 100%;
@@ -894,7 +885,6 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
-/* Responsive adjustments for preview */
 @media (max-width: 1279px) {
   .nav-preview {
     width: 240px;
@@ -924,6 +914,7 @@ onUnmounted(() => {
   }
 }
 
+/* Desktop Section */
 .luxury-desktop-section {
   display: flex;
   align-items: center;
@@ -962,6 +953,7 @@ onUnmounted(() => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   flex-shrink: 0;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
@@ -977,6 +969,56 @@ onUnmounted(() => {
   color: #d4af37;
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
+}
+
+/* Wishlist badge */
+.wishlist-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  background: #ec4899;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.luxury-header.rtl .wishlist-badge {
+  right: auto;
+  left: -5px;
+}
+
+/* Cart badge */
+.cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  background: #d4af37;
+  color: #0a0a0a;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.luxury-header.rtl .cart-badge {
+  right: auto;
+  left: -5px;
 }
 
 .luxury-icon {
@@ -995,6 +1037,95 @@ onUnmounted(() => {
   }
 }
 
+/* Mobile Actions Row */
+.mobile-actions-row {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 1023px) {
+  .mobile-actions-row {
+    display: flex;
+  }
+}
+
+/* Mobile Action Icon Links */
+.mobile-action-icon-link {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 12px;
+  color: #f4e7c1;
+  text-decoration: none;
+}
+
+.mobile-action-icon-link:active {
+  background: rgba(212, 175, 55, 0.15);
+  transform: scale(0.95);
+}
+
+.mobile-wishlist-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  background: #ec4899;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  background: #d4af37;
+  color: #0a0a0a;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+.mobile-language-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-language-toggle :deep(.current-language) {
+  padding: 0.5rem;
+  min-width: auto;
+}
+
+.mobile-language-toggle :deep(.language-code) {
+  display: none;
+}
+
 /* Mobile Toggle */
 .luxury-mobile-toggle {
   display: none;
@@ -1004,14 +1135,15 @@ onUnmounted(() => {
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  margin-left: 0.5rem;
   flex-shrink: 0;
   z-index: 1001;
-}
-
-.luxury-header.rtl .luxury-mobile-toggle {
-  margin-left: 0;
-  margin-right: 0.5rem;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 12px;
 }
 
 @media (max-width: 1023px) {
@@ -1021,7 +1153,7 @@ onUnmounted(() => {
 }
 
 .mobile-toggle-line {
-  width: 24px;
+  width: 20px;
   height: 2px;
   background: #f4e7c1;
   transition: all 0.3s ease;
@@ -1029,7 +1161,7 @@ onUnmounted(() => {
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(1) {
-  transform: rotate(45deg) translate(6px, 6px);
+  transform: rotate(45deg) translate(5px, 5px);
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(2) {
@@ -1037,7 +1169,7 @@ onUnmounted(() => {
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(3) {
-  transform: rotate(-45deg) translate(6px, -6px);
+  transform: rotate(-45deg) translate(5px, -5px);
 }
 
 /* Mobile Overlay */
@@ -1052,13 +1184,13 @@ onUnmounted(() => {
   z-index: 1001;
 }
 
-/* Mobile Menu */
+/* Mobile Menu - Half Screen */
 .luxury-mobile-menu {
   position: fixed;
   top: 0;
-  right: -100%;
-  width: 100%;
-  max-width: 400px;
+  right: -50%;
+  width: 50%;
+  max-width: 280px;
   height: 100vh;
   background: linear-gradient(180deg, 
     rgba(10, 10, 10, 0.98) 0%, 
@@ -1066,13 +1198,13 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
   border-left: 1px solid rgba(212, 175, 55, 0.15);
   z-index: 1002;
-  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
 }
 
 .luxury-header.rtl .luxury-mobile-menu {
   right: auto;
-  left: -100%;
+  left: -50%;
   border-left: none;
   border-right: 1px solid rgba(212, 175, 55, 0.15);
 }
@@ -1086,30 +1218,40 @@ onUnmounted(() => {
   right: auto;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 768px) {
   .luxury-mobile-menu {
-    max-width: 100%;
+    width: 60%;
+    right: -60%;
+  }
+  
+  .luxury-header.rtl .luxury-mobile-menu {
+    left: -60%;
+  }
+}
+
+@media (max-width: 480px) {
+  .luxury-mobile-menu {
+    width: 70%;
+    right: -70%;
+  }
+  
+  .luxury-header.rtl .luxury-mobile-menu {
+    left: -70%;
   }
 }
 
 .mobile-menu-container {
   height: 100%;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-}
-
-@media (max-width: 480px) {
-  .mobile-menu-container {
-    padding: 1.5rem 1rem;
-  }
 }
 
 .mobile-menu-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(212, 175, 55, 0.1);
   flex-shrink: 0;
 }
@@ -1117,21 +1259,14 @@ onUnmounted(() => {
 .mobile-menu-logo {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .mobile-logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   position: relative;
   flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-  .mobile-logo-icon {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 .mobile-logo-inner {
@@ -1148,16 +1283,10 @@ onUnmounted(() => {
 
 .mobile-logo-p {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
-}
-
-@media (max-width: 480px) {
-  .mobile-logo-p {
-    font-size: 1.5rem;
-  }
 }
 
 .mobile-logo-text {
@@ -1171,7 +1300,7 @@ onUnmounted(() => {
 
 .mobile-logo-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.25rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #d4af37;
   margin: 0;
@@ -1181,18 +1310,12 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-@media (max-width: 480px) {
-  .mobile-logo-title {
-    font-size: 1.1rem;
-  }
-}
-
 .mobile-logo-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.5rem;
   color: #999999;
-  margin: 0.25rem 0 0 0;
-  letter-spacing: 1.5px;
+  margin: 0.2rem 0 0 0;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   opacity: 0.9;
   white-space: nowrap;
@@ -1201,33 +1324,19 @@ onUnmounted(() => {
   font-weight: 400;
 }
 
-@media (max-width: 480px) {
-  .mobile-logo-subtitle {
-    font-size: 0.55rem;
-    letter-spacing: 1px;
-  }
-}
-
 .mobile-menu-close {
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.1);
   border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 12px;
+  border-radius: 8px;
   color: #f4e7c1;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-  .mobile-menu-close {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 .mobile-menu-close:hover {
@@ -1237,24 +1346,23 @@ onUnmounted(() => {
   transform: rotate(90deg);
 }
 
+.mobile-menu-close svg {
+  width: 14px;
+  height: 14px;
+}
+
 .mobile-menu-content {
   flex: 1;
-  padding: 2rem 0;
+  padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
-.mobile-toggles {
-  padding-bottom: 2rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
-}
-
 /* Mobile Navigation */
 .mobile-nav {
   flex: 1;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .mobile-nav-list {
@@ -1269,9 +1377,9 @@ onUnmounted(() => {
 
 .mobile-nav-link {
   display: block;
-  padding: 1.25rem 0;
+  padding: 0.875rem 0;
   font-family: 'Inter', sans-serif;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: #f4e7c1;
   text-decoration: none;
@@ -1279,13 +1387,6 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 1px;
   opacity: 0.9;
-}
-
-@media (max-width: 480px) {
-  .mobile-nav-link {
-    padding: 1rem 0;
-    font-size: 1rem;
-  }
 }
 
 .mobile-nav-link:hover {
@@ -1307,44 +1408,33 @@ onUnmounted(() => {
 .mobile-actions {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding-top: 2rem;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
-}
-
-@media (max-width: 480px) {
-  .mobile-actions {
-    gap: 0.75rem;
-  }
 }
 
 .mobile-action-btn {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 12px;
+  border-radius: 8px;
   color: #f4e7c1;
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   width: 100%;
   text-align: left;
+  text-decoration: none;
+  position: relative;
 }
 
 .luxury-header.rtl .mobile-action-btn {
   text-align: right;
-}
-
-@media (max-width: 480px) {
-  .mobile-action-btn {
-    padding: 0.875rem 1.25rem;
-    font-size: 0.95rem;
-  }
 }
 
 .mobile-action-btn:hover {
@@ -1359,13 +1449,45 @@ onUnmounted(() => {
 }
 
 .mobile-action-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
   fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
   flex-shrink: 0;
+}
+
+/* Mobile Badges */
+.mobile-wishlist-badge,
+.mobile-cart-badge {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mobile-wishlist-badge {
+  background: #ec4899;
+  color: white;
+}
+
+.mobile-cart-badge {
+  background: #d4af37;
+  color: #0a0a0a;
+}
+
+.luxury-header.rtl .mobile-wishlist-badge,
+.luxury-header.rtl .mobile-cart-badge {
+  right: auto;
+  left: 1rem;
 }
 
 /* User Dropdown */

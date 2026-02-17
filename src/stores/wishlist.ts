@@ -1,0 +1,262 @@
+// src/stores/wishlist.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
+import { showNotification } from '@/utils/notifications'
+import { showConfirmation } from '@/utils/confirmation'
+import type { Product } from '@/types'
+
+export interface WishlistItem {
+  id: string
+  slug: string
+  name: {
+    en: string
+    ar: string
+  }
+  brand: string
+  brandSlug: string
+  size: string
+  concentration: string
+  price: number
+  originalPrice?: number
+  imageUrl: string
+  stockStatus?: 'in_stock' | 'low_stock' | 'out_of_stock'
+  notes?: {
+    top: string[]
+    heart: string[]
+    base: string[]
+  }
+  dateAdded: string
+}
+
+export const useWishlistStore = defineStore('wishlist', () => {
+  // State - Use localStorage for guest users
+  const items = useLocalStorage<WishlistItem[]>('luxury_wishlist', [])
+  const isLoading = ref(false)
+  const selectedItems = ref<string[]>([])
+  const privacySetting = ref<'private' | 'shared' | 'public'>('private')
+  const shareableId = useLocalStorage('wishlist_shareable_id', '')
+
+  // Getters
+  const totalItems = computed(() => items.value.length)
+  
+  const totalValue = computed(() => 
+    items.value.reduce((sum, item) => sum + item.price, 0)
+  )
+
+  const inStockCount = computed(() => 
+    items.value.filter(item => item.stockStatus === 'in_stock').length
+  )
+
+  const lowStockCount = computed(() => 
+    items.value.filter(item => item.stockStatus === 'low_stock').length
+  )
+
+  const hasItem = (productId: string) => 
+    items.value.some(item => item.id === productId)
+
+  // Actions - All work without authentication
+  const addToWishlist = (product: Product) => {
+    if (hasItem(product.id)) {
+      showNotification({
+        title: 'Already in Wishlist',
+        message: 'This item is already in your wishlist',
+        type: 'info'
+      })
+      return false
+    }
+
+    const newItem: WishlistItem = {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand,
+      brandSlug: product.brandSlug,
+      size: product.size,
+      concentration: product.concentration,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      imageUrl: product.imageUrl,
+      notes: product.notes,
+      stockStatus: determineStockStatus(product),
+      dateAdded: new Date().toISOString()
+    }
+
+    items.value.push(newItem)
+    
+    showNotification({
+      title: 'Added to Wishlist',
+      message: `${product.name.en} added to your wishlist`,
+      type: 'success'
+    })
+    
+    return true
+  }
+
+  const removeFromWishlist = (productId: string) => {
+    const index = items.value.findIndex(item => item.id === productId)
+    if (index !== -1) {
+      const item = items.value[index]
+      items.value.splice(index, 1)
+      
+      // Remove from selected items if present
+      const selectedIndex = selectedItems.value.indexOf(productId)
+      if (selectedIndex > -1) {
+        selectedItems.value.splice(selectedIndex, 1)
+      }
+
+      showNotification({
+        title: 'Removed from Wishlist',
+        message: `${item.name.en} removed from your wishlist`,
+        type: 'info'
+      })
+      
+      return true
+    }
+    return false
+  }
+
+  const toggleWishlist = (product: Product) => {
+    if (hasItem(product.id)) {
+      return removeFromWishlist(product.id)
+    } else {
+      return addToWishlist(product)
+    }
+  }
+
+  const clearWishlist = async () => {
+    const confirmed = await showConfirmation({
+      title: 'Clear Wishlist',
+      message: 'Are you sure you want to clear your entire wishlist?',
+      confirmText: 'Clear All',
+      cancelText: 'Keep Items',
+      type: 'warning'
+    })
+
+    if (confirmed) {
+      items.value = []
+      selectedItems.value = []
+      showNotification({
+        title: 'Wishlist Cleared',
+        message: 'Your wishlist has been cleared',
+        type: 'success'
+      })
+      return true
+    }
+    return false
+  }
+
+  const removeSelected = () => {
+    items.value = items.value.filter(item => !selectedItems.value.includes(item.id))
+    selectedItems.value = []
+    
+    showNotification({
+      title: 'Items Removed',
+      message: 'Selected items removed from wishlist',
+      type: 'success'
+    })
+  }
+
+  // Authentication-dependent actions
+  const generateShareableLink = (userId?: string) => {
+    // If user is logged in, generate personalized link
+    if (userId) {
+      const id = Math.random().toString(36).substring(2, 15)
+      shareableId.value = id
+      return `${window.location.origin}/wishlist/shared/${id}?user=${userId}`
+    }
+    
+    // For guest users, generate a session-based link
+    const sessionId = localStorage.getItem('session_id') || Math.random().toString(36).substring(2, 15)
+    localStorage.setItem('session_id', sessionId)
+    return `${window.location.origin}/wishlist/shared/session/${sessionId}`
+  }
+
+  const updatePrivacySetting = (setting: 'private' | 'shared' | 'public') => {
+    privacySetting.value = setting
+    
+    // If setting to public or shared, generate shareable link if not exists
+    if (setting !== 'private' && !shareableId.value) {
+      generateShareableLink()
+    }
+    
+    showNotification({
+      title: 'Privacy Updated',
+      message: 'Your wishlist privacy settings have been updated',
+      type: 'success'
+    })
+  }
+
+  // Helper to determine stock status
+  const determineStockStatus = (product: Product): 'in_stock' | 'low_stock' | 'out_of_stock' => {
+    if (!product.inStock) return 'out_of_stock'
+    if (product.stockQuantity && product.stockQuantity < 10) return 'low_stock'
+    return 'in_stock'
+  }
+
+  // Load wishlist (from localStorage for guests, from Firebase for logged-in users)
+  const loadWishlist = async (userId?: string) => {
+    isLoading.value = true
+    try {
+      if (userId) {
+        // TODO: Load from Firebase for logged-in users
+        // For now, merge with localStorage
+        const savedWishlist = localStorage.getItem('luxury_wishlist')
+        if (savedWishlist) {
+          items.value = JSON.parse(savedWishlist)
+        }
+      }
+      // For guests, wishlist is already loaded from localStorage
+    } catch (error) {
+      console.error('Error loading wishlist:', error)
+      showNotification({
+        title: 'Error',
+        message: 'Failed to load wishlist',
+        type: 'error'
+      })
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Update stock status based on current product data
+  const updateStockStatus = (products: Product[]) => {
+    items.value = items.value.map(item => {
+      const product = products.find(p => p.id === item.id)
+      if (product) {
+        return {
+          ...item,
+          stockStatus: determineStockStatus(product)
+        }
+      }
+      return item
+    })
+  }
+
+  return {
+    // State
+    items,
+    isLoading,
+    selectedItems,
+    privacySetting,
+    shareableId,
+
+    // Getters
+    totalItems,
+    totalValue,
+    inStockCount,
+    lowStockCount,
+    hasItem,
+
+    // Actions
+    addToWishlist,
+    removeFromWishlist,
+    toggleWishlist,
+    clearWishlist,
+    removeSelected,
+    generateShareableLink,
+    updatePrivacySetting,
+    loadWishlist,
+    updateStockStatus
+  }
+})

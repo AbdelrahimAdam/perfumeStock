@@ -9,6 +9,30 @@ import './assets/styles/main.css'
 // Import vue-i18n
 import { createI18n } from 'vue-i18n'
 
+// List of public paths that don't need authentication
+const PUBLIC_PATHS = [
+  '/',
+  '/shop',
+  '/offers',
+  '/offer',
+  '/brands',
+  '/brand',
+  '/cart',
+  '/checkout',
+  '/contact',
+  '/about',
+  '/collections',
+  '/product',
+  '/category',
+  '/admin/login'
+]
+
+const isPublicPath = (path: string): boolean => {
+  return PUBLIC_PATHS.some(publicPath => 
+    path === publicPath || path.startsWith(publicPath + '/')
+  )
+}
+
 // Setup vue-i18n with basic language support
 const i18n = createI18n({
   legacy: false, // Use composition API mode
@@ -191,6 +215,12 @@ setTimeout(async () => {
   try {
     console.log('🏪 Starting store initialization...')
     
+    // Check if current page is public
+    const currentPath = window.location.pathname
+    const isPublic = isPublicPath(currentPath)
+    
+    console.log(`📍 Current path: ${currentPath} (${isPublic ? 'Public' : 'Protected'})`)
+    
     // Import stores - Use dynamic imports to avoid circular dependencies
     const { useAuthStore } = await import('@/stores/auth')
     const { useBrandsStore } = await import('@/stores/brands')
@@ -217,12 +247,18 @@ setTimeout(async () => {
       console.log('ℹ️ Language store initialization not required')
     }
     
-    console.log('🔐 Checking authentication...')
-    // Initialize auth store - use checkAuth() method from your auth store
-    await authStore.checkAuth()
+    // Only check auth on protected pages
+    if (!isPublic) {
+      console.log('🔐 Protected page - checking authentication...')
+      await authStore.checkAuth()
+    } else {
+      console.log('🌍 Public page - skipping authentication')
+      // Clear any existing auth state on public pages
+      authStore.resetAuthState?.()
+    }
     
     console.log('📊 Initializing data stores...')
-    // Initialize other stores in parallel for better performance
+    // Initialize data stores in parallel
     await Promise.all([
       brandsStore.initialize(),
       productsStore.initialize(),
@@ -230,7 +266,7 @@ setTimeout(async () => {
     ])
     
     console.log('🛒 Restoring cart...')
-    // Restore cart from localStorage
+    // Restore cart from localStorage (always do this)
     cartStore.restoreCart()
     
     // Log initialization status
@@ -239,26 +275,26 @@ setTimeout(async () => {
     console.log(`  👤 Auth: ${authStore.isAuthenticated ? `Logged in (${authStore.user?.email})` : 'Guest'}`)
     console.log(`  👑 Admin: ${authStore.isAdmin ? 'Yes' : 'No'}`)
     console.log(`  👑 Super Admin: ${authStore.isSuperAdmin ? 'Yes' : 'No'}`)
-    console.log(`  📁 Brands: ${brandsStore.brands?.length || 0}`) // ✅ FIXED: Safe access
-    console.log(`  📦 Products: ${productsStore.products?.length || 0}`) // ✅ FIXED: Safe access
+    console.log(`  📁 Brands: ${brandsStore.brands?.length || 0}`)
+    console.log(`  📦 Products: ${productsStore.products?.length || 0}`)
     
-    // ✅ FIXED THE ERROR HERE: Safe access to homepage data
+    // Safe access to homepage data
     const homepageData = homepageStore.homepageData || {}
     const featuredBrands = homepageData.featuredBrands || []
     const activeOffers = homepageData.activeOffers || []
     const marqueeBrands = homepageData.marqueeBrands || []
     
-    console.log(`  ⭐ Featured Brands: ${featuredBrands.length}`) // ✅ FIXED: Safe access
+    console.log(`  ⭐ Featured Brands: ${featuredBrands.length}`)
     console.log(`  🎯 Active Offers: ${activeOffers.length}`)
     console.log(`  🏁 Marquee Brands: ${marqueeBrands.length}`)
-    console.log(`  🛒 Cart Items: ${cartStore.cartItems?.length || 0}`) // ✅ FIXED: Safe access
+    console.log(`  🛒 Cart Items: ${cartStore.cartItems?.length || 0}`)
     console.log(`  🌐 Language: ${languageStore.currentLanguage}`)
     console.log(`  📱 RTL: ${languageStore.isRTL ? 'Yes' : 'No'}`)
     
     // Check if we need sample data (only in development)
     if (import.meta.env.DEV) {
-      const brandsCount = brandsStore.brands?.length || 0 // ✅ FIXED: Safe access
-      const productsCount = productsStore.products?.length || 0 // ✅ FIXED: Safe access
+      const brandsCount = brandsStore.brands?.length || 0
+      const productsCount = productsStore.products?.length || 0
       
       if (brandsCount === 0 || productsCount === 0) {
         console.log('\n📝 DATABASE STATUS:')
@@ -284,8 +320,8 @@ setTimeout(async () => {
       }
     }
     
-    // Initialize sample data automatically if database is empty (optional)
-    if (import.meta.env.DEV && (brandsStore.brands?.length || 0) === 0) { // ✅ FIXED: Safe access
+    // Auto-initialize sample data only on protected pages in development
+    if (!isPublic && import.meta.env.DEV && (brandsStore.brands?.length || 0) === 0) {
       console.log('\n🔄 Attempting to auto-initialize sample data...')
       try {
         const { initializeSampleData } = await import('@/firebase/init')
@@ -309,9 +345,12 @@ setTimeout(async () => {
   } catch (error) {
     console.error('❌ Error initializing stores:', error)
     
-    // Try to recover by initializing stores individually
+    // Try to recover by initializing stores individually (but only on protected pages)
     try {
       console.log('🔄 Attempting recovery initialization...')
+      
+      const currentPath = window.location.pathname
+      const isPublic = isPublicPath(currentPath)
       
       const { useAuthStore } = await import('@/stores/auth')
       const { useBrandsStore } = await import('@/stores/brands')
@@ -321,12 +360,16 @@ setTimeout(async () => {
       const brandsStore = useBrandsStore()
       const productsStore = useProductsStore()
       
-      // Try to initialize auth
-      try {
-        await authStore.checkAuth()
-        console.log('✅ Auth store recovered')
-      } catch (e) {
-        console.log('⚠️  Auth store recovery failed, continuing as guest')
+      // Only try to recover auth on protected pages
+      if (!isPublic) {
+        try {
+          await authStore.checkAuth()
+          console.log('✅ Auth store recovered')
+        } catch (e) {
+          console.log('⚠️  Auth store recovery failed, continuing as guest')
+        }
+      } else {
+        console.log('🌍 Public page - skipping auth recovery')
       }
       
       // Try to initialize brands
@@ -380,20 +423,25 @@ vueApp.config.errorHandler = (err, instance, info) => {
 if (import.meta.env.DEV) {
   console.log('🔧 Development mode enabled')
   
-  // Expose stores to window for debugging
+  // Expose stores to window for debugging (only on protected pages)
   setTimeout(async () => {
     try {
-      const { useAuthStore } = await import('@/stores/auth')
-      const { useBrandsStore } = await import('@/stores/brands')
-      const { useProductsStore } = await import('@/stores/products')
+      const currentPath = window.location.pathname
+      const isPublic = isPublicPath(currentPath)
       
-      ;(window as any).stores = {
-        auth: useAuthStore(),
-        brands: useBrandsStore(),
-        products: useProductsStore()
+      if (!isPublic) {
+        const { useAuthStore } = await import('@/stores/auth')
+        const { useBrandsStore } = await import('@/stores/brands')
+        const { useProductsStore } = await import('@/stores/products')
+        
+        ;(window as any).stores = {
+          auth: useAuthStore(),
+          brands: useBrandsStore(),
+          products: useProductsStore()
+        }
+        
+        console.log('🔍 Stores exposed to window.stores for debugging')
       }
-      
-      console.log('🔍 Stores exposed to window.stores for debugging')
     } catch (error) {
       // Silently fail - this is just for debugging
     }

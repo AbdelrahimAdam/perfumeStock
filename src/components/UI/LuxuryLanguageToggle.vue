@@ -4,8 +4,7 @@
       class="current-language"
       :class="{ 'open': showLanguages }"
       @click="toggleLanguages"
-      @blur="handleBlur"
-      aria-label="Select language"
+      :aria-label="t('selectLanguage')"
       ref="languageButton"
     >
       <span class="language-flag">{{ currentLanguageObj.flag }}</span>
@@ -20,12 +19,13 @@
     <transition name="fade-slide">
       <div v-if="showLanguages" 
            class="languages-dropdown" 
-           @mouseleave="scheduleClose"
+           @mouseleave="startCloseTimer"
+           @mouseenter="cancelCloseTimer"
            ref="dropdown"
       >
         <div class="dropdown-header">
           <span class="header-title">{{ t('selectLanguage') }}</span>
-          <button @click="closeLanguages" class="close-dropdown" aria-label="Close language selection">
+          <button @click="closeLanguages" class="close-dropdown" :aria-label="t('close')">
             <svg class="close-icon" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.5" 
                     stroke-linecap="round" stroke-linejoin="round"/>
@@ -38,8 +38,8 @@
             v-for="lang in availableLanguages"
             :key="lang.code"
             @click="selectLanguage(lang)"
-            :class="['language-option', { 'active': currentLanguage === lang.code }]"
             @mousedown.prevent
+            :class="['language-option', { 'active': currentLanguage === lang.code }]"
           >
             <span class="language-flag">{{ lang.flag }}</span>
             <div class="language-info">
@@ -54,81 +54,78 @@
             </div>
           </button>
         </div>
-        
-        <div class="dropdown-footer">
-          <div class="auto-detect">
-            <input
-              id="auto-detect"
-              type="checkbox"
-              v-model="autoDetect"
-              @change="toggleAutoDetect"
-            />
-            <label for="auto-detect">{{ t('autoDetectLanguage') }}</label>
-          </div>
-        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useLanguageStore } from '@/stores/language'
 
 const languageStore = useLanguageStore()
-const { t, currentLanguage, availableLanguages, setLanguage, initialize } = languageStore
+const { t, currentLanguage, setLanguage, initialize } = languageStore
 
+// State
 const showLanguages = ref(false)
-const languageButton = ref<HTMLElement>()
-const dropdown = ref<HTMLElement>()
-let closeTimeout: number | null = null
+const languageButton = ref<HTMLElement | null>(null)
+const dropdown = ref<HTMLElement | null>(null)
+const closeTimer = ref<number | null>(null)
 
-const autoDetect = ref(true)
-
-// Computed
-const currentLanguageObj = computed(() => {
-  return availableLanguages.find(lang => lang.code === currentLanguage.value) || availableLanguages[0]
-})
-
-// Methods
-const toggleLanguages = () => {
-  if (closeTimeout) {
-    clearTimeout(closeTimeout)
-    closeTimeout = null
+// Available languages - only English and Arabic
+const availableLanguages = computed(() => [
+  {
+    code: 'en',
+    name: 'English',
+    native: 'English',
+    flag: '🇺🇸',
+    direction: 'ltr'
+  },
+  {
+    code: 'ar',
+    name: 'Arabic',
+    native: 'العربية',
+    flag: '🇸🇦',
+    direction: 'rtl'
   }
-  showLanguages.value = !showLanguages.value
-  
-  if (showLanguages.value) {
-    nextTick(() => {
-      dropdown.value?.focus()
-    })
+])
+
+// Current language object
+const currentLanguageObj = computed(() => 
+  availableLanguages.value.find(lang => lang.code === currentLanguage.value) || availableLanguages.value[0]
+)
+
+// Clear close timer
+const cancelCloseTimer = () => {
+  if (closeTimer.value !== null) {
+    clearTimeout(closeTimer.value)
+    closeTimer.value = null
   }
 }
 
-const scheduleClose = () => {
-  closeTimeout = window.setTimeout(() => {
+// Start close timer
+const startCloseTimer = () => {
+  cancelCloseTimer() // Clear any existing timer
+  closeTimer.value = window.setTimeout(() => {
     closeLanguages()
+    closeTimer.value = null
   }, 100)
 }
 
-const handleBlur = (event: FocusEvent) => {
-  // Don't close if clicking on dropdown
-  if (dropdown.value?.contains(event.relatedTarget as Node)) {
-    return
-  }
-  scheduleClose()
+// Toggle languages dropdown
+const toggleLanguages = () => {
+  cancelCloseTimer()
+  showLanguages.value = !showLanguages.value
 }
 
+// Close languages dropdown
 const closeLanguages = () => {
-  if (closeTimeout) {
-    clearTimeout(closeTimeout)
-    closeTimeout = null
-  }
+  cancelCloseTimer()
   showLanguages.value = false
-  languageButton.value?.focus()
 }
 
-const selectLanguage = async (language: typeof availableLanguages[0]) => {
+// Select language
+const selectLanguage = async (language: typeof availableLanguages.value[0]) => {
   try {
     await setLanguage(language.code)
     closeLanguages()
@@ -137,61 +134,51 @@ const selectLanguage = async (language: typeof availableLanguages[0]) => {
   }
 }
 
-const toggleAutoDetect = () => {
-  if (autoDetect.value) {
-    // Try to detect browser language
-    const browserLang = navigator.language.split('-')[0]
-    const detectedLang = availableLanguages.find(lang => lang.code === browserLang)
-    
-    if (detectedLang && detectedLang.code !== currentLanguage.value) {
-      selectLanguage(detectedLang)
-    }
-  }
-}
-
-// Initialize
-onMounted(() => {
-  // Initialize language store
-  initialize()
+// Handle click outside
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as Node
   
-  // Load auto-detect preference
-  const savedAutoDetect = localStorage.getItem('luxury_auto_detect_language')
-  if (savedAutoDetect !== null) {
-    autoDetect.value = savedAutoDetect === 'true'
-  }
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (event) => {
-    if (showLanguages.value && 
-        !languageButton.value?.contains(event.target as Node) && 
-        !dropdown.value?.contains(event.target as Node)) {
-      closeLanguages()
-    }
-  })
-})
-
-// Close dropdown on escape key
-const handleEscapeKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && showLanguages.value) {
+  if (showLanguages.value && 
+      languageButton.value && 
+      dropdown.value && 
+      !languageButton.value.contains(target) && 
+      !dropdown.value.contains(target)) {
     closeLanguages()
   }
 }
 
+// Handle escape key
+const handleEscapeKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && showLanguages.value) {
+    closeLanguages()
+    languageButton.value?.focus()
+  }
+}
+
+// Lifecycle
 onMounted(() => {
-  window.addEventListener('keydown', handleEscapeKey)
+  // Initialize language store
+  initialize()
+  
+  // Add event listeners
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscapeKey)
 })
 
-// Save auto-detect preference when changed
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleEscapeKey)
-  if (closeTimeout) {
-    clearTimeout(closeTimeout)
-  }
-  document.removeEventListener('click', () => {})
+  // Clean up timer
+  cancelCloseTimer()
   
-  // Save auto-detect preference
-  localStorage.setItem('luxury_auto_detect_language', autoDetect.value.toString())
+  // Remove event listeners
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscapeKey)
 })
+
+// Watch for language changes to update direction
+watch(() => currentLanguage.value, (newLang) => {
+  document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr'
+  document.documentElement.lang = newLang
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -359,6 +346,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), transparent);
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .language-option:hover {
@@ -420,60 +408,6 @@ onUnmounted(() => {
   height: 12px;
   stroke: currentColor;
   stroke-width: 2;
-}
-
-.dropdown-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(212, 175, 55, 0.1);
-  background: rgba(10, 10, 10, 0.95);
-}
-
-.auto-detect {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.auto-detect input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  appearance: none;
-  background: rgba(212, 175, 55, 0.05);
-  border: 1.5px solid rgba(212, 175, 55, 0.3);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.auto-detect input[type="checkbox"]:checked {
-  background: #d4af37;
-  border-color: #d4af37;
-}
-
-.auto-detect input[type="checkbox"]:checked::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 5px;
-  width: 5px;
-  height: 9px;
-  border: solid #0a0a0a;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.auto-detect label {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.8125rem;
-  color: #a89c7c;
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.3s ease;
-}
-
-.auto-detect:hover label {
-  color: #f4e7c1;
 }
 
 /* Animations */

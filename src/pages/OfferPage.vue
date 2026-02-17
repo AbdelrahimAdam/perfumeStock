@@ -2,21 +2,21 @@
   <div class="offer-page" :class="{ 'dark-mode': isDarkMode }">
     <div class="container">
       <!-- Loading State -->
-      <div v-if="homepageStore.isLoading" class="loading-state">
+      <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
-        <p>{{ t('loadingOffer') }}</p>
+        <p>{{ t('loading') || 'Loading offer...' }}</p>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="homepageStore.error" class="error-state">
-        <p class="error-message">{{ homepageStore.error }}</p>
-        <button @click="retry" class="retry-btn">{{ t('retry') }}</button>
+      <div v-else-if="error" class="error-state">
+        <p class="error-message">{{ error }}</p>
+        <button @click="retry" class="retry-btn">{{ t('retry') || 'Retry' }}</button>
       </div>
 
       <!-- Offer Not Found -->
       <div v-else-if="!offer" class="not-found">
-        <h2>{{ t('offerNotFound') }}</h2>
-        <router-link to="/offers" class="back-link">{{ t('viewAllOffers') }}</router-link>
+        <h2>{{ t('offerNotFound') || 'Offer not found' }}</h2>
+        <router-link to="/offers" class="back-link">{{ t('viewAllOffers') || 'View All Offers' }}</router-link>
       </div>
 
       <!-- Offer Details -->
@@ -31,7 +31,7 @@
         </div>
 
         <div class="offer-info-section">
-          <span class="offer-badge">{{ t('limitedOffer') }}</span>
+          <span class="offer-badge">{{ t('limitedOffer') || 'Limited Offer' }}</span>
           <h1 class="offer-title">{{ offer.title }}</h1>
           <p class="offer-subtitle">{{ offer.subtitle }}</p>
 
@@ -49,27 +49,27 @@
 
           <!-- Terms & Conditions (if any) -->
           <div v-if="offer.terms" class="offer-terms">
-            <h3>{{ t('termsAndConditions') }}</h3>
+            <h3>{{ t('termsAndConditions') || 'Terms & Conditions' }}</h3>
             <p>{{ offer.terms }}</p>
           </div>
 
           <!-- Validity Period (if dates are set) -->
           <div v-if="offer.startDate || offer.endDate" class="offer-validity">
             <span v-if="offer.startDate">
-              {{ t('validFrom') }}: {{ formatDate(offer.startDate) }}
+              {{ t('validFrom') || 'Valid from' }}: {{ formatDate(offer.startDate) }}
             </span>
             <span v-if="offer.endDate">
-              {{ t('validUntil') }}: {{ formatDate(offer.endDate) }}
+              {{ t('validUntil') || 'Valid until' }}: {{ formatDate(offer.endDate) }}
             </span>
           </div>
 
           <button class="buy-now-button" @click="navigateToBuy(offer)">
-            <span class="button-text">{{ t('buyNow') }}</span>
+            <span class="button-text">{{ t('buyNow') || 'Buy Now' }}</span>
             <span class="button-icon">↗</span>
           </button>
 
           <router-link to="/offers" class="back-to-offers">
-            ← {{ t('backToOffers') }}
+            ← {{ t('backToOffers') || 'Back to Offers' }}
           </router-link>
         </div>
       </div>
@@ -78,26 +78,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHomepageStore } from '@/stores/homepage'
 import { useLanguageStore } from '@/stores/language'
+import { useOffersStore } from '@/stores/offers'
 
 const route = useRoute()
 const router = useRouter()
 const homepageStore = useHomepageStore()
+const offersStore = useOffersStore()
 const languageStore = useLanguageStore()
-const { t, formatPrice, formatDate } = languageStore
+const { t, formatDate } = languageStore
 
+// =================== UTILITY FUNCTIONS (DEFINED FIRST) ===================
+const formatPrice = (price: number): string => {
+  try {
+    return new Intl.NumberFormat('en-EG', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price || 0)
+  } catch (err) {
+    console.warn('Error formatting price:', err)
+    return String(price || 0)
+  }
+}
+
+// =================== LOCAL STATE ===================
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+
+// =================== COMPUTED ===================
 const isDarkMode = computed(() => homepageStore.homepageData?.settings?.isDarkMode || false)
 const activeOffers = computed(() => homepageStore.homepageData?.activeOffers || [])
 
-const slug = computed(() => route.params.slug as string)
+const slugOrId = computed(() => route.params.slug as string)
 
-// Find the offer by slug from homepageData.activeOffers
+// Find the offer by slug OR id from multiple sources
 const offer = computed(() => {
-  if (!slug.value) return null
-  return activeOffers.value.find(o => o.slug === slug.value)
+  const identifier = slugOrId.value
+  if (!identifier) return null
+  
+  console.log('🔍 Looking for offer with identifier:', identifier)
+  
+  // Try to find in homepage store first (fastest)
+  let found = activeOffers.value.find(o => 
+    o.slug === identifier || o.id === identifier
+  )
+  
+  if (found) {
+    console.log('✅ Offer found in homepage store:', found.title)
+    return found
+  }
+  
+  // If not found in homepage, try offers store (direct from Firebase)
+  if (offersStore.offers.length > 0) {
+    found = offersStore.offers.find(o => 
+      o.slug === identifier || o.id === identifier
+    )
+    if (found) {
+      console.log('✅ Offer found in offers store:', found.title)
+      return found
+    }
+  }
+  
+  // Also check currentOffer from offers store
+  if (offersStore.currentOffer && 
+      (offersStore.currentOffer.slug === identifier || offersStore.currentOffer.id === identifier)) {
+    console.log('✅ Offer found as currentOffer:', offersStore.currentOffer.title)
+    return offersStore.currentOffer
+  }
+  
+  console.log('❌ No offer found with identifier:', identifier)
+  return null
 })
 
 // Format description with line breaks
@@ -106,14 +159,64 @@ const formattedDescription = computed(() => {
   return offer.value.description.replace(/\n/g, '<br />')
 })
 
-const loadOffers = async () => {
-  if (homepageStore.homepageData?.activeOffers?.length === 0) {
-    await homepageStore.loadHomepageData()
+// =================== METHODS ===================
+const loadOffer = async () => {
+  const identifier = slugOrId.value
+  if (!identifier) return
+  
+  isLoading.value = true
+  error.value = null
+  
+  try {
+    console.log('📥 Loading offer with identifier:', identifier)
+    
+    // First, ensure homepage data is loaded
+    if (!homepageStore.homepageData?.activeOffers?.length) {
+      await homepageStore.loadHomepageData()
+    }
+    
+    // Check if we already have the offer in homepage store
+    const existingOffer = activeOffers.value.find(o => 
+      o.slug === identifier || o.id === identifier
+    )
+    
+    if (existingOffer) {
+      console.log('✅ Offer already loaded from homepage')
+      return
+    }
+    
+    // If not found in homepage, try direct from offers store
+    console.log('🔄 Offer not in homepage, loading from offers store...')
+    await offersStore.loadOffers(true) // Load only active offers
+    
+    // Try to get by slug specifically
+    const offerFromStore = await offersStore.getOfferBySlug(identifier)
+    if (offerFromStore) {
+      console.log('✅ Offer loaded from offers store by slug')
+      return
+    }
+    
+    // If still not found and identifier might be an ID, try loading all and searching
+    console.log('⚠️ Offer not found by slug, checking by ID in loaded offers...')
+    const foundById = offersStore.offers.find(o => o.id === identifier)
+    if (foundById) {
+      console.log('✅ Offer found by ID in offers store')
+      return
+    }
+    
+    // If we get here, no offer was found
+    console.log('❌ No offer found with identifier:', identifier)
+    
+  } catch (err: any) {
+    console.error('❌ Error loading offer:', err)
+    error.value = err.message || 'Failed to load offer'
+  } finally {
+    isLoading.value = false
   }
 }
 
 const retry = () => {
-  loadOffers()
+  loadOffer()
 }
 
 const handleImageError = (e: Event) => {
@@ -123,11 +226,11 @@ const handleImageError = (e: Event) => {
 
 const getOfferTypeLabel = (type: string): string => {
   const types: Record<string, string> = {
-    percentage: t('percentageDiscount'),
-    fixed: t('fixedAmount'),
-    bundle: t('bundleOffer'),
-    'free-shipping': t('freeShipping'),
-    'buy-one-get-one': t('buyOneGetOne')
+    percentage: t('percentageDiscount') || 'Percentage Discount',
+    fixed: t('fixedAmount') || 'Fixed Amount',
+    bundle: t('bundleOffer') || 'Bundle Offer',
+    'free-shipping': t('freeShipping') || 'Free Shipping',
+    'buy-one-get-one': t('buyOneGetOne') || 'Buy One Get One'
   }
   return types[type] || type
 }
@@ -140,15 +243,20 @@ const navigateToBuy = (offer: any) => {
       router.push(offer.linkUrl)
     }
   } else {
-    alert(t('offerNoDirectLink'))
+    alert(t('offerNoDirectLink') || 'No direct link available for this offer')
   }
 }
 
+// =================== WATCHERS ===================
+watch(() => route.params.slug, () => {
+  loadOffer()
+})
+
+// =================== LIFECYCLE ===================
 onMounted(() => {
-  loadOffers()
+  loadOffer()
 })
 </script>
-
 
 <style scoped>
 .offer-page {
