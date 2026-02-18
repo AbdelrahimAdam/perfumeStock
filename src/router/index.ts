@@ -3,8 +3,8 @@ import { routes } from './routes'
 import { seoGuard } from './guards'
 import { useAuthStore } from '@/stores/auth'
 
-// List of public routes that don't need any authentication checks
-const publicRoutes = [
+// List of public route names that don't need any authentication checks
+const publicRouteNames = [
   'home',
   'shop',
   'category',
@@ -13,12 +13,32 @@ const publicRoutes = [
   'collections',
   'product',
   'offers',
-  'offer',      // Your offer detail page - PUBLIC
+  'offer',
   'cart',
   'checkout',
   'contact',
   'about',
+  'wishlist',
   'not-found'
+]
+
+// List of public path patterns (for fallback)
+const publicPathPatterns = [
+  '/',
+  '/shop',
+  '/category',
+  '/brands',
+  '/brand',
+  '/collections',
+  '/product',
+  '/offers',
+  '/offer',
+  '/cart',
+  '/checkout',
+  '/contact',
+  '/about',
+  '/wishlist',
+  '/admin/login'
 ]
 
 const router = createRouter({
@@ -37,20 +57,38 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   console.log('📍 Navigation:', {
-    from: from.path,
-    to: to.path,
+    from: from.fullPath,
+    to: to.fullPath,
     name: to.name,
-    requiresAuth: to.meta.requiresAuth,
-    requiresAdmin: to.meta.requiresAdmin,
-    requiresSuperAdmin: to.meta.requiresSuperAdmin,
-    isPublicRoute: publicRoutes.includes(to.name as string)
+    path: to.path,
+    matched: to.matched.length
   })
 
   // ============================================
-  // 🟢 PUBLIC ROUTES - ALLOW WITHOUT ANY CHECKS
+  // 🟢 CRITICAL FIX: DIRECT PATH CHECK FOR WISHLIST
   // ============================================
-  if (publicRoutes.includes(to.name as string)) {
-    console.log('🌍 Public route detected - allowing access without auth checks')
+  if (to.path === '/wishlist') {
+    console.log('🌍 DIRECT WISHLIST PATH MATCH - ALLOWING ACCESS')
+    return next()
+  }
+
+  // ============================================
+  // 🟢 CHECK BY ROUTE NAME
+  // ============================================
+  if (to.name && publicRouteNames.includes(to.name as string)) {
+    console.log('🌍 Public route detected by name:', to.name)
+    return next()
+  }
+
+  // ============================================
+  // 🟢 CHECK BY PATH PATTERN
+  // ============================================
+  const isPublicPath = publicPathPatterns.some(pattern => 
+    to.path === pattern || to.path.startsWith(pattern + '/')
+  )
+  
+  if (isPublicPath) {
+    console.log('🌍 Public route detected by path pattern:', to.path)
     return next()
   }
 
@@ -58,92 +96,78 @@ router.beforeEach(async (to, from, next) => {
   // 🔐 PROTECTED ROUTES - REQUIRE AUTHENTICATION
   // ============================================
   
-  // Ensure authentication is up-to-date
+  // Check authentication status
   if (!authStore.isAuthenticated) {
     console.log('🔐 Checking authentication status...')
     await authStore.checkAuth()
   }
 
-  console.log('🔍 Auth state after check:', {
+  console.log('🔍 Auth state:', {
     isAuthenticated: authStore.isAuthenticated,
     isAdmin: authStore.isAdmin,
-    isSuperAdmin: authStore.isSuperAdmin,
-    user: authStore.user
+    isSuperAdmin: authStore.isSuperAdmin
   })
 
-  // 1️⃣ Guest-only pages (like login)
+  // Admin login page (special case)
   if (to.name === 'admin-login') {
     if (authStore.isAuthenticated && authStore.isSuperAdmin) {
-      console.log('✅ Already logged in as super-admin, redirecting to dashboard')
       return next({ name: 'admin-dashboard' })
     }
     return next()
   }
 
-  // 2️⃣ Super-admin routes
+  // Super-admin routes
   if (to.meta.requiresSuperAdmin) {
-    console.log('🌟 Checking super admin access...')
     if (!authStore.isAuthenticated || !authStore.isSuperAdmin) {
-      console.log('🚫 Super admin access denied')
       return next({
         name: 'admin-login',
         query: { redirect: to.fullPath, error: 'superadmin_required' }
       })
     }
-    console.log('✅ Super admin access granted')
     return next()
   }
 
-  // 3️⃣ Admin routes
+  // Admin routes
   if (to.meta.requiresAdmin) {
-    console.log('👑 Checking admin access...')
     if (!authStore.isAuthenticated || (!authStore.isAdmin && !authStore.isSuperAdmin)) {
-      console.log('🚫 Admin access denied')
       return next({
         name: 'admin-login',
         query: { redirect: to.fullPath, error: 'admin_required' }
       })
     }
-    console.log('✅ Admin access granted')
     return next()
   }
 
-  // 4️⃣ Authenticated routes (general auth required)
+  // General authenticated routes (like /orders)
   if (to.meta.requiresAuth) {
-    console.log('🔐 Checking authentication...')
     if (!authStore.isAuthenticated) {
-      console.log('🚫 Authentication required')
+      console.log('🚫 Authentication required for:', to.path)
       return next({
         name: 'admin-login',
         query: { redirect: to.fullPath }
       })
     }
-    console.log('✅ Authentication granted')
     return next()
   }
 
-  // 5️⃣ Any other routes (shouldn't reach here, but just in case)
-  console.log('⚠️ Unhandled route - allowing by default')
-  return next()
+  // If route is not found, show 404
+  if (to.matched.length === 0) {
+    console.log('⚠️ Route not found - showing 404')
+    return next()
+  }
+
+  // Default: allow access
+  console.log('✅ Access granted to:', to.path)
+  next()
 })
 
 router.afterEach((to, from) => {
-  const authStore = useAuthStore()
-  console.log('✅ Navigation completed to:', to.path)
-  console.log('📊 Current route state:', {
-    isAuthenticated: authStore.isAuthenticated,
-    isSuperAdmin: authStore.isSuperAdmin,
-    user: authStore.user,
-    role: authStore.user?.role
-  })
+  console.log('✅ Navigation completed:', to.fullPath)
 })
 
 // Handle navigation errors
-router.onError((error, to, from) => {
+router.onError((error) => {
   console.error('🚨 Router error:', error)
-  if (error.message.includes('Failed to fetch dynamically imported module')) {
-    window.location.href = '/'
-  }
 })
 
 export default router

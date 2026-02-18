@@ -325,7 +325,7 @@
               <!-- Order Items -->
               <div class="space-y-4 mb-6 max-h-64 overflow-y-auto">
                 <div
-                  v-for="item in cartItems"
+                  v-for="item in safeCartItems"
                   :key="item.id"
                   class="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0"
                 >
@@ -333,27 +333,28 @@
                     <div class="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br 
                                 from-gray-50 to-gray-100 border border-gray-200">
                       <img
-                        :src="item.product.imageUrl"
-                        :alt="item.product.name[currentLanguage]"
+                        :src="getSafeImageUrl(item)"
+                        :alt="getSafeItemName(item)"
                         class="w-full h-full object-cover"
+                        @error="handleImageError"
                       />
                     </div>
                     <div class="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 text-white 
                                 rounded-full flex items-center justify-center text-xs font-bold">
-                      {{ item.quantity }}
+                      {{ item.quantity || 1 }}
                     </div>
                   </div>
                   
                   <div class="flex-1 min-w-0">
                     <h4 class="text-sm font-medium text-gray-900 truncate">
-                      {{ item.product.name[currentLanguage] }}
+                      {{ getSafeItemName(item) }}
                     </h4>
-                    <p class="text-xs text-gray-500">{{ item.product.size }}</p>
+                    <p class="text-xs text-gray-500">{{ getSafeItemSize(item) }}</p>
                   </div>
                   
                   <div class="text-right">
                     <p class="text-sm font-bold text-primary-600">
-                      {{ formatPrice(item.product.price * item.quantity) }} EGP
+                      {{ formatPrice((item.price || 0) * (item.quantity || 1)) }} EGP
                     </p>
                   </div>
                 </div>
@@ -498,6 +499,17 @@ const errors = ref<Record<string, string>>({})
 
 // Computed
 const cartItems = computed(() => cartStore.items)
+
+// Safe cart items with fallbacks for undefined values
+const safeCartItems = computed(() => {
+  return cartItems.value.map(item => ({
+    ...item,
+    product: item.product || {},
+    quantity: item.quantity || 1,
+    price: item.price || 0
+  }))
+})
+
 const isEmpty = computed(() => cartStore.isEmpty)
 const subtotal = computed(() => cartStore.subtotal)
 const shipping = computed(() => {
@@ -517,40 +529,79 @@ const isFormValid = computed(() => {
   )
 })
 
+// Safe getter functions for item properties
+const getSafeItemName = (item: any): string => {
+  if (item.product?.name) {
+    return item.product.name[currentLanguage.value] || item.product.name.en || 'Product'
+  }
+  if (item.name) {
+    return item.name[currentLanguage.value] || item.name.en || 'Product'
+  }
+  return 'Product'
+}
+
+const getSafeImageUrl = (item: any): string => {
+  if (item.product?.imageUrl) {
+    return item.product.imageUrl
+  }
+  if (item.imageUrl) {
+    return item.imageUrl
+  }
+  if (item.image) {
+    return item.image
+  }
+  return '/images/default-product.jpg'
+}
+
+const getSafeItemSize = (item: any): string => {
+  if (item.product?.size) {
+    return item.product.size
+  }
+  if (item.size) {
+    return item.size
+  }
+  return '100ml'
+}
+
+const handleImageError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  img.src = '/images/default-product.jpg'
+}
+
 // Methods
 const formatPrice = (price: number) => {
-  return price.toFixed(2)
+  return (price || 0).toFixed(2)
 }
 
 const validateForm = () => {
   errors.value = {}
   
   if (!checkoutForm.value.fullName.trim()) {
-    errors.value.fullName = currentLanguage === 'en' ? 'Full name is required' : 'الاسم الكامل مطلوب'
+    errors.value.fullName = currentLanguage.value === 'en' ? 'Full name is required' : 'الاسم الكامل مطلوب'
   }
   
   if (!checkoutForm.value.email.trim()) {
-    errors.value.email = currentLanguage === 'en' ? 'Email is required' : 'البريد الإلكتروني مطلوب'
+    errors.value.email = currentLanguage.value === 'en' ? 'Email is required' : 'البريد الإلكتروني مطلوب'
   } else if (!/^\S+@\S+\.\S+$/.test(checkoutForm.value.email)) {
-    errors.value.email = currentLanguage === 'en' ? 'Invalid email format' : 'صيغة البريد الإلكتروني غير صحيحة'
+    errors.value.email = currentLanguage.value === 'en' ? 'Invalid email format' : 'صيغة البريد الإلكتروني غير صحيحة'
   }
   
   if (!checkoutForm.value.phone.trim()) {
-    errors.value.phone = currentLanguage === 'en' ? 'Phone number is required' : 'رقم الهاتف مطلوب'
+    errors.value.phone = currentLanguage.value === 'en' ? 'Phone number is required' : 'رقم الهاتف مطلوب'
   } else if (!/^[+]?[\d\s\-()]+$/.test(checkoutForm.value.phone)) {
-    errors.value.phone = currentLanguage === 'en' ? 'Invalid phone number' : 'رقم الهاتف غير صحيح'
+    errors.value.phone = currentLanguage.value === 'en' ? 'Invalid phone number' : 'رقم الهاتف غير صحيح'
   }
   
   if (!checkoutForm.value.address.trim()) {
-    errors.value.address = currentLanguage === 'en' ? 'Address is required' : 'العنوان مطلوب'
+    errors.value.address = currentLanguage.value === 'en' ? 'Address is required' : 'العنوان مطلوب'
   }
   
   if (!checkoutForm.value.city.trim()) {
-    errors.value.city = currentLanguage === 'en' ? 'City is required' : 'المدينة مطلوبة'
+    errors.value.city = currentLanguage.value === 'en' ? 'City is required' : 'المدينة مطلوبة'
   }
   
   if (!checkoutForm.value.governorate.trim()) {
-    errors.value.governorate = currentLanguage === 'en' ? 'Governorate is required' : 'المحافظة مطلوبة'
+    errors.value.governorate = currentLanguage.value === 'en' ? 'Governorate is required' : 'المحافظة مطلوبة'
   }
   
   return Object.keys(errors.value).length === 0
@@ -560,8 +611,8 @@ const placeOrder = async () => {
   if (!validateForm()) {
     showNotification({
       type: 'error',
-      title: currentLanguage === 'en' ? 'Form Error' : 'خطأ في النموذج',
-      message: currentLanguage === 'en' 
+      title: currentLanguage.value === 'en' ? 'Form Error' : 'خطأ في النموذج',
+      message: currentLanguage.value === 'en' 
         ? 'Please fix the errors in the form' 
         : 'يرجى تصحيح الأخطاء في النموذج',
       duration: 5000
@@ -575,30 +626,51 @@ const placeOrder = async () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    // Create order object
+    // Create order object with safe values
     const order = {
       id: `ORD-${Date.now()}`,
-      customer: { ...checkoutForm.value },
-      items: cartItems.value,
+      orderNumber: `ORD-${Date.now()}`,
+      customer: {
+        name: checkoutForm.value.fullName,
+        email: checkoutForm.value.email,
+        phone: checkoutForm.value.phone,
+        address: checkoutForm.value.address,
+        city: checkoutForm.value.city,
+        governorate: checkoutForm.value.governorate
+      },
+      items: safeCartItems.value.map(item => ({
+        id: item.id,
+        productId: item.id,
+        name: getSafeItemName(item),
+        price: item.price || 0,
+        quantity: item.quantity || 1,
+        size: getSafeItemSize(item),
+        image: getSafeImageUrl(item)
+      })),
       subtotal: subtotal.value,
       shipping: shipping.value,
       total: total.value,
       currency: 'EGP',
       paymentMethod: checkoutForm.value.paymentMethod,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      notes: checkoutForm.value.notes,
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
 
     // Here you would typically:
     // 1. Send order to backend API
     // 2. Process payment
-    // 3. Clear cart
-    // 4. Save order to localStorage or sessionStorage
+    // 3. Save order to database
     
     // For demo purposes, save to localStorage
     const orders = JSON.parse(localStorage.getItem('luxury_orders') || '[]')
     orders.push(order)
     localStorage.setItem('luxury_orders', JSON.stringify(orders))
+    
+    // Save guest info for order tracking
+    localStorage.setItem('guest_order_id', order.id)
+    localStorage.setItem('last_order_email', order.customer.email)
     
     // Clear cart
     cartStore.clearCart()
@@ -606,22 +678,22 @@ const placeOrder = async () => {
     // Show success notification
     showNotification({
       type: 'success',
-      title: currentLanguage === 'en' ? 'Order Placed Successfully!' : 'تم تأكيد الطلب بنجاح!',
-      message: currentLanguage === 'en'
-        ? `Your order #${order.id} has been received. We'll contact you soon for delivery.`
-        : `طلبك رقم #${order.id} تم استلامه. سنتواصل معك قريباً للتوصيل.`,
+      title: currentLanguage.value === 'en' ? 'Order Placed Successfully!' : 'تم تأكيد الطلب بنجاح!',
+      message: currentLanguage.value === 'en'
+        ? `Your order #${order.orderNumber} has been received. We'll contact you soon for delivery.`
+        : `طلبك رقم #${order.orderNumber} تم استلامه. سنتواصل معك قريباً للتوصيل.`,
       duration: 8000
     })
     
-    // Redirect to thank you page or home
-    router.push('/')
+    // Redirect to order confirmation page
+    router.push(`/order-confirmation/${order.id}`)
     
   } catch (error) {
     console.error('Checkout error:', error)
     showNotification({
       type: 'error',
-      title: currentLanguage === 'en' ? 'Checkout Failed' : 'فشل الدفع',
-      message: currentLanguage === 'en'
+      title: currentLanguage.value === 'en' ? 'Checkout Failed' : 'فشل الدفع',
+      message: currentLanguage.value === 'en'
         ? 'Failed to process your order. Please try again.'
         : 'فشل معالجة طلبك. يرجى المحاولة مرة أخرى.',
       duration: 5000

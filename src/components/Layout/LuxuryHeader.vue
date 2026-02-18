@@ -116,7 +116,15 @@
                 </svg>
               </button>
               
-              <button class="luxury-header-action" @click="handleUserClick" :aria-label="languageStore.t('account')">
+              <!-- Login/Account Button -->
+              <button v-if="!isAuthenticated" class="luxury-header-action" @click="router.push('/login')" :aria-label="languageStore.t('login')">
+                <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              
+              <button v-else class="luxury-header-action" @click="handleUserClick" :aria-label="languageStore.t('account')">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
                         stroke="currentColor" stroke-width="1.5"/>
@@ -125,7 +133,15 @@
                 </svg>
               </button>
               
-              <!-- Simple Wishlist Link - Redirects to wishlist page -->
+              <!-- Track Order Link -->
+              <router-link to="/track-order" class="luxury-header-action" :title="languageStore.t('trackOrder')">
+                <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 20L3 17V7L9 4L15 7L21 4V14M9 20V11M9 20L15 17M9 4L15 7M15 7V14M15 17V20M15 17L21 20V14M3 7L9 11" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </router-link>
+              
+              <!-- Simple Wishlist Link -->
               <router-link to="/wishlist" class="luxury-header-action">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
@@ -134,6 +150,7 @@
                 <span v-if="wishlistStore.totalItems > 0" class="wishlist-badge">{{ wishlistStore.totalItems > 99 ? '99+' : wishlistStore.totalItems }}</span>
               </router-link>
               
+              <!-- Simple Cart Link -->
               <router-link to="/cart" class="luxury-header-action">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" 
@@ -146,6 +163,14 @@
           
           <!-- Mobile Actions Row -->
           <div class="mobile-actions-row">
+            <!-- Track Order (Mobile) -->
+            <router-link to="/track-order" class="mobile-action-icon-link" :title="languageStore.t('trackOrder')">
+              <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M9 20L3 17V7L9 4L15 7L21 4V14M9 20V11M9 20L15 17M9 4L15 7M15 7V14M15 17V20M15 17L21 20V14M3 7L9 11" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </router-link>
+            
             <!-- Simple Wishlist Link (Mobile) -->
             <router-link to="/wishlist" class="mobile-action-icon-link">
               <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
@@ -183,7 +208,7 @@
     <!-- Mobile Menu Overlay -->
     <div v-if="mobileMenuOpen" class="luxury-mobile-overlay" @click="closeMobileMenu"></div>
     
-    <!-- Mobile Menu (Sliding from right) - Half Screen -->
+    <!-- Mobile Menu (Half Screen) -->
     <div class="luxury-mobile-menu" :class="{ 'open': mobileMenuOpen }">
       <div class="mobile-menu-container">
         <div class="mobile-menu-header">
@@ -258,15 +283,55 @@
               <span>{{ languageStore.t('search') }}</span>
             </button>
             
-            <button class="mobile-action-btn" @click="handleMobileAction('user')">
+            <!-- Login/Account in Mobile Menu -->
+            <template v-if="!isAuthenticated">
+              <router-link to="/login" class="mobile-action-btn" @click="closeMobileMenu">
+                <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ languageStore.t('login') }}</span>
+              </router-link>
+              
+              <router-link to="/register" class="mobile-action-btn" @click="closeMobileMenu">
+                <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ languageStore.t('register') }}</span>
+              </router-link>
+            </template>
+            
+            <template v-else>
+              <button class="mobile-action-btn" @click="handleMobileAction('user')">
+                <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
+                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M3 20C3 16.6863 5.68629 14 9 14H15C18.3137 14 21 16.6863 21 20V21H3V20Z" 
+                        stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <span>{{ languageStore.t('account') }}</span>
+              </button>
+            </template>
+            
+            <!-- Track Order in Mobile Menu -->
+            <router-link to="/track-order" class="mobile-action-btn" @click="closeMobileMenu">
               <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
-                      stroke="currentColor" stroke-width="1.5"/>
-                <path d="M3 20C3 16.6863 5.68629 14 9 14H15C18.3137 14 21 16.6863 21 20V21H3V20Z" 
-                      stroke="currentColor" stroke-width="1.5"/>
+                <path d="M9 20L3 17V7L9 4L15 7L21 4V14M9 20V11M9 20L15 17M9 4L15 7M15 7V14M15 17V20M15 17L21 20V14M3 7L9 11" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>{{ languageStore.t('account') }}</span>
-            </button>
+              <span>{{ languageStore.t('trackOrder') }}</span>
+            </router-link>
+            
+            <!-- Returns in Mobile Menu -->
+            <router-link to="/returns" class="mobile-action-btn" @click="closeMobileMenu">
+              <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M16 15v-1a4 4 0 00-8 0v1m-4 0a4 4 0 014-4h8a4 4 0 014 4v4a4 4 0 01-4 4H8a4 4 0 01-4-4v-4z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span>{{ languageStore.t('returns') }}</span>
+            </router-link>
             
             <!-- Simple Wishlist Link in Mobile Menu -->
             <router-link to="/wishlist" class="mobile-action-btn" @click="closeMobileMenu">
@@ -275,7 +340,7 @@
                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>{{ languageStore.t('wishlist') }}</span>
-              <span v-if="wishlistStore.totalItems > 0" class="mobile-wishlist-badge">{{ wishlistStore.totalItems }}</span>
+              <span v-if="wishlistStore.totalItems > 0" class="mobile-wishlist-badge-menu">{{ wishlistStore.totalItems }}</span>
             </router-link>
             
             <!-- Simple Cart Link in Mobile Menu -->
@@ -285,14 +350,14 @@
                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>{{ languageStore.t('cart') }}</span>
-              <span v-if="cartStore.totalItems > 0" class="mobile-cart-badge">{{ cartStore.totalItems }}</span>
+              <span v-if="cartStore.totalItems > 0" class="mobile-cart-badge-menu">{{ cartStore.totalItems }}</span>
             </router-link>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- User Menu Dropdown -->
+    <!-- User Menu Dropdown (For Authenticated Users) -->
     <div v-if="userMenuOpen && isAuthenticated" class="luxury-dropdown user-dropdown" @click.stop>
       <div class="dropdown-content">
         <div class="dropdown-user">
@@ -324,12 +389,29 @@
             <span>{{ languageStore.t('orders') }}</span>
           </router-link>
           
+          <router-link to="/track-order" class="dropdown-item" @click="userMenuOpen = false">
+            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M9 20L3 17V7L9 4L15 7L21 4V14M9 20V11M9 20L15 17M9 4L15 7M15 7V14M15 17V20M15 17L21 20V14M3 7L9 11" 
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>{{ languageStore.t('trackOrder') }}</span>
+          </router-link>
+          
           <router-link to="/wishlist" class="dropdown-item" @click="userMenuOpen = false">
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
               <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>{{ languageStore.t('wishlist') }}</span>
+          </router-link>
+          
+          <router-link to="/returns" class="dropdown-item" @click="userMenuOpen = false">
+            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M16 15v-1a4 4 0 00-8 0v1m-4 0a4 4 0 014-4h8a4 4 0 014 4v4a4 4 0 01-4 4H8a4 4 0 01-4-4v-4z" 
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>{{ languageStore.t('returns') }}</span>
           </router-link>
           
           <router-link v-if="isAdmin" to="/admin" class="dropdown-item" @click="userMenuOpen = false">
@@ -430,22 +512,6 @@ const handleUserClick = () => {
       mobileMenuOpen.value = false
       searchOpen.value = false
     }
-  } else {
-    router.push('/admin/login')
-    closeAllMenus()
-  }
-}
-
-const toggleUserMenu = () => {
-  if (isAuthenticated) {
-    userMenuOpen.value = !userMenuOpen.value
-    if (userMenuOpen.value) {
-      mobileMenuOpen.value = false
-      searchOpen.value = false
-    }
-  } else {
-    router.push('/admin/login')
-    closeAllMenus()
   }
 }
 
@@ -475,9 +541,7 @@ const handleMobileAction = (action: string) => {
       break
     case 'user':
       if (isAuthenticated) {
-        toggleUserMenu()
-      } else {
-        router.push('/admin/login')
+        userMenuOpen.value = true
       }
       break
   }
@@ -499,7 +563,7 @@ const handleClickOutside = (event: MouseEvent) => {
   // Close user dropdown if clicking outside
   if (userMenuOpen.value && 
       !target.closest('.user-dropdown') && 
-      !target.closest('.luxury-header-action[aria-label="Account"]')) {
+      !target.closest('.luxury-header-action[aria-label="account"]')) {
     userMenuOpen.value = false
   }
 }
@@ -580,6 +644,17 @@ onUnmounted(() => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Add padding to the main content to account for fixed header */
+:global(body) {
+  padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+  :global(body) {
+    padding-top: 70px;
+  }
+}
+
 .luxury-header.scrolled {
   background: rgba(10, 10, 10, 0.98);
   border-bottom-color: rgba(212, 175, 55, 0.25);
@@ -607,14 +682,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
+  padding: 0.75rem 0;
   gap: 2rem;
   position: relative;
 }
 
 @media (max-width: 768px) {
   .luxury-top-bar {
-    padding: 0.75rem 0;
+    padding: 0.5rem 0;
     gap: 1rem;
   }
 }
@@ -623,7 +698,7 @@ onUnmounted(() => {
 .luxury-logo-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   text-decoration: none;
   transition: transform 0.3s ease;
   flex-shrink: 0;
@@ -636,16 +711,16 @@ onUnmounted(() => {
 }
 
 .luxury-logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   position: relative;
   flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
   .luxury-logo-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -675,7 +750,7 @@ onUnmounted(() => {
 
 .luxury-p-logo {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
@@ -684,7 +759,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .luxury-p-logo {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 }
 
@@ -700,7 +775,7 @@ onUnmounted(() => {
 
 .logo-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: #d4af37;
   margin: 0;
@@ -713,16 +788,16 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .logo-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 }
 
 .logo-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: #999999;
-  margin: 0.25rem 0 0 0;
-  letter-spacing: 2px;
+  margin: 0.2rem 0 0 0;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   opacity: 0.9;
   white-space: nowrap;
@@ -733,7 +808,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .logo-subtitle {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     letter-spacing: 1px;
   }
 }
@@ -759,7 +834,7 @@ onUnmounted(() => {
 .luxury-nav-list {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  gap: 1.5rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -767,13 +842,13 @@ onUnmounted(() => {
 
 @media (min-width: 1280px) {
   .luxury-nav-list {
-    gap: 2.5rem;
+    gap: 2rem;
   }
 }
 
 @media (max-width: 1279px) and (min-width: 1024px) {
   .luxury-nav-list {
-    gap: 1.5rem;
+    gap: 1rem;
   }
 }
 
@@ -783,17 +858,24 @@ onUnmounted(() => {
 
 .luxury-nav-link {
   font-family: 'Inter', sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #f4e7c1;
   text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   padding: 0.5rem 0;
   position: relative;
   transition: all 0.3s ease;
   opacity: 0.9;
   white-space: nowrap;
+}
+
+@media (min-width: 1280px) {
+  .luxury-nav-link {
+    font-size: 0.875rem;
+    letter-spacing: 1px;
+  }
 }
 
 .luxury-nav-link::after {
@@ -829,12 +911,12 @@ onUnmounted(() => {
   top: 100%;
   left: 50%;
   transform: translateX(-50%) translateY(10px);
-  width: 280px;
+  width: 250px;
   background: rgba(10, 10, 10, 0.98);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -869,35 +951,20 @@ onUnmounted(() => {
 
 .preview-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #d4af37;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.25rem 0;
   letter-spacing: 0.5px;
 }
 
 .preview-description {
   font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #f4e7c1;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
   opacity: 0.9;
-}
-
-@media (max-width: 1279px) {
-  .nav-preview {
-    width: 240px;
-    padding: 1rem;
-  }
-  
-  .preview-title {
-    font-size: 1rem;
-  }
-  
-  .preview-description {
-    font-size: 0.75rem;
-  }
 }
 
 /* Header Right Actions */
@@ -940,14 +1007,14 @@ onUnmounted(() => {
 
 /* Header Actions */
 .luxury-header-action {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 12px;
+  border-radius: 10px;
   color: #f4e7c1;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -958,8 +1025,8 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .luxury-header-action {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -974,74 +1041,68 @@ onUnmounted(() => {
 /* Wishlist badge */
 .wishlist-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
   background: #ec4899;
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9px;
-  padding: 0 4px;
+  border-radius: 8px;
+  padding: 0 3px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .luxury-header.rtl .wishlist-badge {
   right: auto;
-  left: -5px;
+  left: -4px;
 }
 
 /* Cart badge */
 .cart-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
   background: #d4af37;
   color: #0a0a0a;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9px;
-  padding: 0 4px;
+  border-radius: 8px;
+  padding: 0 3px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .luxury-header.rtl .cart-badge {
   right: auto;
-  left: -5px;
+  left: -4px;
 }
 
 .luxury-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-
-@media (max-width: 768px) {
-  .luxury-icon {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-/* Mobile Actions Row */
+/* Mobile Actions Row - Better spacing */
 .mobile-actions-row {
   display: none;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: 0.25rem; /* Reduced from 0.5rem */
+  flex: 1;
 }
 
 @media (max-width: 1023px) {
@@ -1050,100 +1111,73 @@ onUnmounted(() => {
   }
 }
 
-/* Mobile Action Icon Links */
+/* Mobile Action Icon Links - Smaller and consistent */
 .mobile-action-icon-link {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 32px; /* Reduced from 36px */
+  height: 32px; /* Reduced from 36px */
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 12px;
+  border-radius: 6px; /* Smaller radius */
   color: #f4e7c1;
   text-decoration: none;
+  flex-shrink: 0;
 }
 
-.mobile-action-icon-link:active {
-  background: rgba(212, 175, 55, 0.15);
-  transform: scale(0.95);
+/* Mobile icons - smaller */
+.mobile-icon {
+  width: 16px; /* Reduced from 18px */
+  height: 16px; /* Reduced from 18px */
+  stroke: currentColor;
 }
 
-.mobile-wishlist-badge {
+/* Mobile badges - adjusted for smaller icons */
+.mobile-wishlist-badge,
+.mobile-cart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
+  top: -3px;
+  right: -3px;
+  min-width: 14px;
+  height: 14px;
   background: #ec4899;
   color: white;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9px;
-  padding: 0 4px;
+  border-radius: 7px;
+  padding: 0 2px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .mobile-cart-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
   background: #d4af37;
   color: #0a0a0a;
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  padding: 0 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.mobile-icon {
-  width: 20px;
-  height: 20px;
-  stroke: currentColor;
-}
-
-.mobile-language-toggle {
-  display: flex;
-  align-items: center;
-}
-
-.mobile-language-toggle :deep(.current-language) {
-  padding: 0.5rem;
-  min-width: auto;
-}
-
-.mobile-language-toggle :deep(.language-code) {
-  display: none;
-}
-
-/* Mobile Toggle */
+/* Mobile Toggle - Fixed size and alignment */
 .luxury-mobile-toggle {
   display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px; /* Reduced from 4px */
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0;
   flex-shrink: 0;
   z-index: 1001;
-  width: 40px;
-  height: 40px;
+  width: 32px; /* Reduced from 36px */
+  height: 32px; /* Reduced from 36px */
   align-items: center;
   justify-content: center;
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 12px;
+  border-radius: 6px; /* Smaller radius */
+  margin-left: auto;
 }
 
 @media (max-width: 1023px) {
@@ -1152,16 +1186,22 @@ onUnmounted(() => {
   }
 }
 
+.luxury-mobile-toggle:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #d4af37;
+}
+
+/* Toggle lines - smaller */
 .mobile-toggle-line {
-  width: 20px;
-  height: 2px;
+  width: 16px; /* Reduced from 18px */
+  height: 1.5px; /* Thinner */
   background: #f4e7c1;
   transition: all 0.3s ease;
   border-radius: 1px;
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
+  transform: rotate(45deg) translate(4px, 4px); /* Adjusted for smaller size */
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(2) {
@@ -1169,7 +1209,40 @@ onUnmounted(() => {
 }
 
 .luxury-mobile-toggle.open .mobile-toggle-line:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
+  transform: rotate(-45deg) translate(4px, -4px); /* Adjusted for smaller size */
+}
+
+/* Mobile Language Toggle - Smaller */
+.mobile-language-toggle {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-language-toggle :deep(.current-language) {
+  padding: 0;
+  width: 32px; /* Match other icons */
+  height: 32px; /* Match other icons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 6px;
+  color: #f4e7c1;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mobile-language-toggle :deep(.language-code) {
+  display: none;
+}
+
+/* For very small screens, hide language toggle to make room for hamburger */
+@media (max-width: 360px) {
+  .mobile-language-toggle {
+    display: none;
+  }
 }
 
 /* Mobile Overlay */
@@ -1220,12 +1293,12 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .luxury-mobile-menu {
-    width: 60%;
-    right: -60%;
+    width: 50%;
+    right: -50%;
   }
   
   .luxury-header.rtl .luxury-mobile-menu {
-    left: -60%;
+    left: -50%;
   }
 }
 
@@ -1283,7 +1356,7 @@ onUnmounted(() => {
 
 .mobile-logo-p {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1;
@@ -1456,197 +1529,39 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-/* Mobile Badges */
-.mobile-wishlist-badge,
-.mobile-cart-badge {
+/* Mobile Badges for menu items */
+.mobile-wishlist-badge-menu,
+.mobile-cart-badge-menu {
   position: absolute;
   right: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  min-width: 20px;
-  height: 20px;
-  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
-  font-size: 0.7rem;
+  padding: 0 3px;
+  font-size: 0.65rem;
   font-weight: 700;
 }
 
-.mobile-wishlist-badge {
+.mobile-wishlist-badge-menu {
   background: #ec4899;
   color: white;
 }
 
-.mobile-cart-badge {
+.mobile-cart-badge-menu {
   background: #d4af37;
   color: #0a0a0a;
 }
 
-.luxury-header.rtl .mobile-wishlist-badge,
-.luxury-header.rtl .mobile-cart-badge {
+.luxury-header.rtl .mobile-wishlist-badge-menu,
+.luxury-header.rtl .mobile-cart-badge-menu {
   right: auto;
   left: 1rem;
 }
-
-/* User Dropdown */
-.luxury-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 2rem;
-  min-width: 280px;
-  background: rgba(10, 10, 10, 0.98);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(212, 175, 55, 0.1);
-  z-index: 1003;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateY(-10px);
-  animation: dropdownSlide 0.3s ease forwards;
-}
-
-.luxury-header.rtl .luxury-dropdown {
-  right: auto;
-  left: 2rem;
-}
-
-@keyframes dropdownSlide {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 768px) {
-  .luxury-dropdown {
-    right: 1rem;
-    min-width: 260px;
-  }
-  
-  .luxury-header.rtl .luxury-dropdown {
-    left: 1rem;
-    right: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .luxury-dropdown {
-    right: 0.5rem;
-    min-width: calc(100vw - 1rem);
-    max-width: 280px;
-  }
-  
-  .luxury-header.rtl .luxury-dropdown {
-    left: 0.5rem;
-    right: auto;
-  }
-}
-
-.dropdown-content {
-  padding: 1.5rem;
-}
-
-.dropdown-user {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
-  margin-bottom: 1rem;
-}
-
-.user-avatar {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  color: #0a0a0a;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-}
-
-.user-info {
-  flex: 1;
-}
-
-.user-name {
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #f4e7c1;
-  margin: 0 0 0.25rem 0;
-}
-
-.user-email {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
-  color: #f4e7c1;
-  opacity: 0.7;
-  margin: 0;
-}
-
-.dropdown-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: #f4e7c1;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.dropdown-item:hover {
-  background: rgba(212, 175, 55, 0.1);
-  color: #d4af37;
-  padding-left: 1.25rem;
-}
-
-.luxury-header.rtl .dropdown-item:hover {
-  padding-left: 1rem;
-  padding-right: 1.25rem;
-}
-
-.dropdown-icon {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.logout-btn {
-  margin-top: 0.5rem;
-  color: #ef4444;
-}
-
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
 /* Search Overlay */
 .luxury-search-overlay {
   position: fixed;
@@ -1660,7 +1575,7 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 120px;
+  padding-top: 100px;
 }
 
 .search-modal {
@@ -1669,9 +1584,9 @@ onUnmounted(() => {
     rgba(26, 18, 11, 0.95) 100%);
   border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem;
   width: 90%;
-  max-width: 600px;
+  max-width: 500px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
@@ -1681,13 +1596,13 @@ onUnmounted(() => {
 
 .search-input {
   width: 100%;
-  padding: 1rem 1.5rem;
+  padding: 0.875rem 1.25rem;
   background: rgba(212, 175, 55, 0.05);
   border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 12px;
+  border-radius: 10px;
   color: #f4e7c1;
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
+  font-size: 0.95rem;
   transition: all 0.3s ease;
   text-align: left;
 }
@@ -1725,8 +1640,8 @@ onUnmounted(() => {
 }
 
 .search-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
 }
 

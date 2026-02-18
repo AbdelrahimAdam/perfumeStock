@@ -50,13 +50,37 @@
       <div class="grid lg:grid-cols-2 gap-8 lg:gap-16 xl:gap-20">
         <!-- Image Gallery - Mobile Optimized -->
         <div class="lg:sticky lg:top-24 lg:self-start">
-          <div class="bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden shadow-luxury-lg">
+          <div class="bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden shadow-luxury-lg relative">
             <img 
               :src="productImage" 
               :alt="product.name[currentLanguage]"
               class="w-full h-auto object-cover aspect-square lg:aspect-auto"
               loading="eager"
             />
+            <!-- Wishlist Button Overlay -->
+            <button
+              @click="toggleWishlist"
+              class="absolute top-4 right-4 w-10 h-10 lg:w-12 lg:h-12 bg-white/90 backdrop-blur-sm 
+                     hover:bg-white flex items-center justify-center shadow-lg 
+                     transition-all duration-300 group z-10"
+              :class="{ 'active': isInWishlist }"
+              :aria-label="isInWishlist ? t('Remove from Wishlist') : t('Add to Wishlist')"
+            >
+              <svg 
+                class="w-5 h-5 lg:w-6 lg:h-6 transition-colors duration-300"
+                :class="isInWishlist ? 'text-pink-500 fill-current' : 'text-gray-600 group-hover:text-pink-500'"
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor"
+              >
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="1.5" 
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </button>
           </div>
           
           <!-- Thumbnails - Compact Scroll -->
@@ -257,13 +281,32 @@
                 </template>
               </button>
               
+              <!-- Wishlist Button -->
               <button
-                @click="addToWishlist"
-                class="w-full border-2 border-gray-300 text-gray-700 py-3 lg:py-4 
-                       font-bold hover:border-primary-500 hover:text-primary-600 
-                       transition-colors text-sm lg:text-base"
+                @click="toggleWishlist"
+                class="w-full border-2 py-3 lg:py-4 font-bold transition-all duration-300 text-sm lg:text-base
+                       flex items-center justify-center gap-2"
+                :class="[
+                  isInWishlist 
+                    ? 'border-pink-500 bg-pink-50 text-pink-600 hover:bg-pink-100' 
+                    : 'border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-600 hover:bg-pink-50'
+                ]"
               >
-                {{ t('Add to Wishlist') }}
+                <svg 
+                  class="w-5 h-5 lg:w-6 lg:h-6"
+                  :class="isInWishlist ? 'fill-current' : ''"
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="1.5" 
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                <span>{{ isInWishlist ? t('Remove from Wishlist') : t('Add to Wishlist') }}</span>
               </button>
             </div>
 
@@ -320,6 +363,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
 import { useCartStore } from '@/stores/cart'
+import { useWishlistStore } from '@/stores/wishlist'
 import { useBrandsStore } from '@/stores/brands'
 import ProductGrid from '@/components/Products/ProductGrid.vue'
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue'
@@ -331,6 +375,7 @@ const router = useRouter()
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
 const cartStore = useCartStore()
+const wishlistStore = useWishlistStore()
 const brandsStore = useBrandsStore()
 
 const { currentLanguage, isRTL, t } = languageStore
@@ -431,6 +476,12 @@ const relatedProducts = computed(() => {
   return sameBrandProducts.slice(0, 4)
 })
 
+// Wishlist computed
+const isInWishlist = computed(() => {
+  if (!product.value) return false
+  return wishlistStore.hasItem(product.value.id)
+})
+
 // Methods
 const decreaseQuantity = () => {
   if (quantity.value > 1) {
@@ -470,23 +521,17 @@ const addToCart = async () => {
       showQuantityAnimation.value = false
     }, 1000)
     
-    // Optional: You can reset quantity after adding if desired
-    // quantity.value = 1
-    
   } catch (error) {
     console.error('Failed to add to cart:', error)
-    // You could show an error notification here
   } finally {
     isAddingToCart.value = false
   }
 }
 
-const addToWishlist = () => {
-  if (product.value) {
-    // This can be integrated with a wishlist store later
-    console.log('Added to wishlist:', product.value.name[currentLanguage])
-    // You could show a notification here
-  }
+const toggleWishlist = () => {
+  if (!product.value) return
+  
+  wishlistStore.toggleWishlist(product.value)
 }
 
 const viewProduct = (relatedProduct: Product) => {
@@ -661,7 +706,7 @@ img,
   border-radius: 0 !important;
 }
 
-/* Keep rounded-full only for dots */
+/* Keep rounded-full only for dots and badges */
 .rounded-full {
   border-radius: 9999px !important;
 }
@@ -703,5 +748,22 @@ img,
 
 .animate-pulse {
   animation: pulse 0.5s ease-in-out;
+}
+
+/* Wishlist button active state */
+button.active svg {
+  animation: heartBeat 0.3s ease-in-out;
+}
+
+@keyframes heartBeat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

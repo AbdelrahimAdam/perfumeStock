@@ -16,17 +16,30 @@ import {
   limit,
   startAfter,
   QueryDocumentSnapshot,
-  DocumentData
+  DocumentData,
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
-import type { Order, OrderStatus, OrderItem, OrderCustomer } from '@/types'
+import { useAuthStore } from './auth'
+import { useCartStore } from './cart'
+import { useProductsStore } from './products'
+import { showNotification } from '@/utils/notifications'
+import type { Order, OrderStatus, OrderItem, ShippingAddress } from '@/types'
 
-interface FirestoreOrder extends Omit<Order, 'id' | 'createdAt' | 'updatedAt'> {
+export interface FirestoreOrder extends Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt'> {
   createdAt: Timestamp
   updatedAt: Timestamp
+  shippedAt?: Timestamp | null
+  deliveredAt?: Timestamp | null
 }
 
 export const useOrdersStore = defineStore('orders', () => {
+  // Other stores
+  const authStore = useAuthStore()
+  const cartStore = useCartStore()
+  const productsStore = useProductsStore()
+
   // State
   const orders = ref<Order[]>([])
   const currentOrder = ref<Order | null>(null)
@@ -34,6 +47,17 @@ export const useOrdersStore = defineStore('orders', () => {
   const error = ref<string | null>(null)
   const lastVisible = ref<QueryDocumentSnapshot<DocumentData> | null>(null)
   const hasMore = ref(true)
+  const statsLoading = ref(false)
+  const orderStats = ref<{
+    totalOrders: number
+    pending: number
+    processing: number
+    shipped: number
+    delivered: number
+    cancelled: number
+    totalRevenue: number
+    averageOrderValue: number
+  } | null>(null)
 
   // Getters
   const pendingOrdersCount = computed(() => {
@@ -56,49 +80,92 @@ export const useOrdersStore = defineStore('orders', () => {
     )
   })
 
+  const averageOrderValue = computed(() => {
+    const deliveredOrders = orders.value.filter(o => o.status === 'delivered')
+    if (deliveredOrders.length === 0) return 0
+    const total = deliveredOrders.reduce((sum, o) => sum + o.total, 0)
+    return total / deliveredOrders.length
+  })
+
+  // Helper Functions
+  const generateOrderNumber = (): string => {
+    const date = new Date()
+    const year = date.getFullYear().toString().slice(-2)
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    const timestamp = Date.now().toString().slice(-4)
+    return `ORD-${year}${month}${day}-${random}-${timestamp}`
+  }
+
+  const generateGuestId = (): string => {
+    return `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+  }
+
+  const convertTimestampsToDates = (firestoreOrder: FirestoreOrder & { id: string }): Order => {
+    return {
+      ...firestoreOrder,
+      createdAt: firestoreOrder.createdAt?.toDate() || new Date(),
+      updatedAt: firestoreOrder.updatedAt?.toDate() || new Date(),
+      shippedAt: firestoreOrder.shippedAt?.toDate() || null,
+      deliveredAt: firestoreOrder.deliveredAt?.toDate() || null
+    }
+  }
+
   // Actions
   const fetchOrders = async (options?: {
     limit?: number
     status?: OrderStatus
     startAfterDoc?: QueryDocumentSnapshot<DocumentData>
+    userId?: string
+    guestId?: string
+    email?: string
   }) => {
+    if (loading.value) return []
+    
     loading.value = true
     error.value = null
     
     try {
       const ordersCollection = collection(db, 'orders')
-      let q = query(ordersCollection, orderBy('createdAt', 'desc'))
+      let constraints: any[] = [orderBy('createdAt', 'desc')]
       
       // Apply filters
       if (options?.status) {
-        q = query(q, where('status', '==', options.status))
+        constraints.push(where('status', '==', options.status))
+      }
+      
+      // Support both authenticated users and guests
+      if (options?.userId) {
+        constraints.push(where('userId', '==', options.userId))
+      } else if (options?.guestId) {
+        constraints.push(where('guestId', '==', options.guestId))
+      } else if (options?.email) {
+        // Find orders by email (for guests who want to look up orders)
+        constraints.push(where('customer.email', '==', options.email))
       }
       
       // Apply pagination
       if (options?.limit) {
-        q = query(q, limit(options.limit))
+        constraints.push(limit(options.limit))
+      } else {
+        constraints.push(limit(20)) // Default limit
       }
       
       if (options?.startAfterDoc) {
-        q = query(q, startAfter(options.startAfterDoc))
+        constraints.push(startAfter(options.startAfterDoc))
       }
       
+      const q = query(ordersCollection, ...constraints)
       const querySnapshot = await getDocs(q)
       
       // Update pagination state
       lastVisible.value = querySnapshot.docs[querySnapshot.docs.length - 1] || null
-      hasMore.value = querySnapshot.docs.length === (options?.limit || 10)
+      hasMore.value = querySnapshot.docs.length === (options?.limit || 20)
       
-      const fetchedOrders: Order[] = []
-      
-      querySnapshot.forEach((doc) => {
+      const fetchedOrders: Order[] = querySnapshot.docs.map(doc => {
         const data = doc.data() as FirestoreOrder
-        fetchedOrders.push({
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
-        })
+        return convertTimestampsToDates({ id: doc.id, ...data })
       })
       
       // If starting after a doc, append results; otherwise replace
@@ -128,12 +195,7 @@ export const useOrdersStore = defineStore('orders', () => {
       
       if (docSnapshot.exists()) {
         const data = docSnapshot.data() as FirestoreOrder
-        currentOrder.value = {
-          id: docSnapshot.id,
-          ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
-        }
+        currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
         return currentOrder.value
       } else {
         error.value = 'Order not found'
@@ -148,47 +210,220 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
-  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const fetchOrderByNumber = async (orderNumber: string, email: string) => {
     loading.value = true
     error.value = null
     
     try {
-      // Generate order number
-      const ordersCount = await getDocs(collection(db, 'orders'))
-      const orderNumber = `ORD${(ordersCount.size + 1001).toString().padStart(4, '0')}`
+      const ordersCollection = collection(db, 'orders')
+      const q = query(
+        ordersCollection,
+        where('orderNumber', '==', orderNumber),
+        where('customer.email', '==', email)
+      )
       
-      const orderWithNumber = {
-        ...orderData,
-        orderNumber,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+      const querySnapshot = await getDocs(q)
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0]
+        const data = doc.data() as FirestoreOrder
+        currentOrder.value = convertTimestampsToDates({ id: doc.id, ...data })
+        return currentOrder.value
+      } else {
+        error.value = 'Order not found'
+        return null
       }
-      
-      const docRef = await addDoc(collection(db, 'orders'), orderWithNumber)
-      
-      // Create the complete order object
-      const newOrder: Order = {
-        id: docRef.id,
-        ...orderData,
-        orderNumber,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-      
-      // Add to local state
-      orders.value = [newOrder, ...orders.value]
-      
-      return newOrder
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to create order'
-      console.error('Error creating order:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to fetch order'
+      console.error('Error fetching order:', err)
       return null
     } finally {
       loading.value = false
     }
   }
 
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, trackingNumber?: string) => {
+  const createOrder = async (
+    shippingAddress: ShippingAddress,
+    paymentMethod: string = 'cash_on_delivery',
+    notes?: string
+  ) => {
+    // No authentication required! Guests can place orders
+    if (cartStore.items.length === 0) {
+      showNotification.error('Your cart is empty')
+      return null
+    }
+
+    loading.value = true
+    error.value = null
+    
+    try {
+      // Run in transaction to ensure data consistency
+      const newOrder = await runTransaction(db, async (transaction) => {
+        // Generate order number
+        const orderNumber = generateOrderNumber()
+        
+        // Generate guest ID if user is not authenticated
+        const guestId = !authStore.isAuthenticated ? generateGuestId() : null
+        
+        // Prepare order items with current product data
+        const orderItems: OrderItem[] = cartStore.items.map(item => {
+          const product = productsStore.products.find(p => p.id === item.id)
+          return {
+            id: item.id,
+            productId: item.id,
+            name: product?.name?.en || item.name?.en || 'Product',
+            nameAr: product?.name?.ar || item.name?.ar,
+            price: product?.price || item.price,
+            quantity: item.quantity || 1,
+            size: product?.size || item.size || '100ml',
+            concentration: product?.concentration || item.concentration || 'Eau de Parfum',
+            image: product?.imageUrl || item.imageUrl || '/images/default-product.jpg',
+            brand: product?.brand || item.brand || ''
+          }
+        })
+
+        // Calculate totals
+        const subtotal = cartStore.subtotal
+        const shipping = cartStore.shipping || 50 // Default shipping
+        const tax = cartStore.tax || Math.round(subtotal * 0.14) // 14% VAT
+        const total = subtotal + shipping + tax
+
+        // Create order object
+        const orderData: Omit<FirestoreOrder, 'id'> = {
+          orderNumber,
+          userId: authStore.isAuthenticated ? authStore.user?.uid : null,
+          guestId: guestId,
+          userEmail: authStore.isAuthenticated ? authStore.user?.email : shippingAddress.email,
+          customer: {
+            name: shippingAddress.name,
+            email: shippingAddress.email,
+            phone: shippingAddress.phone,
+            address: shippingAddress.address,
+            city: shippingAddress.city,
+            country: shippingAddress.country || 'Egypt'
+          },
+          items: orderItems,
+          subtotal,
+          shipping,
+          tax,
+          total,
+          status: 'pending',
+          paymentMethod,
+          paymentStatus: paymentMethod === 'cash_on_delivery' ? 'pending' : 'paid',
+          shippingAddress,
+          notes: notes || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }
+
+        // Save to Firestore
+        const ordersCollection = collection(db, 'orders')
+        const docRef = await addDoc(ordersCollection, orderData)
+
+        // Update product stock quantities
+        for (const item of orderItems) {
+          const productRef = doc(db, 'products', item.productId)
+          const productDoc = await getDoc(productRef)
+          
+          if (productDoc.exists()) {
+            const currentStock = productDoc.data().stockQuantity || 0
+            transaction.update(productRef, {
+              stockQuantity: currentStock - item.quantity,
+              updatedAt: serverTimestamp()
+            })
+          }
+        }
+
+        return {
+          id: docRef.id,
+          ...orderData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      })
+
+      // Convert to Order type
+      const createdOrder: Order = {
+        ...newOrder,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        shippedAt: null,
+        deliveredAt: null
+      }
+
+      // Add to local state
+      orders.value = [createdOrder, ...orders.value]
+      currentOrder.value = createdOrder
+
+      // Clear cart after successful order
+      await cartStore.clearCart()
+
+      // Save guest ID to localStorage for future order lookup
+      if (createdOrder.guestId) {
+        localStorage.setItem('guest_order_id', createdOrder.guestId)
+        localStorage.setItem('last_order_email', createdOrder.customer.email)
+      }
+
+      showNotification.success(`Order #${createdOrder.orderNumber} placed successfully`)
+      
+      return createdOrder
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to create order'
+      console.error('Error creating order:', err)
+      showNotification.error('Failed to place order. Please try again.')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const getGuestOrders = async () => {
+    const guestId = localStorage.getItem('guest_order_id')
+    const guestEmail = localStorage.getItem('last_order_email')
+    
+    if (!guestId && !guestEmail) return []
+    
+    loading.value = true
+    
+    try {
+      const ordersCollection = collection(db, 'orders')
+      let q
+      
+      if (guestId) {
+        q = query(
+          ordersCollection,
+          where('guestId', '==', guestId),
+          orderBy('createdAt', 'desc')
+        )
+      } else {
+        q = query(
+          ordersCollection,
+          where('customer.email', '==', guestEmail),
+          orderBy('createdAt', 'desc')
+        )
+      }
+      
+      const querySnapshot = await getDocs(q)
+      
+      const guestOrders: Order[] = querySnapshot.docs.map(doc => {
+        const data = doc.data() as FirestoreOrder
+        return convertTimestampsToDates({ id: doc.id, ...data })
+      })
+      
+      return guestOrders
+    } catch (err) {
+      console.error('Error fetching guest orders:', err)
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateOrderStatus = async (
+    orderId: string, 
+    status: OrderStatus, 
+    trackingNumber?: string
+  ) => {
     loading.value = true
     error.value = null
     
@@ -199,10 +434,31 @@ export const useOrdersStore = defineStore('orders', () => {
         updatedAt: serverTimestamp()
       }
       
-      if (trackingNumber && (status === 'shipped' || status === 'delivered')) {
+      if (trackingNumber) {
         updateData.trackingNumber = trackingNumber
-        updateData.shippedAt = status === 'shipped' ? serverTimestamp() : null
-        updateData.deliveredAt = status === 'delivered' ? serverTimestamp() : null
+      }
+      
+      // Add timestamp based on status
+      if (status === 'shipped') {
+        updateData.shippedAt = serverTimestamp()
+      } else if (status === 'delivered') {
+        updateData.deliveredAt = serverTimestamp()
+      } else if (status === 'cancelled') {
+        // Restore stock when order is cancelled
+        const order = await fetchOrderById(orderId)
+        if (order) {
+          for (const item of order.items) {
+            const productRef = doc(db, 'products', item.productId)
+            const productDoc = await getDoc(productRef)
+            if (productDoc.exists()) {
+              const currentStock = productDoc.data().stockQuantity || 0
+              await updateDoc(productRef, {
+                stockQuantity: currentStock + item.quantity,
+                updatedAt: serverTimestamp()
+              })
+            }
+          }
+        }
       }
       
       await updateDoc(orderDoc, updateData)
@@ -213,14 +469,10 @@ export const useOrdersStore = defineStore('orders', () => {
         orders.value[orderIndex] = {
           ...orders.value[orderIndex],
           status,
-          updatedAt: new Date()
-        }
-        
-        if (trackingNumber) {
-          orders.value[orderIndex] = {
-            ...orders.value[orderIndex],
-            trackingNumber
-          }
+          updatedAt: new Date(),
+          ...(trackingNumber && { trackingNumber }),
+          ...(status === 'shipped' && { shippedAt: new Date() }),
+          ...(status === 'delivered' && { deliveredAt: new Date() })
         }
       }
       
@@ -230,10 +482,12 @@ export const useOrdersStore = defineStore('orders', () => {
           ...currentOrder.value,
           status,
           updatedAt: new Date(),
-          ...(trackingNumber && { trackingNumber })
+          ...(trackingNumber && { trackingNumber }),
+          ...(status === 'shipped' && { shippedAt: new Date() }),
+          ...(status === 'delivered' && { deliveredAt: new Date() })
         }
       }
-      
+
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update order status'
@@ -275,6 +529,22 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  const cancelOrder = async (orderId: string) => {
+    const order = orders.value.find(o => o.id === orderId) || currentOrder.value
+    
+    if (!order) {
+      showNotification.error('Order not found')
+      return false
+    }
+
+    if (order.status !== 'pending' && order.status !== 'processing') {
+      showNotification.warning('Only pending or processing orders can be cancelled')
+      return false
+    }
+
+    return await updateOrderStatus(orderId, 'cancelled')
+  }
+
   const deleteOrder = async (orderId: string) => {
     loading.value = true
     error.value = null
@@ -307,29 +577,33 @@ export const useOrdersStore = defineStore('orders', () => {
       const ordersCollection = collection(db, 'orders')
       let q = query(ordersCollection, orderBy('createdAt', 'desc'))
       
-      // Firestore doesn't support OR queries directly, so we'll fetch and filter
+      // Add status filter if provided
+      if (status) {
+        q = query(q, where('status', '==', status))
+      }
+      
       const querySnapshot = await getDocs(q)
       
       const filteredOrders: Order[] = []
+      const searchLower = searchTerm.toLowerCase()
       
       querySnapshot.forEach((doc) => {
         const data = doc.data() as FirestoreOrder
+        const order = convertTimestampsToDates({ id: doc.id, ...data })
         
-        // Apply client-side filtering
+        // Apply client-side filtering for search
         const matchesSearch = 
-          data.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          data.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          data.customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+          order.orderNumber.toLowerCase().includes(searchLower) ||
+          order.customer.name.toLowerCase().includes(searchLower) ||
+          order.customer.email.toLowerCase().includes(searchLower) ||
+          order.customer.phone.includes(searchTerm) ||
+          order.items.some(item => 
+            item.name.toLowerCase().includes(searchLower) ||
+            (item.nameAr && item.nameAr.includes(searchTerm))
+          )
         
-        const matchesStatus = !status || data.status === status
-        
-        if (matchesSearch && matchesStatus) {
-          filteredOrders.push({
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate()
-          })
+        if (matchesSearch) {
+          filteredOrders.push(order)
         }
       })
       
@@ -343,7 +617,7 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
-  const getOrdersByCustomer = async (customerEmail: string) => {
+  const getOrdersByEmail = async (email: string) => {
     loading.value = true
     error.value = null
     
@@ -351,30 +625,151 @@ export const useOrdersStore = defineStore('orders', () => {
       const ordersCollection = collection(db, 'orders')
       const q = query(
         ordersCollection, 
-        where('customer.email', '==', customerEmail),
+        where('customer.email', '==', email),
         orderBy('createdAt', 'desc')
       )
       
       const querySnapshot = await getDocs(q)
-      const customerOrders: Order[] = []
       
-      querySnapshot.forEach((doc) => {
+      const customerOrders: Order[] = querySnapshot.docs.map(doc => {
         const data = doc.data() as FirestoreOrder
-        customerOrders.push({
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
-        })
+        return convertTimestampsToDates({ id: doc.id, ...data })
       })
       
       return customerOrders
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch customer orders'
-      console.error('Error fetching customer orders:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to fetch orders by email'
+      console.error('Error fetching orders by email:', err)
       return []
     } finally {
       loading.value = false
+    }
+  }
+
+  const reorder = async (orderId: string) => {
+    try {
+      const order = orders.value.find(o => o.id === orderId) || await fetchOrderById(orderId)
+      
+      if (!order) {
+        showNotification.error('Order not found')
+        return false
+      }
+
+      // Clear current cart first
+      if (cartStore.items.length > 0) {
+        const confirmed = window.confirm('This will replace your current cart. Continue?')
+        if (!confirmed) return false
+        await cartStore.clearCart()
+      }
+
+      // Add each item to cart
+      for (const item of order.items) {
+        const product = productsStore.products.find(p => p.id === item.productId)
+        
+        if (product) {
+          await cartStore.addToCart(product, item.quantity)
+        } else {
+          // Fallback to creating a basic product
+          await cartStore.addToCart({
+            id: item.productId,
+            slug: '',
+            name: { en: item.name, ar: item.nameAr || item.name },
+            description: { en: '', ar: '' },
+            brand: item.brand || '',
+            brandSlug: '',
+            brandId: '',
+            category: '',
+            price: item.price,
+            originalPrice: item.price,
+            size: item.size,
+            concentration: item.concentration,
+            imageUrl: item.image,
+            images: [item.image],
+            isBestSeller: false,
+            isFeatured: false,
+            rating: 0,
+            reviewCount: 0,
+            notes: { top: [], heart: [], base: [] },
+            inStock: true,
+            stockQuantity: 10,
+            createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+            updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+            meta: { weight: '', dimensions: '', origin: '' }
+          } as any, item.quantity)
+        }
+      }
+
+      showNotification.success('Items added to cart successfully')
+      return true
+    } catch (err) {
+      console.error('Error reordering:', err)
+      showNotification.error('Failed to reorder items')
+      return false
+    }
+  }
+
+  const downloadInvoice = async (orderId: string) => {
+    try {
+      const order = orders.value.find(o => o.id === orderId) || await fetchOrderById(orderId)
+      
+      if (!order) {
+        showNotification.error('Order not found')
+        return
+      }
+
+      // Create invoice content
+      const invoiceContent = `
+        =================================
+        LUXURY PERFUME STORE - INVOICE
+        =================================
+        
+        Order Number: ${order.orderNumber}
+        Date: ${order.createdAt.toLocaleDateString()}
+        Status: ${order.status.toUpperCase()}
+        
+        ---------------------------------
+        CUSTOMER DETAILS
+        ---------------------------------
+        Name: ${order.customer.name}
+        Email: ${order.customer.email}
+        Phone: ${order.customer.phone}
+        Address: ${order.customer.address}, ${order.customer.city}, ${order.customer.country}
+        
+        ---------------------------------
+        ORDER ITEMS
+        ---------------------------------
+        ${order.items.map(item => 
+          `${item.name} x${item.quantity} - ${item.price.toFixed(2)} EGP`
+        ).join('\n')}
+        
+        ---------------------------------
+        PAYMENT SUMMARY
+        ---------------------------------
+        Subtotal: ${order.subtotal.toFixed(2)} EGP
+        Shipping: ${order.shipping.toFixed(2)} EGP
+        Tax (14%): ${order.tax.toFixed(2)} EGP
+        ---------------------------------
+        TOTAL: ${order.total.toFixed(2)} EGP
+        Payment Method: ${order.paymentMethod}
+        
+        =================================
+        Thank you for shopping with us!
+        =================================
+      `
+
+      // Create and download file
+      const blob = new Blob([invoiceContent], { type: 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-${order.orderNumber}.txt`
+      link.click()
+      window.URL.revokeObjectURL(url)
+
+      showNotification.success('Invoice downloaded successfully')
+    } catch (err) {
+      console.error('Error downloading invoice:', err)
+      showNotification.error('Failed to download invoice')
     }
   }
 
@@ -407,6 +802,8 @@ export const useOrdersStore = defineStore('orders', () => {
   }
 
   const getOrderStats = async () => {
+    statsLoading.value = true
+    
     try {
       const ordersCollection = collection(db, 'orders')
       const q = query(ordersCollection)
@@ -444,19 +841,33 @@ export const useOrdersStore = defineStore('orders', () => {
         }
       })
       
-      return {
+      const stats = {
         totalOrders,
         pending,
         processing,
         shipped,
         delivered,
         cancelled,
-        totalRevenue
+        totalRevenue,
+        averageOrderValue: delivered > 0 ? totalRevenue / delivered : 0
       }
+      
+      orderStats.value = stats
+      return stats
     } catch (err) {
       console.error('Error calculating order stats:', err)
       return null
+    } finally {
+      statsLoading.value = false
     }
+  }
+
+  const loadMore = async () => {
+    if (!hasMore.value || loading.value) return
+    
+    await fetchOrders({
+      startAfterDoc: lastVisible.value || undefined
+    })
   }
 
   const clearCurrentOrder = () => {
@@ -467,6 +878,7 @@ export const useOrdersStore = defineStore('orders', () => {
     orders.value = []
     lastVisible.value = null
     hasMore.value = true
+    error.value = null
   }
 
   return {
@@ -477,24 +889,33 @@ export const useOrdersStore = defineStore('orders', () => {
     error,
     lastVisible,
     hasMore,
+    statsLoading,
+    orderStats,
     
     // Getters
     pendingOrdersCount,
     completedOrdersCount,
     totalRevenue,
     activeOrders,
+    averageOrderValue,
     
     // Actions
     fetchOrders,
     fetchOrderById,
+    fetchOrderByNumber,
     createOrder,
+    getGuestOrders,
     updateOrderStatus,
     updateOrder,
+    cancelOrder,
     deleteOrder,
     searchOrders,
-    getOrdersByCustomer,
+    getOrdersByEmail,
+    reorder,
+    downloadInvoice,
     getMonthlyRevenue,
     getOrderStats,
+    loadMore,
     clearCurrentOrder,
     clearOrders
   }

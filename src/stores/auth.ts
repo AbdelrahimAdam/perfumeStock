@@ -33,6 +33,7 @@ const PUBLIC_PATHS = [
   '/collections',
   '/product',
   '/category',
+  '/wishlist',      // 👈 ADDED WISHLIST HERE
   '/admin/login'
 ]
 

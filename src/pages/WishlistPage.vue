@@ -38,27 +38,29 @@
 
       <!-- Wishlist Content -->
       <div v-else class="wishlist-content">
-        <!-- Wishlist Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">{{ t('Total Items') }}</span>
-            <span class="stat-value">{{ wishlistStore.totalItems }}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">{{ t('Total Value') }}</span>
-            <span class="stat-value price">{{ formatPrice(wishlistStore.totalValue) }}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">{{ t('In Stock') }}</span>
-            <span class="stat-value in-stock">{{ wishlistStore.inStockCount }}</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">{{ t('Low Stock') }}</span>
-            <span class="stat-value low-stock">{{ wishlistStore.lowStockCount }}</span>
+        <!-- Wishlist Stats - Mobile Scrollable -->
+        <div class="stats-wrapper">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">{{ t('Total Items') }}</span>
+              <span class="stat-value">{{ wishlistStore.totalItems }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">{{ t('Total Value') }}</span>
+              <span class="stat-value price">{{ formatPrice(wishlistStore.totalValue) }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">{{ t('In Stock') }}</span>
+              <span class="stat-value in-stock">{{ wishlistStore.inStockCount }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">{{ t('Low Stock') }}</span>
+              <span class="stat-value low-stock">{{ wishlistStore.lowStockCount }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Action Bar -->
+        <!-- Action Bar - Mobile Optimized -->
         <div class="action-bar">
           <div class="action-left">
             <div class="select-all">
@@ -69,7 +71,7 @@
                   @change="toggleSelectAll"
                   class="checkbox"
                 />
-                <span>{{ t('Select All') }}</span>
+                <span class="select-all-text">{{ t('Select All') }}</span>
               </label>
             </div>
 
@@ -77,19 +79,29 @@
               <span class="selected-count">
                 {{ wishlistStore.selectedItems.length }} {{ t('selected') }}
               </span>
-              <button
-                @click="moveSelectedToCart"
-                class="action-btn primary"
-                :disabled="cartStore.isLoading"
-              >
-                {{ t('Add to Cart') }}
-              </button>
-              <button
-                @click="removeSelected"
-                class="action-btn danger"
-              >
-                {{ t('Remove') }}
-              </button>
+              <div class="selected-buttons">
+                <button
+                  @click="moveSelectedToCart"
+                  class="action-btn primary"
+                  :disabled="cartStore.isLoading"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="btn-icon">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <span class="btn-text">{{ t('Add to Cart') }}</span>
+                </button>
+                <button
+                  @click="removeSelected"
+                  class="action-btn danger"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="btn-icon">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  <span class="btn-text">{{ t('Remove') }}</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -108,7 +120,7 @@
           </div>
         </div>
 
-        <!-- Wishlist Grid -->
+        <!-- Wishlist Grid - 2 Cards on Mobile -->
         <div class="wishlist-grid">
           <div
             v-for="item in sortedItems"
@@ -120,7 +132,7 @@
               <router-link :to="`/product/${item.slug}`">
                 <img
                   :src="item.imageUrl"
-                  :alt="item.name[currentLanguage]"
+                  :alt="getItemName(item)"
                   class="product-image"
                   loading="lazy"
                   @error="handleImageError"
@@ -164,7 +176,7 @@
                     :to="`/product/${item.slug}`"
                     class="product-name"
                   >
-                    {{ item.name[currentLanguage] }}
+                    {{ getItemName(item) }}
                   </router-link>
                   <p class="product-brand">{{ item.brand }}</p>
                   <p class="product-specs">{{ item.size }} • {{ item.concentration }}</p>
@@ -182,9 +194,9 @@
                 </button>
               </div>
 
-              <!-- Price -->
+              <!-- Price and Add to Cart - Mobile Optimized -->
               <div class="price-section">
-                <div>
+                <div class="price-info">
                   <span class="current-price">{{ formatPrice(item.price) }}</span>
                   <span v-if="item.originalPrice && item.originalPrice > item.price" class="original-price">
                     {{ formatPrice(item.originalPrice) }}
@@ -202,13 +214,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                   </svg>
-                  <span v-if="!cartStore.isLoading">{{ t('Add to Cart') }}</span>
-                  <span v-else class="loader-sm"></span>
+                  <span class="btn-text">{{ t('Add') }}</span>
+                  <span v-if="cartStore.isLoading" class="loader-sm"></span>
                 </button>
               </div>
 
-              <!-- Fragrance Notes (Collapsible) -->
-              <div v-if="expandedItems.includes(item.id)" class="notes-section">
+              <!-- Fragrance Notes (Collapsible) - Hidden on Mobile -->
+              <div v-if="expandedItems.includes(item.id) && !isMobile" class="notes-section">
                 <h4>{{ t('Fragrance Notes') }}</h4>
                 <div class="notes-list">
                   <div v-if="item.notes?.top?.length" class="note-group">
@@ -226,15 +238,15 @@
                 </div>
               </div>
 
-              <!-- Date Added -->
-              <div class="date-added">
+              <!-- Date Added - Hidden on Mobile -->
+              <div class="date-added desktop-only">
                 {{ t('Added on') }} {{ formatDate(item.dateAdded) }}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Share Wishlist -->
+        <!-- Share Wishlist - Mobile Optimized -->
         <div class="share-section">
           <div class="share-content">
             <h3>{{ t('Share Your Wishlist') }}</h3>
@@ -244,7 +256,6 @@
             <button
               @click="shareWishlist"
               class="share-btn primary"
-              :disabled="!authStore.isAuthenticated"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -267,7 +278,7 @@
       </div>
     </div>
 
-    <!-- Share Modal -->
+    <!-- Share Modal - Mobile Optimized -->
     <div v-if="showShareModal" class="modal-overlay" @click="showShareModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -313,6 +324,9 @@
               <option value="shared">{{ t('Shared with Link') }}</option>
               <option value="public">{{ t('Public') }}</option>
             </select>
+            <p v-if="!authStore.isAuthenticated" class="login-hint">
+              {{ t('Sign in to share your wishlist') }}
+            </p>
           </div>
         </div>
       </div>
@@ -330,6 +344,7 @@ import { useWishlistStore } from '@/stores/wishlist'
 import { useProductsStore } from '@/stores/products'
 import SEOHead from '@/components/UI/SEOHead.vue'
 import { showNotification } from '@/utils/notifications'
+import type { Product } from '@/types'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
@@ -348,6 +363,7 @@ const showShareModal = ref(false)
 const shareableLink = ref('')
 const privacySetting = ref(wishlistStore.privacySetting)
 const copied = ref(false)
+const isMobile = ref(window.innerWidth < 768)
 let copyTimeout: NodeJS.Timeout | null = null
 
 // Computed
@@ -360,17 +376,35 @@ const sortedItems = computed(() => {
     case 'priceHigh':
       return items.sort((a, b) => b.price - a.price)
     case 'name':
-      return items.sort((a, b) => a.name[currentLanguage.value].localeCompare(b.name[currentLanguage.value]))
+      return items.sort((a, b) => {
+        const nameA = a.name?.[currentLanguage.value] || ''
+        const nameB = b.name?.[currentLanguage.value] || ''
+        return nameA.localeCompare(nameB)
+      })
     case 'brand':
-      return items.sort((a, b) => a.brand.localeCompare(b.brand))
+      return items.sort((a, b) => {
+        const brandA = a.brand || ''
+        const brandB = b.brand || ''
+        return brandA.localeCompare(brandB)
+      })
     case 'dateAdded':
     default:
-      return items.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime())
+      return items.sort((a, b) => {
+        const dateA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0
+        const dateB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0
+        return dateB - dateA
+      })
   }
 })
 
+// Helper function to safely get item name
+const getItemName = (item: any) => {
+  return item.name?.[currentLanguage.value] || item.name?.en || item.name?.ar || ''
+}
+
 // Methods
 const formatPrice = (price: number) => {
+  if (!price && price !== 0) return 'LE 0'
   return new Intl.NumberFormat('en-EG', {
     style: 'currency',
     currency: 'EGP',
@@ -380,11 +414,16 @@ const formatPrice = (price: number) => {
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString(currentLanguage.value === 'ar' ? 'ar-EG' : 'en-EG', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString(currentLanguage.value === 'ar' ? 'ar-EG' : 'en-EG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch (e) {
+    return ''
+  }
 }
 
 const handleImageError = (e: Event) => {
@@ -429,7 +468,7 @@ const addToCart = (item: any) => {
     
     showNotification({
       title: t('Added to Cart'),
-      message: `${item.name[currentLanguage.value]} ${t('added to cart')}`,
+      message: `${getItemName(item)} ${t('added to cart')}`,
       type: 'success'
     })
   }
@@ -467,7 +506,11 @@ const removeSelected = () => {
 
 const shareWishlist = async () => {
   if (!authStore.isAuthenticated) {
-    router.push('/login?redirect=/wishlist')
+    showNotification({
+      title: t('Sign In Required'),
+      message: t('Please sign in to share your wishlist'),
+      type: 'info'
+    })
     return
   }
   
@@ -514,6 +557,15 @@ const copyLink = async () => {
 }
 
 const updatePrivacy = async () => {
+  if (!authStore.isAuthenticated) {
+    showNotification({
+      title: t('Sign In Required'),
+      message: t('Please sign in to update privacy settings'),
+      type: 'info'
+    })
+    return
+  }
+  
   try {
     await wishlistStore.updatePrivacySetting(privacySetting.value as any)
     showNotification({
@@ -531,6 +583,11 @@ const updatePrivacy = async () => {
   }
 }
 
+// Watch for window resize
+const handleResize = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
 // Watch for changes in selected items
 watch(() => wishlistStore.selectedItems, (newVal) => {
   selectAll.value = newVal.length === wishlistStore.items.length && wishlistStore.items.length > 0
@@ -538,13 +595,8 @@ watch(() => wishlistStore.selectedItems, (newVal) => {
 
 // Lifecycle
 onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    router.push('/login?redirect=/wishlist')
-    return
-  }
-  
   try {
-    // Load wishlist from Firebase
+    // Load wishlist from localStorage (guest mode)
     await wishlistStore.loadWishlist()
     
     // Load products if needed for stock status updates
@@ -553,7 +605,9 @@ onMounted(async () => {
     }
     
     // Update stock status based on current product data
-    await wishlistStore.updateStockStatus()
+    await wishlistStore.updateStockStatus(productsStore.products)
+    
+    window.addEventListener('resize', handleResize)
   } catch (error) {
     console.error('Error loading wishlist:', error)
     showNotification({
@@ -566,6 +620,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (copyTimeout) clearTimeout(copyTimeout)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -589,7 +644,7 @@ onUnmounted(() => {
 /* Header */
 .page-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .page-title {
@@ -616,7 +671,7 @@ onUnmounted(() => {
 
 .page-subtitle {
   color: rgba(26, 18, 11, 0.7);
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin-top: 1rem;
 }
 
@@ -656,47 +711,50 @@ onUnmounted(() => {
 /* Empty State */
 .empty-wishlist {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 1.5rem;
   background: #ffffff;
   border: 1px solid rgba(236, 72, 153, 0.15);
   max-width: 500px;
-  margin: 2rem auto;
+  margin: 1rem auto;
 }
 
 .empty-icon {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 2rem;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1.5rem;
   color: rgba(236, 72, 153, 0.3);
 }
 
 .empty-wishlist h2 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 400;
   color: #1a120b;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .empty-wishlist p {
   color: rgba(26, 18, 11, 0.7);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .empty-actions {
   display: flex;
   gap: 1rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .shop-link {
   display: inline-block;
-  padding: 1rem 2rem;
+  padding: 0.875rem 1.75rem;
   font-weight: 600;
   letter-spacing: 1px;
   transition: all 0.3s;
   text-decoration: none;
   text-transform: uppercase;
+  font-size: 0.9rem;
 }
 
 .shop-link.primary {
@@ -712,41 +770,57 @@ onUnmounted(() => {
   box-shadow: 0 8px 20px rgba(236, 72, 153, 0.3);
 }
 
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+/* Stats Wrapper - Mobile Scrollable */
+.stats-wrapper {
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-@media (max-width: 768px) {
+.stats-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 1rem;
+  padding: 0.25rem;
+}
+
+@media (max-width: 640px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 140px);
   }
 }
 
 .stat-card {
   background: #ffffff;
   border: 1px solid rgba(236, 72, 153, 0.15);
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .stat-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: rgba(26, 18, 11, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
+  white-space: nowrap;
 }
 
 .stat-value {
   display: block;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #1a120b;
+  line-height: 1.2;
 }
 
 .stat-value.price {
@@ -761,24 +835,27 @@ onUnmounted(() => {
   color: #f59e0b;
 }
 
-/* Action Bar */
+/* Action Bar - Mobile Optimized */
 .action-bar {
   background: #ffffff;
   border: 1px solid rgba(236, 72, 153, 0.15);
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .action-left {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .select-all {
@@ -792,7 +869,11 @@ onUnmounted(() => {
   gap: 0.5rem;
   cursor: pointer;
   color: rgba(26, 18, 11, 0.7);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+}
+
+.select-all-text {
+  white-space: nowrap;
 }
 
 .checkbox {
@@ -805,22 +886,58 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .selected-count {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(26, 18, 11, 0.6);
+  background: rgba(236, 72, 153, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.selected-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .action-btn {
   padding: 0.5rem 1rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   border: none;
   cursor: pointer;
   transition: all 0.3s;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-btn .btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 480px) {
+  .action-btn .btn-text {
+    display: none;
+  }
+  
+  .action-btn {
+    padding: 0.5rem;
+  }
+  
+  .action-btn .btn-icon {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
 }
 
 .action-btn.primary {
@@ -854,28 +971,58 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background: rgba(236, 72, 153, 0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
 }
 
 .sort-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: rgba(26, 18, 11, 0.6);
+  white-space: nowrap;
 }
 
 .sort-select {
-  padding: 0.5rem 2rem 0.5rem 0.5rem;
+  padding: 0.5rem 1.5rem 0.5rem 0.5rem;
   border: 1px solid rgba(236, 72, 153, 0.2);
   background: white;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #1a120b;
   cursor: pointer;
+  border-radius: 4px;
+  min-width: 120px;
 }
 
-/* Wishlist Grid */
+/* Wishlist Grid - 2 Cards on Mobile */
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 1024px) {
+  .wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+/* Mobile: 2 columns */
+@media (max-width: 640px) {
+  .wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* Small Mobile: still 2 columns */
+@media (max-width: 380px) {
+  .wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
 }
 
 .wishlist-card {
@@ -883,6 +1030,9 @@ onUnmounted(() => {
   border: 1px solid rgba(236, 72, 153, 0.15);
   transition: all 0.3s;
   overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  height: fit-content;
 }
 
 .wishlist-card:hover {
@@ -894,6 +1044,7 @@ onUnmounted(() => {
   position: relative;
   aspect-ratio: 1;
   overflow: hidden;
+  background: #faf7f2;
 }
 
 .product-image {
@@ -909,11 +1060,11 @@ onUnmounted(() => {
 
 .remove-btn {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.9);
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.95);
   border: none;
   border-radius: 50%;
   display: flex;
@@ -922,7 +1073,8 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s;
   color: #ef4444;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 2;
 }
 
 .remove-btn:hover {
@@ -932,68 +1084,100 @@ onUnmounted(() => {
 }
 
 .remove-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .stock-badge {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.7rem;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 4px;
+  border-radius: 20px;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .stock-badge {
+    font-size: 0.55rem;
+    padding: 0.15rem 0.4rem;
+  }
 }
 
 .stock-badge.in_stock {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
 }
 
 .stock-badge.low_stock {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.95);
+  color: white;
 }
 
 .stock-badge.out_of_stock {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.95);
+  color: white;
 }
 
 .select-checkbox {
   position: absolute;
-  top: 1rem;
-  left: 4rem;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 0.5rem;
-  border-radius: 4px;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.4rem;
+  border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.select-checkbox .checkbox {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .card-content {
-  padding: 1.5rem;
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .card-content {
+    padding: 0.75rem;
+  }
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .product-name {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #1a120b;
   text-decoration: none;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+@media (max-width: 640px) {
+  .product-name {
+    font-size: 0.85rem;
+    -webkit-line-clamp: 2;
+  }
 }
 
 .product-name:hover {
@@ -1001,14 +1185,32 @@ onUnmounted(() => {
 }
 
 .product-brand {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: rgba(26, 18, 11, 0.6);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .product-brand {
+    font-size: 0.7rem;
+  }
 }
 
 .product-specs {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: rgba(26, 18, 11, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .product-specs {
+    font-size: 0.65rem;
+  }
 }
 
 .info-btn {
@@ -1016,45 +1218,68 @@ onUnmounted(() => {
   border: none;
   color: rgba(26, 18, 11, 0.4);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.4rem;
   transition: all 0.3s;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .info-btn:hover {
   color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
 }
 
 .info-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 640px) {
+  .info-btn svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .price-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+}
+
+.price-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
 .current-price {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #ec4899;
 }
 
+@media (max-width: 640px) {
+  .current-price {
+    font-size: 0.9rem;
+  }
+}
+
 .original-price {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: rgba(26, 18, 11, 0.4);
   text-decoration: line-through;
-  margin-left: 0.5rem;
 }
 
 .add-to-cart-btn {
   background: #ec4899;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
+  padding: 0.4rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1062,7 +1287,31 @@ onUnmounted(() => {
   transition: all 0.3s;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 641px) {
+  .add-to-cart-btn {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .add-to-cart-btn .btn-text {
+    display: none;
+  }
+  
+  .add-to-cart-btn {
+    padding: 0.4rem;
+  }
+  
+  .add-to-cart-btn svg {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
 }
 
 .add-to-cart-btn:hover:not(.disabled) {
@@ -1078,33 +1327,34 @@ onUnmounted(() => {
 }
 
 .add-to-cart-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
-/* Notes Section */
+/* Notes Section - Desktop only */
 .notes-section {
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid rgba(236, 72, 153, 0.1);
 }
 
 .notes-section h4 {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #1a120b;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .notes-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .note-group {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(26, 18, 11, 0.7);
+  line-height: 1.5;
 }
 
 .note-label {
@@ -1118,12 +1368,12 @@ onUnmounted(() => {
   margin-left: 0.5rem;
 }
 
-/* Date Added */
+/* Date Added - Desktop only */
 .date-added {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid rgba(236, 72, 153, 0.1);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: rgba(26, 18, 11, 0.4);
   text-align: right;
 }
@@ -1132,46 +1382,69 @@ onUnmounted(() => {
   text-align: left;
 }
 
-/* Share Section */
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .desktop-only {
+    display: none;
+  }
+}
+
+/* Share Section - Mobile Optimized */
 .share-section {
   background: #ffffff;
   border: 1px solid rgba(236, 72, 153, 0.15);
-  padding: 2rem;
-  margin-top: 3rem;
+  padding: 1.5rem;
+  margin-top: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 640px) {
+  .share-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+  }
 }
 
 .share-content h3 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #1a120b;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .share-content p {
   color: rgba(26, 18, 11, 0.6);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .share-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .share-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   border: none;
   cursor: pointer;
   transition: all 0.3s;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
+  border-radius: 8px;
 }
 
 .share-btn.primary {
@@ -1207,7 +1480,7 @@ onUnmounted(() => {
   height: 18px;
 }
 
-/* Modal */
+/* Modal - Mobile Optimized */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1220,27 +1493,30 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  padding: 1rem;
 }
 
 .modal-content {
   background: #ffffff;
   max-width: 500px;
-  width: 90%;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   border: 1px solid rgba(236, 72, 153, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
   border-bottom: 1px solid rgba(236, 72, 153, 0.1);
 }
 
 .modal-header h2 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #1a120b;
   margin: 0;
@@ -1253,11 +1529,13 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 0.5rem;
   transition: all 0.3s;
+  border-radius: 50%;
 }
 
 .modal-close:hover {
   color: #ec4899;
   transform: rotate(90deg);
+  background: rgba(236, 72, 153, 0.1);
 }
 
 .modal-close svg {
@@ -1266,17 +1544,17 @@ onUnmounted(() => {
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 /* Share Link Section */
 .share-link-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .share-link-section label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #1a120b;
   margin-bottom: 0.5rem;
@@ -1286,15 +1564,24 @@ onUnmounted(() => {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .link-input-group {
+    flex-direction: column;
+  }
 }
 
 .link-input {
   flex: 1;
   padding: 0.75rem;
   border: 1px solid rgba(236, 72, 153, 0.2);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #1a120b;
   background: rgba(236, 72, 153, 0.05);
+  border-radius: 8px;
+  min-width: 0;
 }
 
 .copy-btn {
@@ -1305,6 +1592,14 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 500;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .copy-btn {
+    width: 100%;
+  }
 }
 
 .copy-btn:hover {
@@ -1312,37 +1607,45 @@ onUnmounted(() => {
 }
 
 .link-hint {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: rgba(26, 18, 11, 0.5);
 }
 
 /* Privacy Section */
 .privacy-section {
   border-top: 1px solid rgba(236, 72, 153, 0.1);
-  padding-top: 1.5rem;
+  padding-top: 1.25rem;
 }
 
 .privacy-section h4 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #1a120b;
   margin-bottom: 0.25rem;
 }
 
 .privacy-section p {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(26, 18, 11, 0.6);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .privacy-select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid rgba(236, 72, 153, 0.2);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #1a120b;
   background: white;
   cursor: pointer;
+  border-radius: 8px;
+}
+
+.login-hint {
+  margin-top: 0.5rem;
+  color: #ec4899;
+  font-size: 0.75rem;
+  font-style: italic;
 }
 
 /* Responsive */
@@ -1356,37 +1659,8 @@ onUnmounted(() => {
     font-size: 1.75rem;
   }
   
-  .wishlist-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .share-section {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .action-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .action-left {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  
-  .selected-actions {
-    flex-wrap: wrap;
-  }
-  
-  .sort-options {
-    justify-content: space-between;
-  }
-  
-  .modal-content {
-    width: 95%;
-    margin: 1rem;
+  .page-subtitle {
+    font-size: 0.9rem;
   }
 }
 
@@ -1397,38 +1671,48 @@ onUnmounted(() => {
   }
   
   .empty-wishlist h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
   
-  .stat-card {
-    padding: 1rem;
+  .empty-wishlist p {
+    font-size: 0.85rem;
   }
   
-  .stat-value {
-    font-size: 1.5rem;
+  .shop-link {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
   }
 }
 
 /* RTL Support */
 .rtl .select-checkbox {
   left: auto;
-  right: 4rem;
+  right: 0.5rem;
 }
 
 .rtl .stock-badge {
   left: auto;
-  right: 1rem;
+  right: 0.5rem;
 }
 
 .rtl .remove-btn {
   right: auto;
-  left: 1rem;
+  left: 0.5rem;
 }
 
 .rtl .action-btn svg,
 .rtl .share-btn svg {
   margin-left: 0.5rem;
   margin-right: 0;
+}
+
+.rtl .note-label {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+.rtl .date-added {
+  text-align: left;
 }
 
 /* Print Styles */
@@ -1438,19 +1722,31 @@ onUnmounted(() => {
   .remove-btn,
   .select-checkbox,
   .add-to-cart-btn,
-  .info-btn {
+  .info-btn,
+  .stats-wrapper,
+  .desktop-only {
     display: none !important;
   }
   
   .wishlist-page {
     background: white;
     padding: 1rem;
+    padding-top: 1rem;
+  }
+  
+  .wishlist-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .wishlist-card {
     break-inside: avoid;
     page-break-inside: avoid;
     border: 1px solid #ddd;
+    box-shadow: none;
+  }
+  
+  .page-title::after {
+    display: none;
   }
 }
 </style>

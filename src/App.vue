@@ -451,6 +451,30 @@ const routeLayout = computed(() => {
   return route.meta.layout || 'default'
 })
 
+// Helper to check if current route is public
+const isPublicRoute = computed(() => {
+  const publicPaths = [
+    '/',
+    '/shop',
+    '/offers',
+    '/offer',
+    '/brands',
+    '/brand',
+    '/cart',
+    '/checkout',
+    '/contact',
+    '/about',
+    '/collections',
+    '/product',
+    '/category',
+    '/wishlist'
+  ]
+  
+  return publicPaths.some(path => 
+    route.path === path || route.path.startsWith(path + '/')
+  )
+})
+
 const appClasses = computed(() => ({
   'rtl': isRTL,
   'ltr': !isRTL,
@@ -909,12 +933,18 @@ onMounted(async () => {
     updateHeaderHeight()
   }
   
-  // Initialize stores
+  // Initialize stores - ONLY initialize auth on non-public routes
   try {
     languageStore.initialize?.()
     
+    // Only initialize auth on protected routes
+    if (!isPublicRoute.value) {
+      await authStore.checkAuth?.()
+    } else {
+      console.log('🌍 Public route detected in App.vue - skipping auth initialization')
+    }
+    
     await Promise.allSettled([
-      authStore.checkAuth?.() || Promise.resolve(),
       productsStore.fetchProducts?.() || Promise.resolve(),
       cartStore.initialize?.() || Promise.resolve()
     ])

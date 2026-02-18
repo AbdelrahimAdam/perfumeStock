@@ -17,6 +17,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اكتشف مجموعتنا الحصرية من العطور الفاخرة، العود العربي، العطور الفرنسية، والعبوات النيش. شحن مجاني للطلبات فوق 2000 جنيه مصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -35,6 +36,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'تصفح مجموعتنا الكاملة من العطور الفاخرة من جميع الماركات والفئات. الأسعار بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -54,6 +56,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'تصفح مجموعتنا المختارة من العطور الفاخرة حسب الفئة. ابحث عن عطرك المثالي.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -72,6 +75,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'استكشف مجموعات العطور الفاخرة من الماركات العالمية المميزة. جميع الأسعار بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -91,6 +95,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اكتشف مجموعتنا المختارة من العطور الفاخرة من هذه العلامة التجارية المميزة.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -109,6 +114,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اكتشف مجموعات العطور المختارة خصيصاً ومجموعات الهدايا. هدايا مثالية بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -128,16 +134,16 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اكتشف هذا العطر الفاخر مع مكونات مميزة وحرفية رائعة. السعر بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
 
   // ===== OFFER ROUTES =====
-  // Offers listing page
   {
     path: '/offers',
     name: 'offers',
-    component: () => import('@/pages/OffersPage.vue'), // ✅ Fixed: Now points to OffersPage.vue
+    component: () => import('@/pages/OffersPage.vue'),
     meta: {
       title: {
         en: 'Special Offers | Luxury Perfume Deals',
@@ -148,11 +154,11 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'اطلع على أحدث عروضنا الحصرية وتخفيضات العطور الفاخرة. عروض لفترة محدودة.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
   
-  // Single offer detail page
   {
     path: '/offer/:slug',
     name: 'offer',
@@ -188,6 +194,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'راجع عطورك الفاخرة المختارة وتابع إلى الدفع. الأسعار بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -206,6 +213,289 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'أكمل عملية الشراء بأمان مع خيارات دفع متعددة. جميع الأسعار بالجنيه المصري.'
       },
       requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // ========== CUSTOMER AUTHENTICATION ROUTES ==========
+  {
+    path: '/login',
+    name: 'customer-login',
+    component: () => import('@/pages/CustomerLoginPage.vue'),
+    meta: {
+      title: {
+        en: 'Customer Login | Luxury Perfume Store',
+        ar: 'تسجيل دخول العملاء | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Sign in to your customer account to manage orders, track shipments, and save your preferences.',
+        ar: 'سجل الدخول إلى حساب العميل لإدارة الطلبات وتتبع الشحنات وحفظ تفضيلاتك.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/register',
+    name: 'customer-register',
+    component: () => import('@/pages/CustomerRegisterPage.vue'),
+    meta: {
+      title: {
+        en: 'Create Account | Luxury Perfume Store',
+        ar: 'إنشاء حساب | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Create a customer account for faster checkout, order tracking, and exclusive offers.',
+        ar: 'أنشئ حساب عميل لتسجيل الخروج بشكل أسرع وتتبع الطلبات والعروض الحصرية.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/pages/ForgotPasswordPage.vue'),
+    meta: {
+      title: {
+        en: 'Reset Password | Luxury Perfume Store',
+        ar: 'إعادة تعيين كلمة المرور | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Reset your password to regain access to your account.',
+        ar: 'أعد تعيين كلمة المرور لاستعادة الوصول إلى حسابك.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/reset-password/:token',
+    name: 'reset-password',
+    component: () => import('@/pages/ResetPasswordPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Set New Password | Luxury Perfume Store',
+        ar: 'تعيين كلمة مرور جديدة | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Set a new password for your account.',
+        ar: 'قم بتعيين كلمة مرور جديدة لحسابك.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // ========== CUSTOMER ACCOUNT ROUTES (PROTECTED) ==========
+  {
+    path: '/account',
+    name: 'customer-account',
+    component: () => import('@/pages/Customer/AccountPage.vue'),
+    meta: {
+      title: {
+        en: 'My Account | Luxury Perfume Store',
+        ar: 'حسابي | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Manage your account settings, view orders, and update preferences.',
+        ar: 'إدارة إعدادات حسابك وعرض الطلبات وتحديث التفضيلات.'
+      },
+      requiresAuth: true,
+      isPublic: false,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/account/profile',
+    name: 'customer-profile',
+    component: () => import('@/pages/Customer/ProfilePage.vue'),
+    meta: {
+      title: {
+        en: 'Profile Settings | Luxury Perfume Store',
+        ar: 'إعدادات الملف الشخصي | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Update your personal information and account settings.',
+        ar: 'قم بتحديث معلوماتك الشخصية وإعدادات الحساب.'
+      },
+      requiresAuth: true,
+      isPublic: false,
+      layout: 'default'
+    }
+  },
+
+  {
+    path: '/account/addresses',
+    name: 'customer-addresses',
+    component: () => import('@/pages/Customer/AddressesPage.vue'),
+    meta: {
+      title: {
+        en: 'My Addresses | Luxury Perfume Store',
+        ar: 'عناويني | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Manage your saved shipping addresses for faster checkout.',
+        ar: 'إدارة عناوين الشحن المحفوظة لتسجيل خروج أسرع.'
+      },
+      requiresAuth: true,
+      isPublic: false,
+      layout: 'default'
+    }
+  },
+
+  // ========== ORDER ROUTES (PUBLIC - GUEST CHECKOUT SUPPORTED) ==========
+  
+  // Order Confirmation - After successful checkout
+  {
+    path: '/order-confirmation/:orderId',
+    name: 'order-confirmation',
+    component: () => import('@/pages/OrderConfirmationPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Order Confirmation | Luxury Perfume Store',
+        ar: 'تأكيد الطلب | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Your order has been confirmed. Thank you for shopping with us.',
+        ar: 'تم تأكيد طلبك. شكراً لتسوقك معنا.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // Order Lookup Page - For guests to view their orders
+  {
+    path: '/orders',
+    name: 'orders',
+    component: () => import('@/pages/OrdersPage.vue'),
+    meta: {
+      title: {
+        en: 'My Orders | Luxury Perfume Store',
+        ar: 'طلباتي | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'View and track your orders from our luxury perfume store.',
+        ar: 'عرض وتتبع طلباتك من متجر العطور الفاخرة.'
+      },
+      requiresAuth: false, // Public - guests can look up orders by email
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // Order Details Page - View specific order details (with email verification)
+  {
+    path: '/orders/:orderId',
+    name: 'order-details',
+    component: () => import('@/pages/OrderDetailsPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Order Details | Luxury Perfume Store',
+        ar: 'تفاصيل الطلب | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'View detailed information about your order including items, shipping, and tracking.',
+        ar: 'عرض معلومات مفصلة عن طلبك بما في ذلك العناصر والشحن والتتبع.'
+      },
+      requiresAuth: false, // Public but will verify email
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // Track Order Page - Public order tracking
+  {
+    path: '/track-order',
+    name: 'track-order',
+    component: () => import('@/pages/TrackOrderPage.vue'),
+    meta: {
+      title: {
+        en: 'Track Your Order | Luxury Perfume Store',
+        ar: 'تتبع طلبك | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Track your order status and delivery information using your order number and email.',
+        ar: 'تتبع حالة طلبك ومعلومات التوصيل باستخدام رقم الطلب والبريد الإلكتروني.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // Track Order by Number - Direct tracking link
+  {
+    path: '/track-order/:trackingNumber',
+    name: 'track-order-by-number',
+    component: () => import('@/pages/TrackOrderPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Track Your Order | Luxury Perfume Store',
+        ar: 'تتبع طلبك | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Track your order status and delivery information.',
+        ar: 'تتبع حالة طلبك ومعلومات التوصيل.'
+      },
+      requiresAuth: false,
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // Order Invoice - Public but with email verification
+  {
+    path: '/orders/:orderId/invoice',
+    name: 'order-invoice',
+    component: () => import('@/pages/OrderInvoicePage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Order Invoice | Luxury Perfume Store',
+        ar: 'فاتورة الطلب | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'View and download your order invoice.',
+        ar: 'عرض وتنزيل فاتورة طلبك.'
+      },
+      requiresAuth: false, // Public but will verify email
+      isPublic: true,
+      layout: 'default'
+    }
+  },
+
+  // ========== RETURN/REFUND ROUTES ==========
+  {
+    path: '/returns',
+    name: 'returns',
+    component: () => import('@/pages/ReturnsPage.vue'),
+    meta: {
+      title: {
+        en: 'Returns & Refunds | Luxury Perfume Store',
+        ar: 'الإرجاع والاسترداد | متجر العطور الفاخرة'
+      },
+      description: {
+        en: 'Learn about our return policy and how to initiate a return.',
+        ar: 'تعرف على سياسة الإرجاع وكيفية بدء عملية الإرجاع.'
+      },
+      requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -224,6 +514,7 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'تواصل مع خبراء العطور الفاخرة. نحن هنا لمساعدتك في العثور على عطرك المثالي.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
@@ -242,24 +533,12 @@ export const routes: Array<RouteRecordRaw> = [
         ar: 'تعرف على شغفنا بالعطور الفاخرة والتزامنا بالجودة.'
       },
       requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
 
-  {
-    path: '/orders',
-    name: 'orders',
-    component: () => import('@/pages/OrdersPage.vue'),
-    meta: {
-      title: {
-        en: 'My Orders | Luxury Perfume Store',
-        ar: 'طلباتي | متجر العطور الفاخرة'
-      },
-      requiresAuth: true,
-      layout: 'default'
-    }
-  },
-
+  // ========== WISHLIST - PUBLIC ROUTE ==========
   {
     path: '/wishlist',
     name: 'wishlist',
@@ -269,13 +548,18 @@ export const routes: Array<RouteRecordRaw> = [
         en: 'My Wishlist | Luxury Perfume Store',
         ar: 'قائمة رغباتي | متجر العطور الفاخرة'
       },
-      requiresAuth: true,
+      description: {
+        en: 'Save your favorite luxury perfumes and create your personal wishlist.',
+        ar: 'احفظ عطورك الفاخرة المفضلة وأنشئ قائمة رغباتك الشخصية.'
+      },
+      requiresAuth: false,
+      isPublic: true,
       layout: 'default'
     }
   },
 
-  // ========== ADMIN ROUTES (ADMIN ONLY) ==========
-  // Admin Login (No auth required)
+  // ========== ADMIN ROUTES ==========
+  // Admin Login (Public - No auth required)
   {
     path: '/admin/login',
     name: 'admin-login',
@@ -287,12 +571,12 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: false,
       requiresAdmin: false,
+      isPublic: true,
       layout: 'admin-login'
     }
   },
 
-  // ========== ADMIN DASHBOARD ROUTES ==========
-  // Admin Dashboard
+  // ========== ADMIN DASHBOARD ROUTES (ADMIN ONLY) ==========
   {
     path: '/admin',
     name: 'admin-dashboard',
@@ -304,13 +588,61 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
   
   {
     path: '/admin/dashboard',
-    redirect: { name: 'admin-dashboard' }
+    redirect: { name: 'admin-dashboard' },
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      isPublic: false
+    }
+  },
+
+  // ========== ADMIN ORDERS MANAGEMENT ROUTES ==========
+  {
+    path: '/admin/orders',
+    name: 'admin-orders',
+    component: () => import('@/pages/Admin/OrdersPage.vue'),
+    meta: {
+      title: {
+        en: 'Manage Orders | Admin Dashboard',
+        ar: 'إدارة الطلبات | لوحة تحكم المسؤول'
+      },
+      description: {
+        en: 'View and manage all customer orders, update status, and process shipments.',
+        ar: 'عرض وإدارة جميع طلبات العملاء، تحديث الحالة، ومعالجة الشحنات.'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      isPublic: false,
+      layout: 'admin'
+    }
+  },
+
+  {
+    path: '/admin/orders/:orderId',
+    name: 'admin-order-details',
+    component: () => import('@/pages/Admin/OrderDetailsPage.vue'),
+    props: true,
+    meta: {
+      title: {
+        en: 'Order Details | Admin Dashboard',
+        ar: 'تفاصيل الطلب | لوحة تحكم المسؤول'
+      },
+      description: {
+        en: 'View detailed order information and manage order status.',
+        ar: 'عرض معلومات تفصيلية للطلب وإدارة حالة الطلب.'
+      },
+      requiresAuth: true,
+      requiresAdmin: true,
+      isPublic: false,
+      layout: 'admin'
+    }
   },
 
   // ========== PRODUCTS MANAGEMENT ROUTES ==========
@@ -325,6 +657,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -340,6 +673,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -356,22 +690,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
-      layout: 'admin'
-    }
-  },
-
-  // ========== ORDERS MANAGEMENT ROUTES ==========
-  {
-    path: '/admin/orders',
-    name: 'admin-orders',
-    component: () => import('@/pages/Admin/OrdersPage.vue'),
-    meta: {
-      title: {
-        en: 'Manage Orders | Admin Dashboard',
-        ar: 'إدارة الطلبات | لوحة تحكم المسؤول'
-      },
-      requiresAuth: true,
-      requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -388,6 +707,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -404,6 +724,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -419,6 +740,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -435,6 +757,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -451,6 +774,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -467,6 +791,7 @@ export const routes: Array<RouteRecordRaw> = [
       },
       requiresAuth: true,
       requiresAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -488,6 +813,7 @@ export const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       requiresAdmin: true,
       requiresSuperAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -504,6 +830,7 @@ export const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       requiresAdmin: true,
       requiresSuperAdmin: true,
+      isPublic: false,
       layout: 'admin-preview'
     }
   },
@@ -521,6 +848,7 @@ export const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       requiresAdmin: true,
       requiresSuperAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -538,6 +866,7 @@ export const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       requiresAdmin: true,
       requiresSuperAdmin: true,
+      isPublic: false,
       layout: 'admin'
     }
   },
@@ -552,6 +881,7 @@ export const routes: Array<RouteRecordRaw> = [
         en: 'Page Not Found | Luxury Perfume Store',
         ar: 'الصفحة غير موجودة | متجر العطور الفاخرة'
       },
+      isPublic: true,
       layout: 'default'
     }
   }
@@ -564,4 +894,24 @@ export const getLocalizedTitle = (routeMeta: any, language: Language = 'en'): st
   
   if (typeof title === 'string') return title
   return title[language] || title.en || 'Luxury Perfume Store'
+}
+
+// Helper function to check if route is public
+export const isPublicRoute = (route: RouteRecordRaw): boolean => {
+  return route.meta?.isPublic === true
+}
+
+// Helper function to check if route requires auth
+export const requiresAuth = (route: RouteRecordRaw): boolean => {
+  return route.meta?.requiresAuth === true
+}
+
+// Helper function to check if route requires admin
+export const requiresAdmin = (route: RouteRecordRaw): boolean => {
+  return route.meta?.requiresAdmin === true
+}
+
+// Helper function to check if route requires super admin
+export const requiresSuperAdmin = (route: RouteRecordRaw): boolean => {
+  return route.meta?.requiresSuperAdmin === true
 }

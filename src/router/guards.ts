@@ -15,7 +15,9 @@ const publicRoutes = [
   'cart',
   'checkout',
   'contact',
-  'about'
+  'about',
+  'wishlist',  // 👈 ADD WISHLIST HERE
+  'not-found'
 ]
 
 // List of admin routes that require authentication

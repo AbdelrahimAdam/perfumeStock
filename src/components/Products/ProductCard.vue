@@ -709,4 +709,4 @@ const formatPrice = (price: number) => {
     display: none;
   }
 }
-</style>
+</style> 
