@@ -1,3 +1,4 @@
+// src/stores/orders.ts
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { 
@@ -24,14 +25,15 @@ import { db } from '@/firebase/config'
 import { useAuthStore } from './auth'
 import { useCartStore } from './cart'
 import { useProductsStore } from './products'
-import { showNotification } from '@/utils/notifications'
+import { authNotification } from '@/utils/notifications'
 import type { Order, OrderStatus, OrderItem, ShippingAddress } from '@/types'
 
-export interface FirestoreOrder extends Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt'> {
+export interface FirestoreOrder extends Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt' | 'cancelledAt'> {
   createdAt: Timestamp
   updatedAt: Timestamp
   shippedAt?: Timestamp | null
   deliveredAt?: Timestamp | null
+  cancelledAt?: Timestamp | null
 }
 
 export const useOrdersStore = defineStore('orders', () => {
@@ -108,8 +110,47 @@ export const useOrdersStore = defineStore('orders', () => {
       createdAt: firestoreOrder.createdAt?.toDate() || new Date(),
       updatedAt: firestoreOrder.updatedAt?.toDate() || new Date(),
       shippedAt: firestoreOrder.shippedAt?.toDate() || null,
-      deliveredAt: firestoreOrder.deliveredAt?.toDate() || null
+      deliveredAt: firestoreOrder.deliveredAt?.toDate() || null,
+      cancelledAt: firestoreOrder.cancelledAt?.toDate() || null
     }
+  }
+
+  // Get current user ID safely (works for both admin and customer)
+  const getCurrentUserId = (): string | null => {
+    if (!authStore.isAuthenticated) {
+      return null
+    }
+    
+    // Check admin user first
+    if (authStore.user?.id) {
+      return authStore.user.id
+    }
+    
+    // Then check customer
+    if (authStore.customer?.id) {
+      return authStore.customer.id
+    }
+    
+    return null
+  }
+
+  // Get current user email safely
+  const getCurrentUserEmail = (): string | null => {
+    if (!authStore.isAuthenticated) {
+      return null
+    }
+    
+    // Check admin user first
+    if (authStore.user?.email) {
+      return authStore.user.email
+    }
+    
+    // Then check customer
+    if (authStore.customer?.email) {
+      return authStore.customer.email
+    }
+    
+    return null
   }
 
   // Actions
@@ -120,6 +161,7 @@ export const useOrdersStore = defineStore('orders', () => {
     userId?: string
     guestId?: string
     email?: string
+    all?: boolean // For admin to fetch all orders
   }) => {
     if (loading.value) return []
     
@@ -130,26 +172,57 @@ export const useOrdersStore = defineStore('orders', () => {
       const ordersCollection = collection(db, 'orders')
       let constraints: any[] = [orderBy('createdAt', 'desc')]
       
-      // Apply filters
-      if (options?.status) {
-        constraints.push(where('status', '==', options.status))
-      }
-      
-      // Support both authenticated users and guests
-      if (options?.userId) {
+      // ADMIN: If all flag is true and user is admin, fetch all orders
+      if (options?.all && authStore.isAdmin) {
+        // Admin can see all orders - no user filter
+        console.log('Admin fetching all orders')
+      } 
+      // CUSTOMER: If userId is provided and matches current user, filter by userId
+      else if (options?.userId) {
+        // Verify that the requested userId matches the current user
+        const currentUserId = getCurrentUserId()
+        if (options.userId !== currentUserId) {
+          console.warn('User ID mismatch - returning empty array')
+          loading.value = false
+          return []
+        }
         constraints.push(where('userId', '==', options.userId))
-      } else if (options?.guestId) {
+      }
+      // CUSTOMER: If current user is a customer, filter by their ID
+      else if (authStore.isCustomer) {
+        const currentUserId = getCurrentUserId()
+        if (currentUserId) {
+          constraints.push(where('userId', '==', currentUserId))
+        } else {
+          console.warn('Customer has no ID - returning empty array')
+          loading.value = false
+          return []
+        }
+      }
+      // GUEST: Handle guest orders
+      else if (options?.guestId) {
         constraints.push(where('guestId', '==', options.guestId))
       } else if (options?.email) {
-        // Find orders by email (for guests who want to look up orders)
         constraints.push(where('customer.email', '==', options.email))
+      } else {
+        // If no filter is provided and user is not authenticated and not admin, return empty
+        if (!authStore.isAdmin) {
+          console.log('No valid filter for unauthenticated user')
+          loading.value = false
+          return []
+        }
+      }
+      
+      // Apply additional status filter if provided
+      if (options?.status) {
+        constraints.push(where('status', '==', options.status))
       }
       
       // Apply pagination
       if (options?.limit) {
         constraints.push(limit(options.limit))
       } else {
-        constraints.push(limit(20)) // Default limit
+        constraints.push(limit(20))
       }
       
       if (options?.startAfterDoc) {
@@ -195,8 +268,110 @@ export const useOrdersStore = defineStore('orders', () => {
       
       if (docSnapshot.exists()) {
         const data = docSnapshot.data() as FirestoreOrder
-        currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
-        return currentOrder.value
+        const currentUserId = getCurrentUserId()
+        
+        // SECURITY CHECK:
+        // Admin can view any order
+        if (authStore.isAdmin) {
+          currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+          return currentOrder.value
+        }
+        
+        // Customer can only view their own orders
+        if (currentUserId && data.userId && data.userId === currentUserId) {
+          currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+          return currentOrder.value
+        }
+        
+        // GUEST CHECK: Check if this is a guest order and if the user has the guest ID in localStorage
+        if (data.guestId) {
+          // Get guest identifiers from localStorage
+          const guestId = localStorage.getItem('guest_order_id')
+          const guestEmail = localStorage.getItem('last_order_email')
+          const guestOrderNumber = localStorage.getItem('last_order_number')
+          
+          // Case 1: Direct guest ID match
+          if (guestId && data.guestId === guestId) {
+            console.log('Guest order accessed via guest ID match')
+            currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+            
+            // Update localStorage with any missing information
+            if (!guestEmail && data.customer?.email) {
+              localStorage.setItem('last_order_email', data.customer.email)
+            }
+            if (!guestOrderNumber && data.orderNumber) {
+              localStorage.setItem('last_order_number', data.orderNumber)
+            }
+            
+            return currentOrder.value
+          }
+          
+          // Case 2: Email match (for security)
+          if (guestEmail && data.customer?.email === guestEmail) {
+            console.log('Guest order accessed via email match')
+            currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+            
+            // Update localStorage with guest ID if missing
+            if (!guestId && data.guestId) {
+              localStorage.setItem('guest_order_id', data.guestId)
+            }
+            if (!guestOrderNumber && data.orderNumber) {
+              localStorage.setItem('last_order_number', data.orderNumber)
+            }
+            
+            return currentOrder.value
+          }
+          
+          // Case 3: Order number match (from URL or localStorage)
+          if (guestOrderNumber && data.orderNumber === guestOrderNumber) {
+            // Also verify that the email matches for security
+            if (data.customer?.email && data.customer.email === guestEmail) {
+              console.log('Guest order accessed via order number + email match')
+              currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+              
+              // Update localStorage with guest ID if missing
+              if (!guestId && data.guestId) {
+                localStorage.setItem('guest_order_id', data.guestId)
+              }
+              
+              return currentOrder.value
+            }
+          }
+          
+          // Case 4: For immediate post-checkout access, check if this order was just created
+          // This is useful when the user is redirected to the confirmation page right after checkout
+          const lastCreatedOrder = sessionStorage.getItem('last_created_order')
+          if (lastCreatedOrder) {
+            try {
+              const lastOrder = JSON.parse(lastCreatedOrder)
+              if (lastOrder.id === orderId) {
+                console.log('Guest order accessed via session storage (immediate post-checkout)')
+                currentOrder.value = convertTimestampsToDates({ id: docSnapshot.id, ...data })
+                
+                // Save to localStorage for future access
+                if (data.guestId) {
+                  localStorage.setItem('guest_order_id', data.guestId)
+                }
+                if (data.customer?.email) {
+                  localStorage.setItem('last_order_email', data.customer.email)
+                }
+                if (data.orderNumber) {
+                  localStorage.setItem('last_order_number', data.orderNumber)
+                }
+                
+                // Clear session storage after use
+                sessionStorage.removeItem('last_created_order')
+                return currentOrder.value
+              }
+            } catch (e) {
+              console.error('Error parsing last created order:', e)
+            }
+          }
+        }
+        
+        // If none of the above checks pass, deny access
+        error.value = 'You do not have permission to view this order'
+        return null
       } else {
         error.value = 'Order not found'
         return null
@@ -228,6 +403,14 @@ export const useOrdersStore = defineStore('orders', () => {
         const doc = querySnapshot.docs[0]
         const data = doc.data() as FirestoreOrder
         currentOrder.value = convertTimestampsToDates({ id: doc.id, ...data })
+        
+        // If this is a guest order, save to localStorage for future access
+        if (data.guestId) {
+          localStorage.setItem('guest_order_id', data.guestId)
+          localStorage.setItem('last_order_email', data.customer.email)
+          localStorage.setItem('last_order_number', data.orderNumber)
+        }
+        
         return currentOrder.value
       } else {
         error.value = 'Order not found'
@@ -249,7 +432,7 @@ export const useOrdersStore = defineStore('orders', () => {
   ) => {
     // No authentication required! Guests can place orders
     if (cartStore.items.length === 0) {
-      showNotification.error('Your cart is empty')
+      authNotification.error('Your cart is empty')
       return null
     }
 
@@ -264,6 +447,10 @@ export const useOrdersStore = defineStore('orders', () => {
         
         // Generate guest ID if user is not authenticated
         const guestId = !authStore.isAuthenticated ? generateGuestId() : null
+        
+        // Get current user ID and email if authenticated
+        const currentUserId = getCurrentUserId()
+        const currentUserEmail = getCurrentUserEmail()
         
         // Prepare order items with current product data
         const orderItems: OrderItem[] = cartStore.items.map(item => {
@@ -291,9 +478,9 @@ export const useOrdersStore = defineStore('orders', () => {
         // Create order object
         const orderData: Omit<FirestoreOrder, 'id'> = {
           orderNumber,
-          userId: authStore.isAuthenticated ? authStore.user?.uid : null,
+          userId: currentUserId,
           guestId: guestId,
-          userEmail: authStore.isAuthenticated ? authStore.user?.email : shippingAddress.email,
+          userEmail: currentUserEmail || shippingAddress.email,
           customer: {
             name: shippingAddress.name,
             email: shippingAddress.email,
@@ -328,7 +515,7 @@ export const useOrdersStore = defineStore('orders', () => {
           if (productDoc.exists()) {
             const currentStock = productDoc.data().stockQuantity || 0
             transaction.update(productRef, {
-              stockQuantity: currentStock - item.quantity,
+              stockQuantity: Math.max(0, currentStock - item.quantity),
               updatedAt: serverTimestamp()
             })
           }
@@ -348,7 +535,8 @@ export const useOrdersStore = defineStore('orders', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         shippedAt: null,
-        deliveredAt: null
+        deliveredAt: null,
+        cancelledAt: null
       }
 
       // Add to local state
@@ -362,15 +550,24 @@ export const useOrdersStore = defineStore('orders', () => {
       if (createdOrder.guestId) {
         localStorage.setItem('guest_order_id', createdOrder.guestId)
         localStorage.setItem('last_order_email', createdOrder.customer.email)
+        localStorage.setItem('last_order_number', createdOrder.orderNumber)
+        
+        // Also save to session storage for immediate post-checkout access
+        sessionStorage.setItem('last_created_order', JSON.stringify({
+          id: createdOrder.id,
+          guestId: createdOrder.guestId,
+          email: createdOrder.customer.email,
+          orderNumber: createdOrder.orderNumber
+        }))
       }
 
-      showNotification.success(`Order #${createdOrder.orderNumber} placed successfully`)
+      authNotification.loggedIn(`Order #${createdOrder.orderNumber} placed successfully`)
       
       return createdOrder
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to create order'
       console.error('Error creating order:', err)
-      showNotification.error('Failed to place order. Please try again.')
+      authNotification.error('Failed to place order. Please try again.')
       return null
     } finally {
       loading.value = false
@@ -380,8 +577,9 @@ export const useOrdersStore = defineStore('orders', () => {
   const getGuestOrders = async () => {
     const guestId = localStorage.getItem('guest_order_id')
     const guestEmail = localStorage.getItem('last_order_email')
+    const guestOrderNumber = localStorage.getItem('last_order_number')
     
-    if (!guestId && !guestEmail) return []
+    if (!guestId && !guestEmail && !guestOrderNumber) return []
     
     loading.value = true
     
@@ -389,18 +587,31 @@ export const useOrdersStore = defineStore('orders', () => {
       const ordersCollection = collection(db, 'orders')
       let q
       
+      // Try to get by guestId first (most specific)
       if (guestId) {
         q = query(
           ordersCollection,
           where('guestId', '==', guestId),
           orderBy('createdAt', 'desc')
         )
-      } else {
+      } 
+      // Then try by email
+      else if (guestEmail) {
         q = query(
           ordersCollection,
           where('customer.email', '==', guestEmail),
           orderBy('createdAt', 'desc')
         )
+      } 
+      // Finally try by order number
+      else if (guestOrderNumber) {
+        q = query(
+          ordersCollection,
+          where('orderNumber', '==', guestOrderNumber),
+          orderBy('createdAt', 'desc')
+        )
+      } else {
+        return []
       }
       
       const querySnapshot = await getDocs(q)
@@ -409,6 +620,20 @@ export const useOrdersStore = defineStore('orders', () => {
         const data = doc.data() as FirestoreOrder
         return convertTimestampsToDates({ id: doc.id, ...data })
       })
+      
+      // If we found orders, update localStorage with all available info
+      if (guestOrders.length > 0) {
+        const latestOrder = guestOrders[0]
+        if (latestOrder.guestId) {
+          localStorage.setItem('guest_order_id', latestOrder.guestId)
+        }
+        if (latestOrder.customer?.email) {
+          localStorage.setItem('last_order_email', latestOrder.customer.email)
+        }
+        if (latestOrder.orderNumber) {
+          localStorage.setItem('last_order_number', latestOrder.orderNumber)
+        }
+      }
       
       return guestOrders
     } catch (err) {
@@ -424,6 +649,12 @@ export const useOrdersStore = defineStore('orders', () => {
     status: OrderStatus, 
     trackingNumber?: string
   ) => {
+    // Only admins can update order status
+    if (!authStore.isAdmin) {
+      authNotification.error('You do not have permission to update orders')
+      return false
+    }
+
     loading.value = true
     error.value = null
     
@@ -444,6 +675,8 @@ export const useOrdersStore = defineStore('orders', () => {
       } else if (status === 'delivered') {
         updateData.deliveredAt = serverTimestamp()
       } else if (status === 'cancelled') {
+        updateData.cancelledAt = serverTimestamp()
+        
         // Restore stock when order is cancelled
         const order = await fetchOrderById(orderId)
         if (order) {
@@ -472,7 +705,8 @@ export const useOrdersStore = defineStore('orders', () => {
           updatedAt: new Date(),
           ...(trackingNumber && { trackingNumber }),
           ...(status === 'shipped' && { shippedAt: new Date() }),
-          ...(status === 'delivered' && { deliveredAt: new Date() })
+          ...(status === 'delivered' && { deliveredAt: new Date() }),
+          ...(status === 'cancelled' && { cancelledAt: new Date() })
         }
       }
       
@@ -484,7 +718,8 @@ export const useOrdersStore = defineStore('orders', () => {
           updatedAt: new Date(),
           ...(trackingNumber && { trackingNumber }),
           ...(status === 'shipped' && { shippedAt: new Date() }),
-          ...(status === 'delivered' && { deliveredAt: new Date() })
+          ...(status === 'delivered' && { deliveredAt: new Date() }),
+          ...(status === 'cancelled' && { cancelledAt: new Date() })
         }
       }
 
@@ -499,6 +734,12 @@ export const useOrdersStore = defineStore('orders', () => {
   }
 
   const updateOrder = async (orderId: string, updateData: Partial<Order>) => {
+    // Only admins can update orders
+    if (!authStore.isAdmin) {
+      authNotification.error('You do not have permission to update orders')
+      return false
+    }
+
     loading.value = true
     error.value = null
     
@@ -533,12 +774,19 @@ export const useOrdersStore = defineStore('orders', () => {
     const order = orders.value.find(o => o.id === orderId) || currentOrder.value
     
     if (!order) {
-      showNotification.error('Order not found')
+      authNotification.error('Order not found')
+      return false
+    }
+
+    // Check if user is authorized to cancel this order
+    const currentUserId = getCurrentUserId()
+    if (!authStore.isAdmin && order.userId !== currentUserId) {
+      authNotification.error('You do not have permission to cancel this order')
       return false
     }
 
     if (order.status !== 'pending' && order.status !== 'processing') {
-      showNotification.warning('Only pending or processing orders can be cancelled')
+      authNotification.warning('Only pending or processing orders can be cancelled')
       return false
     }
 
@@ -546,6 +794,12 @@ export const useOrdersStore = defineStore('orders', () => {
   }
 
   const deleteOrder = async (orderId: string) => {
+    // Only admins can delete orders
+    if (!authStore.isAdmin) {
+      authNotification.error('You do not have permission to delete orders')
+      return false
+    }
+
     loading.value = true
     error.value = null
     
@@ -570,19 +824,31 @@ export const useOrdersStore = defineStore('orders', () => {
   }
 
   const searchOrders = async (searchTerm: string, status?: OrderStatus) => {
+    // Only customers can search their own orders
+    if (!authStore.isCustomer) {
+      return []
+    }
+
+    const currentUserId = getCurrentUserId()
+    
+    if (!currentUserId) {
+      return []
+    }
+
     loading.value = true
     error.value = null
     
     try {
       const ordersCollection = collection(db, 'orders')
-      let q = query(ordersCollection, orderBy('createdAt', 'desc'))
       
-      // Add status filter if provided
-      if (status) {
-        q = query(q, where('status', '==', status))
-      }
+      // First, get user's orders
+      const baseQuery = query(
+        ordersCollection,
+        where('userId', '==', currentUserId),
+        orderBy('createdAt', 'desc')
+      )
       
-      const querySnapshot = await getDocs(q)
+      const querySnapshot = await getDocs(baseQuery)
       
       const filteredOrders: Order[] = []
       const searchLower = searchTerm.toLowerCase()
@@ -591,7 +857,12 @@ export const useOrdersStore = defineStore('orders', () => {
         const data = doc.data() as FirestoreOrder
         const order = convertTimestampsToDates({ id: doc.id, ...data })
         
-        // Apply client-side filtering for search
+        // Apply status filter if provided
+        if (status && order.status !== status) {
+          return
+        }
+        
+        // Apply search filter
         const matchesSearch = 
           order.orderNumber.toLowerCase().includes(searchLower) ||
           order.customer.name.toLowerCase().includes(searchLower) ||
@@ -651,7 +922,14 @@ export const useOrdersStore = defineStore('orders', () => {
       const order = orders.value.find(o => o.id === orderId) || await fetchOrderById(orderId)
       
       if (!order) {
-        showNotification.error('Order not found')
+        authNotification.error('Order not found')
+        return false
+      }
+
+      // Check if user is authorized to reorder this order
+      const currentUserId = getCurrentUserId()
+      if (!authStore.isAdmin && order.userId !== currentUserId) {
+        authNotification.error('You do not have permission to reorder this order')
         return false
       }
 
@@ -699,11 +977,11 @@ export const useOrdersStore = defineStore('orders', () => {
         }
       }
 
-      showNotification.success('Items added to cart successfully')
+      authNotification.loggedIn('Items added to cart successfully')
       return true
     } catch (err) {
       console.error('Error reordering:', err)
-      showNotification.error('Failed to reorder items')
+      authNotification.error('Failed to reorder items')
       return false
     }
   }
@@ -713,7 +991,14 @@ export const useOrdersStore = defineStore('orders', () => {
       const order = orders.value.find(o => o.id === orderId) || await fetchOrderById(orderId)
       
       if (!order) {
-        showNotification.error('Order not found')
+        authNotification.error('Order not found')
+        return
+      }
+
+      // Check if user is authorized to download this invoice
+      const currentUserId = getCurrentUserId()
+      if (!authStore.isAdmin && order.userId !== currentUserId) {
+        authNotification.error('You do not have permission to download this invoice')
         return
       }
 
@@ -766,14 +1051,19 @@ export const useOrdersStore = defineStore('orders', () => {
       link.click()
       window.URL.revokeObjectURL(url)
 
-      showNotification.success('Invoice downloaded successfully')
+      authNotification.loggedIn('Invoice downloaded successfully')
     } catch (err) {
       console.error('Error downloading invoice:', err)
-      showNotification.error('Failed to download invoice')
+      authNotification.error('Failed to download invoice')
     }
   }
 
   const getMonthlyRevenue = async (year: number, month: number) => {
+    // Only admins can view revenue stats
+    if (!authStore.isAdmin) {
+      return 0
+    }
+
     try {
       const ordersCollection = collection(db, 'orders')
       const startDate = new Date(year, month - 1, 1)
@@ -801,12 +1091,38 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  // FIXED: Get order stats for the current user only (customers) or all (admins)
   const getOrderStats = async () => {
+    // Get current user ID (works for both admin and customer)
+    const currentUserId = getCurrentUserId()
+    
+    // Only calculate stats if user is authenticated
+    if (!authStore.isAuthenticated) {
+      console.log('User not authenticated, skipping stats calculation')
+      return null
+    }
+
     statsLoading.value = true
     
     try {
       const ordersCollection = collection(db, 'orders')
-      const q = query(ordersCollection)
+      
+      // Admin: query all orders
+      // Customer: query only orders for the current user
+      let q
+      if (authStore.isAdmin) {
+        q = query(ordersCollection)
+      } else {
+        if (!currentUserId) {
+          statsLoading.value = false
+          return null
+        }
+        q = query(
+          ordersCollection, 
+          where('userId', '==', currentUserId)
+        )
+      }
+      
       const querySnapshot = await getDocs(q)
       
       let totalOrders = 0

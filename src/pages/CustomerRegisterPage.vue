@@ -206,7 +206,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLanguageStore } from '@/stores/language'
-import { showNotification } from '@/utils/notifications'
+import { authNotification } from '@/utils/notifications'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -232,36 +232,26 @@ const passwordMismatch = computed(() => {
 
 const handleRegister = async () => {
   if (passwordMismatch.value) {
-    showNotification.error(t('passwordsDoNotMatch'))
+    authNotification.error(t('passwordsDoNotMatch'))
     return
   }
 
   loading.value = true
 
   try {
-    // Register user with Firebase
-    const userCredential = await authStore.register({
+    // Use the customerRegister method from auth store
+    const customer = await authStore.customerRegister({
       email: form.email,
       password: form.password,
       displayName: `${form.firstName} ${form.lastName}`,
       phone: form.phone
     })
 
-    if (userCredential) {
-      // Save additional user data to Firestore
-      await authStore.saveUserProfile({
-        uid: userCredential.user.uid,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        newsletter: form.newsletter,
-        createdAt: new Date()
-      })
-
-      showNotification.success(t('registrationSuccess'))
+    if (customer) {
+      // Use loggedIn method for success notification
+      authNotification.loggedIn(customer.displayName)
       
-      // Redirect to account page or home
+      // Redirect to account page
       router.push('/account')
     }
   } catch (error: any) {
@@ -269,13 +259,13 @@ const handleRegister = async () => {
     
     // Handle specific Firebase errors
     if (error.code === 'auth/email-already-in-use') {
-      showNotification.error(t('emailAlreadyInUse'))
+      authNotification.error(t('emailAlreadyInUse'))
     } else if (error.code === 'auth/weak-password') {
-      showNotification.error(t('weakPassword'))
+      authNotification.error(t('weakPassword'))
     } else if (error.code === 'auth/invalid-email') {
-      showNotification.error(t('invalidEmail'))
+      authNotification.error(t('invalidEmail'))
     } else {
-      showNotification.error(t('registrationFailed'))
+      authNotification.error(error.message || t('registrationFailed'))
     }
   } finally {
     loading.value = false

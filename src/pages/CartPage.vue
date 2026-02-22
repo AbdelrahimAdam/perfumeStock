@@ -229,15 +229,18 @@ import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useCartStore } from '@/stores/cart'
 import { useHomepageStore } from '@/stores/homepage'
+import { useAuthStore } from '@/stores/auth'
 import SEOHead from '@/components/UI/SEOHead.vue'
 import LuxuryCartItem from '@/components/Cart/LuxuryCartItem.vue'
 import LuxuryCartSidebar from '@/components/Cart/LuxuryCartSidebar.vue'
 import CartDrawer from '@/components/Cart/CartDrawer.vue'
+import { authNotification } from '@/utils/notifications'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
 const cartStore = useCartStore()
 const homepageStore = useHomepageStore()
+const authStore = useAuthStore()
 
 const { currentLanguage, isRTL, t } = languageStore
 
@@ -262,13 +265,22 @@ const handleClearCart = async () => {
   await cartStore.clearCart()
 }
 
-// Proceed to checkout - Using cart summary
+// Proceed to checkout - Redirect to checkout page
 const proceedToCheckout = () => {
   const summary = cartStore.getCartSummary()
   console.log('Proceeding to checkout with:', summary)
   
-  // In a real app, this would redirect to checkout with the summary
-  alert(t('Checkout functionality coming soon! Total: ') + summary.totalFormatted)
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    // Store cart in localStorage before redirecting to login
+    localStorage.setItem('redirect_after_login', '/checkout')
+    authNotification.loggedIn(t('Please sign in to continue with checkout'))
+    router.push('/login')
+    return
+  }
+  
+  // Redirect to checkout page
+  router.push('/checkout')
 }
 
 // Go back to previous page

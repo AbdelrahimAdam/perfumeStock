@@ -1,620 +1,254 @@
+<!-- src/pages/Admin/OrdersPage.vue -->
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="admin-orders-page">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200">
-      <div class="px-8 py-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-display-en font-bold text-gray-900">
-              {{ t('Orders Management') }}
-            </h1>
-            <p class="text-gray-600 mt-1">
-              {{ t('View and manage customer orders') }}
-            </p>
-          </div>
-          <div class="flex items-center gap-4">
-            <!-- Date Filter -->
-            <div class="relative">
-              <input
-                type="date"
-                v-model="dateFilter"
-                class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            <!-- Export Button -->
-            <button
-              @click="exportOrders"
-              :disabled="loading || orders.length === 0"
-              class="px-4 py-2 border border-primary-500 text-primary-500 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              {{ t('Export') }}
-            </button>
-          </div>
-        </div>
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('Orders Management') }}</h1>
+        
+        <!-- Export Button -->
+        <button
+          @click="exportOrders"
+          :disabled="ordersStore.loading || ordersStore.orders.length === 0"
+          class="px-4 py-2 bg-gold-500 text-white rounded-lg hover:bg-gold-600 disabled:opacity-50 flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          {{ t('Export CSV') }}
+        </button>
       </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="p-8">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Orders -->
-        <div class="bg-white rounded-xl shadow-luxury p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-600">{{ t('Total Orders') }}</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ orders.length }}
-              </p>
-              <p class="text-sm text-gray-500 mt-1">
-                {{ t('All time') }}
-              </p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-              </svg>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">{{ t('Total Orders') }}</p>
+            <p class="text-2xl font-bold">{{ ordersStore.orders.length }}</p>
           </div>
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">{{ t('Pending') }}</p>
+            <p class="text-2xl font-bold">{{ ordersStore.pendingOrdersCount }}</p>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">{{ t('Delivered') }}</p>
+            <p class="text-2xl font-bold">{{ ordersStore.completedOrdersCount }}</p>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">{{ t('Revenue') }}</p>
+            <p class="text-2xl font-bold">EGP {{ formatCurrency(ordersStore.totalRevenue) }}</p>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow mb-6 p-4">
+      <div class="flex flex-wrap gap-4">
+        <!-- Status Filter -->
+        <select
+          v-model="statusFilter"
+          class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500"
+          @change="applyFilters"
+        >
+          <option value="">{{ t('All Statuses') }}</option>
+          <option value="pending">{{ t('Pending') }}</option>
+          <option value="processing">{{ t('Processing') }}</option>
+          <option value="shipped">{{ t('Shipped') }}</option>
+          <option value="delivered">{{ t('Delivered') }}</option>
+          <option value="cancelled">{{ t('Cancelled') }}</option>
+        </select>
+
+        <!-- Search -->
+        <div class="flex-1 relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('Search by order #, customer name, email...')"
+            class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500"
+            @input="debouncedSearch"
+          />
+          <svg class="absolute right-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
         </div>
 
-        <!-- Pending Orders -->
-        <div class="bg-white rounded-xl shadow-luxury p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-600">{{ t('Pending') }}</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ pendingOrdersCount }}
-              </p>
-              <p class="text-sm text-gray-500 mt-1">
-                {{ t('Awaiting processing') }}
-              </p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
+        <!-- Clear Filters -->
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="px-4 py-2 text-gray-600 hover:text-gold-600"
+        >
+          {{ t('Clear Filters') }}
+        </button>
+      </div>
+    </div>
 
-        <!-- Completed Orders -->
-        <div class="bg-white rounded-xl shadow-luxury p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-600">{{ t('Completed') }}</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">
-                {{ completedOrdersCount }}
-              </p>
-              <p class="text-sm text-gray-500 mt-1">
-                {{ t('Successfully delivered') }}
-              </p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-              <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
+    <!-- Orders Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <!-- Loading State -->
+      <div v-if="ordersStore.loading && ordersStore.orders.length === 0" class="p-12 text-center">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500"></div>
+        <p class="mt-4 text-gray-600">{{ t('Loading orders...') }}</p>
+      </div>
 
-        <!-- Revenue -->
-        <div class="bg-white rounded-xl shadow-luxury p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-600">{{ t('Total Revenue') }}</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">
-                ${{ totalRevenue.toLocaleString() }}
-              </p>
-              <p class="text-sm text-gray-500 mt-1">
-                {{ t('From all orders') }}
-              </p>
-            </div>
-            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-          </div>
+      <!-- Error State -->
+      <div v-else-if="ordersStore.error" class="p-12 text-center">
+        <div class="text-red-500 mb-4">
+          <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('Error Loading Orders') }}</h3>
+        <p class="text-gray-600 mb-4">{{ ordersStore.error }}</p>
+        <button
+          @click="fetchOrders"
+          class="px-4 py-2 bg-gold-500 text-white rounded-lg hover:bg-gold-600"
+        >
+          {{ t('Try Again') }}
+        </button>
       </div>
 
       <!-- Orders Table -->
-      <div class="bg-white rounded-xl shadow-luxury overflow-hidden">
-        <!-- Filters -->
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex flex-wrap items-center gap-4">
-            <!-- Status Filter -->
-            <select
-              v-model="statusFilter"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              @change="fetchOrdersWithFilters"
-            >
-              <option value="">{{ t('All Statuses') }}</option>
-              <option value="pending">{{ t('Pending') }}</option>
-              <option value="processing">{{ t('Processing') }}</option>
-              <option value="shipped">{{ t('Shipped') }}</option>
-              <option value="delivered">{{ t('Delivered') }}</option>
-              <option value="cancelled">{{ t('Cancelled') }}</option>
-            </select>
-
-            <!-- Search -->
-            <div class="relative flex-1 min-w-[200px]">
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('Search by order ID, customer name...')"
-                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                @input="onSearchInput"
-              />
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-            </div>
-
-            <!-- Clear Filters -->
-            <button
-              v-if="hasActiveFilters"
-              @click="clearFilters"
-              class="px-4 py-2 text-gray-600 hover:text-primary-600"
-            >
-              {{ t('Clear Filters') }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Loading State -->
-        <div v-if="loading" class="p-12 text-center">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-          <p class="text-gray-600 mt-4">{{ t('Loading orders...') }}</p>
-        </div>
-
-        <!-- Error State -->
-        <div v-else-if="error" class="p-12 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 text-red-300">
-            <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" 
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-2">
-            {{ t('Error loading orders') }}
-          </h3>
-          <p class="text-gray-600 mb-4">{{ error }}</p>
-          <button
-            @click="fetchOrders"
-            class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-          >
-            {{ t('Try Again') }}
-          </button>
-        </div>
-
-        <!-- Orders Table -->
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Order ID') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Customer') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Date') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Amount') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Status') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ t('Actions') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr 
-                v-for="order in filteredOrders" 
-                :key="order.id"
-                class="hover:bg-gray-50 transition-colors"
-              >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">
-                    #{{ order.orderNumber }}
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    {{ order.items?.length || 0 }} {{ t('items') }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">
-                    {{ order.customer?.name || t('N/A') }}
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    {{ order.customer?.email || '' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDate(order.createdAt) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-bold text-gray-900">
-                    ${{ order.total?.toFixed(2) || '0.00' }}
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    {{ order.paymentMethod || t('N/A') }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClasses(order.status)" class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ getStatusText(order.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex items-center gap-3">
-                    <button
-                      @click="viewOrder(order)"
-                      class="text-primary-600 hover:text-primary-700"
-                      :title="t('View Details')"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                      </svg>
-                    </button>
-                    <button
-                      @click="updateStatus(order)"
-                      class="text-gray-600 hover:text-primary-600"
-                      :title="t('Update Status')"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                      </svg>
-                    </button>
-                    <button
-                      @click="printInvoice(order)"
-                      class="text-gray-600 hover:text-primary-600"
-                      :title="t('Print Invoice')"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Empty State -->
-        <div v-if="!loading && !error && filteredOrders.length === 0" class="p-12 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 text-gray-300">
-            <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" 
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-2">
-            {{ t('No orders found') }}
-          </h3>
-          <p class="text-gray-600">
-            {{ hasActiveFilters ? t('Try adjusting your filters') : t('No orders have been placed yet') }}
-          </p>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="!loading && !error && filteredOrders.length > 0" class="px-6 py-4 border-t border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-              {{ t('Showing') }} 
-              <span class="font-medium">{{ filteredOrders.length }}</span>
-              {{ t('of') }}
-              <span class="font-medium">{{ orders.length }}</span>
-              {{ t('orders') }}
-            </div>
-            <div class="flex items-center gap-2">
-              <button
-                @click="prevPage"
-                :disabled="currentPage === 1"
-                class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                {{ t('Previous') }}
-              </button>
-              <span class="px-3 py-1 text-sm text-gray-700">
-                {{ currentPage }} / {{ totalPages }}
-              </span>
-              <button
-                @click="nextPage"
-                :disabled="currentPage === totalPages"
-                class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                {{ t('Next') }}
-              </button>
-            </div>
-          </div>
-        </div>
+      <div v-else-if="filteredOrders.length > 0" class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Order #') }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Customer') }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Date') }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Total') }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Status') }}
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Payment') }}
+              </th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {{ t('Actions') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="order in paginatedOrders" :key="order.id" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="text-sm font-medium text-gray-900">#{{ order.orderNumber }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ order.customer.name }}</div>
+                <div class="text-sm text-gray-500">{{ order.customer.email }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ formatDate(order.createdAt) }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="text-sm font-bold text-gray-900">EGP {{ formatCurrency(order.total) }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="getStatusClasses(order.status)" class="px-2 py-1 text-xs rounded-full">
+                  {{ getStatusText(order.status) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span :class="getPaymentStatusClasses(order.paymentStatus)" class="px-2 py-1 text-xs rounded-full">
+                  {{ order.paymentStatus }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right">
+                <router-link
+                  :to="`/admin/orders/${order.id}`"
+                  class="text-gold-600 hover:text-gold-700 mr-3"
+                  :title="t('View Details')"
+                >
+                  <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </router-link>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
 
-    <!-- Order Details Modal -->
-    <div 
-      v-if="selectedOrder"
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto"
-    >
-      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold text-gray-900">
-              {{ t('Order Details') }} #{{ selectedOrder.orderNumber }}
-            </h3>
-            <button
-              @click="selectedOrder = null"
-              class="text-gray-400 hover:text-gray-500"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <div class="p-6">
-          <!-- Order Summary -->
-          <div class="grid md:grid-cols-2 gap-8 mb-8">
-            <!-- Customer Information -->
-            <div>
-              <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                {{ t('Customer Information') }}
-              </h4>
-              <div class="space-y-3">
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Name') }}</p>
-                  <p class="font-medium">{{ selectedOrder.customer?.name || t('N/A') }}</p>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Email') }}</p>
-                  <p class="font-medium">{{ selectedOrder.customer?.email || t('N/A') }}</p>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Phone') }}</p>
-                  <p class="font-medium">{{ selectedOrder.customer?.phone || t('N/A') }}</p>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Shipping Address') }}</p>
-                  <p class="font-medium">{{ selectedOrder.shippingAddress || t('N/A') }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Order Information -->
-            <div>
-              <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                {{ t('Order Information') }}
-              </h4>
-              <div class="space-y-3">
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Order Date') }}</p>
-                  <p class="font-medium">{{ formatDate(selectedOrder.createdAt) }}</p>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Status') }}</p>
-                  <span :class="getStatusClasses(selectedOrder.status)" class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ getStatusText(selectedOrder.status) }}
-                  </span>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Payment Method') }}</p>
-                  <p class="font-medium">{{ selectedOrder.paymentMethod || t('N/A') }}</p>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-600">{{ t('Payment Status') }}</p>
-                  <span :class="getPaymentStatusClasses(selectedOrder.paymentStatus || 'paid')" class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ getPaymentStatusText(selectedOrder.paymentStatus || 'paid') }}
-                  </span>
-                </div>
-                <div v-if="selectedOrder.trackingNumber">
-                  <p class="text-sm text-gray-600">{{ t('Tracking Number') }}</p>
-                  <p class="font-medium">{{ selectedOrder.trackingNumber }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Order Items -->
-          <div class="mb-8">
-            <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-              {{ t('Order Items') }}
-            </h4>
-            <div v-if="selectedOrder.items && selectedOrder.items.length > 0" class="border border-gray-200 rounded-lg overflow-hidden">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {{ t('Product') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {{ t('Price') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {{ t('Quantity') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {{ t('Total') }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="item in selectedOrder.items" :key="item.id">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="flex items-center">
-                        <div class="h-10 w-10 flex-shrink-0">
-                          <img :src="item.imageUrl || 'https://via.placeholder.com/40'" :alt="item.name?.en || 'Product'" class="h-10 w-10 rounded object-cover">
-                        </div>
-                        <div class="ml-4">
-                          <div class="text-sm font-medium text-gray-900">
-                            {{ item.name?.en || t('Unnamed Product') }}
-                          </div>
-                          <div class="text-sm text-gray-500">
-                            {{ item.size }} • {{ item.concentration }}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${{ item.price?.toFixed(2) || '0.00' }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {{ item.quantity || 1 }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                      ${{ ((item.price || 0) * (item.quantity || 1)).toFixed(2) }}
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot class="bg-gray-50">
-                  <tr>
-                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {{ t('Subtotal') }}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                      ${{ selectedOrder.subtotal?.toFixed(2) || '0.00' }}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {{ t('Shipping') }}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                      ${{ selectedOrder.shippingCost?.toFixed(2) || '0.00' }}
-                    </td>
-                  </tr>
-                  <tr v-if="selectedOrder.tax">
-                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {{ t('Tax') }}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                      ${{ selectedOrder.tax?.toFixed(2) || '0.00' }}
-                    </td>
-                  </tr>
-                  <tr v-if="selectedOrder.discount">
-                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {{ t('Discount') }}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-bold text-red-600">
-                      -${{ selectedOrder.discount?.toFixed(2) || '0.00' }}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                      {{ t('Total') }}
-                    </td>
-                    <td class="px-6 py-4 text-sm font-bold text-primary-600">
-                      ${{ selectedOrder.total?.toFixed(2) || '0.00' }}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div v-else class="text-center py-8 text-gray-500">
-              {{ t('No items found in this order') }}
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex justify-end gap-3">
-            <button
-              @click="printInvoice(selectedOrder)"
-              class="px-4 py-2 border border-primary-500 text-primary-500 rounded-lg hover:bg-primary-50"
-            >
-              {{ t('Print Invoice') }}
-            </button>
-            <button
-              @click="updateStatus(selectedOrder)"
-              class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
-              {{ t('Update Status') }}
-            </button>
-          </div>
-        </div>
+      <!-- Empty State -->
+      <div v-else class="p-12 text-center">
+        <svg class="mx-auto w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">{{ t('No orders found') }}</h3>
+        <p class="text-gray-500">
+          {{ hasActiveFilters ? t('Try adjusting your filters') : t('No orders have been placed yet') }}
+        </p>
       </div>
-    </div>
 
-    <!-- Update Status Modal -->
-    <div 
-      v-if="showStatusModal"
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-    >
-      <div class="bg-white rounded-2xl max-w-md w-full p-6">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">
-          {{ t('Update Order Status') }} #{{ orderToUpdate?.orderNumber }}
-        </h3>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              {{ t('Select Status') }}
-            </label>
-            <select
-              v-model="newStatus"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      <!-- Pagination -->
+      <div v-if="filteredOrders.length > 0" class="px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            {{ t('Showing') }} {{ startIndex + 1 }} {{ t('to') }} {{ endIndex }} {{ t('of') }} {{ filteredOrders.length }}
+          </div>
+          <div class="flex gap-2">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
             >
-              <option value="pending">{{ t('Pending') }}</option>
-              <option value="processing">{{ t('Processing') }}</option>
-              <option value="shipped">{{ t('Shipped') }}</option>
-              <option value="delivered">{{ t('Delivered') }}</option>
-              <option value="cancelled">{{ t('Cancelled') }}</option>
-            </select>
+              {{ t('Previous') }}
+            </button>
+            <span class="px-3 py-1">{{ currentPage }} / {{ totalPages }}</span>
+            <button
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+              class="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+            >
+              {{ t('Next') }}
+            </button>
           </div>
-          <div v-if="newStatus === 'shipped' || newStatus === 'delivered'">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              {{ t('Tracking Number') }}
-            </label>
-            <input
-              v-model="trackingNumber"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              :placeholder="t('Enter tracking number')"
-            />
-          </div>
-        </div>
-        <div class="flex justify-end gap-3 mt-6">
-          <button
-            @click="showStatusModal = false"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            {{ t('Cancel') }}
-          </button>
-          <button
-            @click="confirmStatusUpdate"
-            :disabled="statusUpdateLoading"
-            class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span v-if="statusUpdateLoading" class="flex items-center gap-2">
-              <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {{ t('Updating...') }}
-            </span>
-            <span v-else>{{ t('Update') }}</span>
-          </button>
         </div>
       </div>
     </div>
@@ -623,100 +257,93 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useLanguageStore } from '@/stores/language'
+import { useRouter } from 'vue-router'
 import { useOrdersStore } from '@/stores/orders'
-import type { Order, OrderStatus } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import { useLanguageStore } from '@/stores/language'
+import { authNotification } from '@/utils/notifications'
+import debounce from 'lodash/debounce'
 
-const languageStore = useLanguageStore()
+const router = useRouter()
 const ordersStore = useOrdersStore()
-const { t, formatDate } = languageStore
+const authStore = useAuthStore()
+const { t } = useLanguageStore()
 
-// Use store state
-const orders = computed(() => ordersStore.orders)
-const loading = computed(() => ordersStore.loading)
-const error = computed(() => ordersStore.error)
-
-// Filters and search
+// State
 const searchQuery = ref('')
-const statusFilter = ref<OrderStatus | ''>('')
-const dateFilter = ref('')
-
-// Pagination
+const statusFilter = ref('')
 const currentPage = ref(1)
-const itemsPerPage = 10
+const perPage = ref(10)
 
-// Modals
-const selectedOrder = ref<Order | null>(null)
-const showStatusModal = ref(false)
-const orderToUpdate = ref<Order | null>(null)
-const newStatus = ref<OrderStatus>('pending')
-const trackingNumber = ref('')
-const statusUpdateLoading = ref(false)
-
-// Computed properties
+// Computed
 const filteredOrders = computed(() => {
-  let filtered = [...orders.value]
-
-  // Apply search
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(order => {
-      const orderNumber = order.orderNumber?.toLowerCase() || ''
-      const customerName = order.customer?.name?.toLowerCase() || ''
-      const customerEmail = order.customer?.email?.toLowerCase() || ''
-      
-      return orderNumber.includes(query) ||
-             customerName.includes(query) ||
-             customerEmail.includes(query)
-    })
-  }
+  let filtered = ordersStore.orders
 
   // Apply status filter
   if (statusFilter.value) {
     filtered = filtered.filter(order => order.status === statusFilter.value)
   }
 
-  // Apply date filter
-  if (dateFilter.value) {
-    const selectedDate = new Date(dateFilter.value)
-    filtered = filtered.filter(order => {
-      const orderDate = new Date(order.createdAt)
-      return orderDate.toDateString() === selectedDate.toDateString()
-    })
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(order =>
+      order.orderNumber.toLowerCase().includes(query) ||
+      order.customer.name.toLowerCase().includes(query) ||
+      order.customer.email.toLowerCase().includes(query)
+    )
   }
 
-  // Apply pagination
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return filtered.slice(start, end)
+  return filtered
 })
 
-const hasActiveFilters = computed(() => {
-  return searchQuery.value || statusFilter.value || dateFilter.value
-})
+const hasActiveFilters = computed(() => searchQuery.value || statusFilter.value)
 
-const totalPages = computed(() => {
-  return Math.ceil(orders.value.length / itemsPerPage)
-})
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / perPage.value))
 
-// Use store getters
-const pendingOrdersCount = computed(() => ordersStore.pendingOrdersCount)
-const completedOrdersCount = computed(() => ordersStore.completedOrdersCount)
-const totalRevenue = computed(() => ordersStore.totalRevenue)
+const startIndex = computed(() => (currentPage.value - 1) * perPage.value)
+
+const endIndex = computed(() => Math.min(startIndex.value + perPage.value, filteredOrders.value.length))
+
+const paginatedOrders = computed(() =>
+  filteredOrders.value.slice(startIndex.value, endIndex.value)
+)
 
 // Methods
-const getStatusClasses = (status: OrderStatus) => {
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-EG').format(amount)
+}
+
+const formatDate = (date: Date) => {
+  return new Date(date).toLocaleDateString('en-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const getStatusClasses = (status: string) => {
   const classes = {
     pending: 'bg-yellow-100 text-yellow-800',
     processing: 'bg-blue-100 text-blue-800',
-    shipped: 'bg-indigo-100 text-indigo-800',
-    delivered: 'bg-emerald-100 text-emerald-800',
+    shipped: 'bg-purple-100 text-purple-800',
+    delivered: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800'
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status as keyof typeof classes] || 'bg-gray-100 text-gray-800'
 }
 
-const getStatusText = (status: OrderStatus) => {
+const getPaymentStatusClasses = (status: string) => {
+  const classes = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    paid: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800',
+    refunded: 'bg-gray-100 text-gray-800'
+  }
+  return classes[status as keyof typeof classes] || 'bg-gray-100 text-gray-800'
+}
+
+const getStatusText = (status: string) => {
   const texts = {
     pending: t('Pending'),
     processing: t('Processing'),
@@ -724,224 +351,31 @@ const getStatusText = (status: OrderStatus) => {
     delivered: t('Delivered'),
     cancelled: t('Cancelled')
   }
-  return texts[status] || status
+  return texts[status as keyof typeof texts] || status
 }
 
-const getPaymentStatusClasses = (status: string) => {
-  const classes = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-emerald-100 text-emerald-800',
-    failed: 'bg-red-100 text-red-800',
-    refunded: 'bg-gray-100 text-gray-800'
+const fetchOrders = async () => {
+  if (!authStore.isAdmin) {
+    router.push('/admin/login')
+    return
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  
+  // Admin can fetch all orders with all=true flag
+  await ordersStore.fetchOrders({ all: true, limit: 50 })
 }
 
-const getPaymentStatusText = (status: string) => {
-  const texts = {
-    pending: t('Pending'),
-    paid: t('Paid'),
-    failed: t('Failed'),
-    refunded: t('Refunded')
-  }
-  return texts[status] || status
+const applyFilters = () => {
+  currentPage.value = 1
 }
 
-const viewOrder = async (order: Order) => {
-  try {
-    const fetchedOrder = await ordersStore.fetchOrderById(order.id)
-    selectedOrder.value = fetchedOrder || order
-  } catch (err) {
-    console.error('Error fetching order details:', err)
-    selectedOrder.value = order
-  }
-}
-
-const updateStatus = (order: Order) => {
-  orderToUpdate.value = order
-  newStatus.value = order.status
-  trackingNumber.value = order.trackingNumber || ''
-  showStatusModal.value = true
-}
-
-const confirmStatusUpdate = async () => {
-  if (!orderToUpdate.value) return
-
-  statusUpdateLoading.value = true
-  try {
-    const success = await ordersStore.updateOrderStatus(
-      orderToUpdate.value.id,
-      newStatus.value,
-      trackingNumber.value
-    )
-    
-    if (success) {
-      // Update selected order if it's open
-      if (selectedOrder.value && selectedOrder.value.id === orderToUpdate.value.id) {
-        selectedOrder.value.status = newStatus.value
-        if (trackingNumber.value) {
-          selectedOrder.value.trackingNumber = trackingNumber.value
-        }
-      }
-      
-      showStatusModal.value = false
-      alert(t('Order status updated successfully!'))
-    } else {
-      alert(t('Failed to update order status. Please try again.'))
-    }
-  } catch (err) {
-    console.error('Error updating order status:', err)
-    alert(t('An error occurred. Please try again.'))
-  } finally {
-    statusUpdateLoading.value = false
-  }
-}
-
-const printInvoice = (order: Order) => {
-  const printWindow = window.open('', '_blank')
-  if (printWindow) {
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice #${order.orderNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-            .info { display: flex; justify-content: space-between; margin-bottom: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .total { text-align: right; font-weight: bold; }
-            .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-            .status-pending { background-color: #fef3c7; color: #92400e; }
-            .status-processing { background-color: #dbeafe; color: #1e40af; }
-            .status-shipped { background-color: #e0e7ff; color: #3730a3; }
-            .status-delivered { background-color: #d1fae5; color: #065f46; }
-            .status-cancelled { background-color: #fee2e2; color: #991b1b; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Invoice #${order.orderNumber}</h1>
-            <h2>Luxury Perfume Store</h2>
-            <p>Date: ${formatDate(order.createdAt)}</p>
-          </div>
-          
-          <div class="info">
-            <div>
-              <h3>Customer Information</h3>
-              <p><strong>Name:</strong> ${order.customer?.name || 'N/A'}</p>
-              <p><strong>Email:</strong> ${order.customer?.email || 'N/A'}</p>
-              <p><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
-              <p><strong>Shipping Address:</strong> ${order.shippingAddress || 'N/A'}</p>
-            </div>
-            <div>
-              <h3>Order Information</h3>
-              <p><strong>Status:</strong> <span class="status status-${order.status}">${getStatusText(order.status)}</span></p>
-              <p><strong>Payment Method:</strong> ${order.paymentMethod || 'N/A'}</p>
-              <p><strong>Payment Status:</strong> ${getPaymentStatusText(order.paymentStatus || 'paid')}</p>
-              ${order.trackingNumber ? `<p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>` : ''}
-            </div>
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${order.items?.map(item => `
-                <tr>
-                  <td>${item.name?.en || 'Unnamed Product'}<br><small>${item.size || ''} • ${item.concentration || ''}</small></td>
-                  <td>$${item.price?.toFixed(2) || '0.00'}</td>
-                  <td>${item.quantity || 1}</td>
-                  <td>$${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
-                </tr>
-              `).join('') || '<tr><td colspan="4" style="text-align: center;">No items found</td></tr>'}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" class="total">Subtotal:</td>
-                <td>$${order.subtotal?.toFixed(2) || '0.00'}</td>
-              </tr>
-              ${order.shippingCost ? `
-              <tr>
-                <td colspan="3" class="total">Shipping:</td>
-                <td>$${order.shippingCost.toFixed(2)}</td>
-              </tr>
-              ` : ''}
-              ${order.tax ? `
-              <tr>
-                <td colspan="3" class="total">Tax:</td>
-                <td>$${order.tax.toFixed(2)}</td>
-              </tr>
-              ` : ''}
-              ${order.discount ? `
-              <tr>
-                <td colspan="3" class="total">Discount:</td>
-                <td>-$${order.discount.toFixed(2)}</td>
-              </tr>
-              ` : ''}
-              <tr>
-                <td colspan="3" class="total">Total:</td>
-                <td><strong>$${order.total?.toFixed(2) || '0.00'}</strong></td>
-              </tr>
-            </tfoot>
-          </table>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
-    printWindow.print()
-  }
-}
-
-const exportOrders = async () => {
-  try {
-    // Convert orders to CSV
-    const headers = ['Order ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Date', 'Amount', 'Status', 'Payment Method', 'Payment Status']
-    const csvData = orders.value.map(order => [
-      order.orderNumber,
-      order.customer?.name || '',
-      order.customer?.email || '',
-      order.customer?.phone || '',
-      formatDate(order.createdAt),
-      `$${order.total?.toFixed(2) || '0.00'}`,
-      getStatusText(order.status),
-      order.paymentMethod || '',
-      getPaymentStatusText(order.paymentStatus || 'paid')
-    ])
-
-    const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.join(','))
-    ].join('\n')
-
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `orders-${new Date().toISOString().split('T')[0]}.csv`)
-    link.click()
-
-    alert(t('Orders exported successfully!'))
-  } catch (err) {
-    console.error('Error exporting orders:', err)
-    alert(t('Failed to export orders. Please try again.'))
-  }
-}
+const debouncedSearch = debounce(() => {
+  currentPage.value = 1
+}, 300)
 
 const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = ''
-  dateFilter.value = ''
   currentPage.value = 1
-  fetchOrders()
 }
 
 const prevPage = () => {
@@ -956,59 +390,49 @@ const nextPage = () => {
   }
 }
 
-const fetchOrders = async () => {
-  await ordersStore.fetchOrders({
-    limit: 100,
-    status: statusFilter.value as OrderStatus
-  })
+const exportOrders = async () => {
+  try {
+    const headers = ['Order #', 'Customer Name', 'Email', 'Date', 'Total', 'Status', 'Payment Status']
+    const csvData = filteredOrders.value.map(order => [
+      order.orderNumber,
+      order.customer.name,
+      order.customer.email,
+      formatDate(order.createdAt),
+      `EGP ${order.total.toFixed(2)}`,
+      order.status,
+      order.paymentStatus
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `orders-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+
+    authNotification.loggedIn(t('Orders exported successfully'))
+  } catch (err) {
+    console.error('Error exporting orders:', err)
+    authNotification.error(t('Failed to export orders'))
+  }
 }
 
-const fetchOrdersWithFilters = async () => {
-  await fetchOrders()
-  currentPage.value = 1
-}
-
-const onSearchInput = () => {
-  // Debounce search if needed
-  currentPage.value = 1
-}
-
-// Initialize
-onMounted(() => {
-  fetchOrders()
+// Watch for filter changes
+watch([statusFilter], () => {
+  applyFilters()
 })
 
-// Watch filters and refetch
-watch([statusFilter, dateFilter], () => {
-  fetchOrdersWithFilters()
+onMounted(() => {
+  if (authStore.isAdmin) {
+    fetchOrders()
+  } else {
+    router.push('/admin/login')
+  }
 })
 </script>
-
-<style scoped>
-.shadow-luxury {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.transition-colors {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-</style>

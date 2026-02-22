@@ -222,7 +222,7 @@ export const routes: Array<RouteRecordRaw> = [
   {
     path: '/login',
     name: 'customer-login',
-    component: () => import('@/pages/CustomerLoginPage.vue'),
+    component: () => import('@/pages/Admin/LoginPage.vue'),
     meta: {
       title: {
         en: 'Customer Login | Luxury Perfume Store',

@@ -149,7 +149,7 @@ export const useBrandsStore = defineStore('brands', () => {
   }
 
   /* =========================
-   * ADD BRAND + PRODUCTS
+   * ADD BRAND + PRODUCTS - FIXED VERSION
    * ========================= */
   const addBrandWithProducts = async (
     brandData: Partial<Brand>,
@@ -163,6 +163,7 @@ export const useBrandsStore = defineStore('brands', () => {
     try {
       console.log('Starting addBrandWithProducts:', { brandData, productsData })
 
+      // Validate required fields
       if (!brandData.name || !brandData.slug) {
         throw new Error('Brand name and slug are required')
       }
@@ -183,16 +184,18 @@ export const useBrandsStore = defineStore('brands', () => {
       // Brand document
       const brandDocRef = doc(collection(db, 'brands'))
       const brandId = brandDocRef.id
+      
+      // Ensure all brand fields are properly set
       const brandPayload = {
         name: brandData.name.trim(),
-        slug: brandData.slug.trim(),
+        slug: brandData.slug.toLowerCase().trim(),
         image: brandData.image?.trim() || '',
         signature: brandData.signature?.trim() || '',
         description: brandData.description?.trim() || '',
         category: brandData.category.trim(),
         isActive: brandData.isActive !== false,
         price: Number(brandData.price) || 0,
-        productIds: [], // optional, can fetch from subcollection
+        productIds: [], // Will be updated after products are added
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }
@@ -202,17 +205,31 @@ export const useBrandsStore = defineStore('brands', () => {
       const productIds: string[] = []
       const productSlugs = new Set<string>()
 
+      // Validate products array
+      if (!productsData || productsData.length === 0) {
+        throw new Error('At least one product is required')
+      }
+
       // Products as subcollection
       for (let i = 0; i < productsData.length; i++) {
         const product = productsData[i]
-        if (!product.name?.en) throw new Error(`Product ${i + 1} must have an English name`)
+        
+        // Validate required product fields
+        if (!product.name?.en) {
+          throw new Error(`Product ${i + 1} must have an English name`)
+        }
 
-        let productSlug = product.slug || product.name.en.toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/--+/g, '-')
-          .trim()
+        // Generate slug if not provided
+        let productSlug = product.slug
+        if (!productSlug) {
+          productSlug = product.name.en.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/--+/g, '-')
+            .trim()
+        }
 
+        // Ensure slug uniqueness within this brand
         let counter = 1
         const originalSlug = productSlug
         while (productSlugs.has(productSlug)) {
@@ -223,33 +240,51 @@ export const useBrandsStore = defineStore('brands', () => {
 
         const productDocRef = doc(collection(db, 'brands', brandId, 'products'))
 
+        // Build product payload with all required fields
         const productPayload: any = {
-          name: { en: product.name.en.trim(), ar: product.name.ar?.trim() || product.name.en.trim() },
-          description: { en: product.description?.en?.trim() || '', ar: product.description?.ar?.trim() || '' },
+          name: { 
+            en: product.name.en?.trim() || '', 
+            ar: product.name.ar?.trim() || product.name.en?.trim() || '' 
+          },
+          description: { 
+            en: product.description?.en?.trim() || '', 
+            ar: product.description?.ar?.trim() || '' 
+          },
           price: Number(product.price) || 0,
           size: product.size || '100ml',
           concentration: product.concentration || 'Eau de Parfum',
           imageUrl: product.imageUrl || '',
-          images: Array.isArray(product.images) ? product.images : (product.imageUrl ? [product.imageUrl] : []),
+          images: product.imageUrl ? [product.imageUrl] : [],
           inStock: product.inStock !== false,
           isBestSeller: product.isBestSeller || false,
           isFeatured: product.isFeatured || false,
           slug: productSlug,
-          brand: brandData.slug?.trim() || '',
-          brandId,
+          brand: brandData.slug?.toLowerCase().trim() || '',
+          brandId: brandId,
           category: product.category || brandData.category || '',
-          ratings: product.ratings || 0,
-          ratingCount: product.ratingCount || 0,
+          // Handle stock quantity correctly
+          stockQuantity: Number(product.stock || product.stockQuantity || 0),
+          sku: product.sku || '',
+          notes: product.notes || { top: [], heart: [], base: [] },
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }
+
+        // Add optional fields if they exist
+        if (product.rating !== undefined) productPayload.rating = Number(product.rating)
+        if (product.reviewCount !== undefined) productPayload.reviewCount = Number(product.reviewCount)
+        if (product.ratings !== undefined) productPayload.ratings = Number(product.ratings)
+        if (product.ratingCount !== undefined) productPayload.ratingCount = Number(product.ratingCount)
 
         batch.set(productDocRef, productPayload)
         productIds.push(productDocRef.id)
       }
 
-      // Optional: update brand with product IDs
-      batch.update(brandDocRef, { productIds, updatedAt: serverTimestamp() })
+      // Update brand with product IDs
+      batch.update(brandDocRef, { 
+        productIds, 
+        updatedAt: serverTimestamp() 
+      })
 
       console.log('Committing batch with', productIds.length + 1, 'documents')
       await batch.commit()
@@ -284,7 +319,7 @@ export const useBrandsStore = defineStore('brands', () => {
       const updatePayload: any = { updatedAt: serverTimestamp() }
 
       if (updates.name !== undefined) updatePayload.name = updates.name.trim()
-      if (updates.slug !== undefined) updatePayload.slug = updates.slug.trim()
+      if (updates.slug !== undefined) updatePayload.slug = updates.slug.toLowerCase().trim()
       if (updates.image !== undefined) updatePayload.image = updates.image.trim()
       if (updates.signature !== undefined) updatePayload.signature = updates.signature.trim()
       if (updates.description !== undefined) updatePayload.description = updates.description.trim()

@@ -116,11 +116,23 @@
                 </svg>
               </button>
               
-              <!-- Login/Account Button -->
-              <button v-if="!isAuthenticated" class="luxury-header-action" @click="router.push('/login')" :aria-label="languageStore.t('login')">
+              <!-- ADMIN LOGIN - Always visible (gear/cog icon for admin) -->
+              <router-link to="/admin/login" class="luxury-header-action admin-login" :title="languageStore.t('adminLogin') || 'Admin Login'">
                 <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                  <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </router-link>
+              
+              <!-- CUSTOMER LOGIN/ACCOUNT - Changes based on auth state -->
+              <button v-if="!isAuthenticated" class="luxury-header-action" @click="router.push('/login')" :aria-label="languageStore.t('customerLogin') || 'Customer Login'">
+                <svg class="luxury-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" 
+                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M3 20C3 16.6863 5.68629 14 9 14H15C18.3137 14 21 16.6863 21 20V21H3V20Z" 
+                        stroke="currentColor" stroke-width="1.5"/>
                 </svg>
               </button>
               
@@ -163,6 +175,16 @@
           
           <!-- Mobile Actions Row -->
           <div class="mobile-actions-row">
+            <!-- ADMIN LOGIN (Mobile) -->
+            <router-link to="/admin/login" class="mobile-action-icon-link admin-login-mobile" :title="languageStore.t('adminLogin') || 'Admin'">
+              <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </router-link>
+            
             <!-- Track Order (Mobile) -->
             <router-link to="/track-order" class="mobile-action-icon-link" :title="languageStore.t('trackOrder')">
               <svg class="mobile-icon" viewBox="0 0 24 24" fill="none">
@@ -275,6 +297,17 @@
           
           <!-- Mobile Actions -->
           <div class="mobile-actions">
+            <!-- ADMIN LOGIN in Mobile Menu -->
+            <router-link to="/admin/login" class="mobile-action-btn" @click="closeMobileMenu">
+              <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>{{ languageStore.t('adminLogin') || 'Admin Login' }}</span>
+            </router-link>
+            
             <button class="mobile-action-btn" @click="handleMobileAction('search')">
               <svg class="mobile-action-icon" viewBox="0 0 24 24" fill="none">
                 <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" 
@@ -290,7 +323,7 @@
                   <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>{{ languageStore.t('login') }}</span>
+                <span>{{ languageStore.t('customerLogin') || 'Customer Login' }}</span>
               </router-link>
               
               <router-link to="/register" class="mobile-action-btn" @click="closeMobileMenu">

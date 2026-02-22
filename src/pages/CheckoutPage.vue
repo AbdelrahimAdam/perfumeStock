@@ -101,7 +101,7 @@
       </div>
 
       <div class="grid lg:grid-cols-3 gap-8">
-        <!-- Left Column: Order Summary -->
+        <!-- Left Column: Customer Information -->
         <div class="lg:col-span-2">
           <!-- Contact Information -->
           <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
@@ -206,10 +206,11 @@
                            focus:ring-primary-500 focus:border-transparent transition-all bg-white"
                   >
                     <option value="">{{ currentLanguage === 'en' ? 'Select Governorate' : 'اختر المحافظة' }}</option>
-                    <option value="cairo">{{ currentLanguage === 'en' ? 'Cairo' : 'القاهرة' }}</option>
-                    <option value="giza">{{ currentLanguage === 'en' ? 'Giza' : 'الجيزة' }}</option>
-                    <option value="alexandria">{{ currentLanguage === 'en' ? 'Alexandria' : 'الإسكندرية' }}</option>
-                    <option value="other">{{ currentLanguage === 'en' ? 'Other' : 'أخرى' }}</option>
+                    <option value="Cairo">{{ currentLanguage === 'en' ? 'Cairo' : 'القاهرة' }}</option>
+                    <option value="Giza">{{ currentLanguage === 'en' ? 'Giza' : 'الجيزة' }}</option>
+                    <option value="Alexandria">{{ currentLanguage === 'en' ? 'Alexandria' : 'الإسكندرية' }}</option>
+                    <option value="Qalyubia">{{ currentLanguage === 'en' ? 'Qalyubia' : 'القليوبية' }}</option>
+                    <option value="Other">{{ currentLanguage === 'en' ? 'Other' : 'أخرى' }}</option>
                   </select>
                   <p v-if="errors.governorate" class="mt-2 text-sm text-red-600">{{ errors.governorate }}</p>
                 </div>
@@ -245,7 +246,7 @@
                 <input
                   type="radio"
                   v-model="checkoutForm.paymentMethod"
-                  value="cash"
+                  value="cash_on_delivery"
                   class="h-5 w-5 text-primary-600 mt-1"
                 />
                 <div class="ml-4 flex-1">
@@ -262,7 +263,7 @@
                     </div>
                     <span class="text-2xl">💰</span>
                   </div>
-                  <div v-if="checkoutForm.paymentMethod === 'cash'" class="mt-4 p-4 bg-yellow-50 
+                  <div v-if="checkoutForm.paymentMethod === 'cash_on_delivery'" class="mt-4 p-4 bg-yellow-50 
                                                                           rounded-lg border border-yellow-100">
                     <p class="text-sm text-yellow-800">
                       {{ currentLanguage === 'en' 
@@ -279,7 +280,7 @@
                 <input
                   type="radio"
                   v-model="checkoutForm.paymentMethod"
-                  value="bank"
+                  value="bank_transfer"
                   class="h-5 w-5 text-primary-600 mt-1"
                 />
                 <div class="ml-4 flex-1">
@@ -296,7 +297,7 @@
                     </div>
                     <span class="text-2xl">🏦</span>
                   </div>
-                  <div v-if="checkoutForm.paymentMethod === 'bank'" class="mt-4 p-4 bg-blue-50 
+                  <div v-if="checkoutForm.paymentMethod === 'bank_transfer'" class="mt-4 p-4 bg-blue-50 
                                                                           rounded-lg border border-blue-100">
                     <p class="text-sm text-blue-800 font-medium mb-2">
                       {{ currentLanguage === 'en' ? 'Bank Details:' : 'تفاصيل البنك:' }}
@@ -325,7 +326,7 @@
               <!-- Order Items -->
               <div class="space-y-4 mb-6 max-h-64 overflow-y-auto">
                 <div
-                  v-for="item in safeCartItems"
+                  v-for="item in cartStore.luxuryItems"
                   :key="item.id"
                   class="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0"
                 >
@@ -333,63 +334,87 @@
                     <div class="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br 
                                 from-gray-50 to-gray-100 border border-gray-200">
                       <img
-                        :src="getSafeImageUrl(item)"
-                        :alt="getSafeItemName(item)"
+                        :src="item.imageUrl || '/images/default-product.jpg'"
+                        :alt="item.name[currentLanguage]"
                         class="w-full h-full object-cover"
                         @error="handleImageError"
                       />
                     </div>
                     <div class="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 text-white 
                                 rounded-full flex items-center justify-center text-xs font-bold">
-                      {{ item.quantity || 1 }}
+                      {{ item.quantity }}
                     </div>
                   </div>
                   
                   <div class="flex-1 min-w-0">
                     <h4 class="text-sm font-medium text-gray-900 truncate">
-                      {{ getSafeItemName(item) }}
+                      {{ item.name[currentLanguage] }}
                     </h4>
-                    <p class="text-xs text-gray-500">{{ getSafeItemSize(item) }}</p>
+                    <p class="text-xs text-gray-500">{{ item.size }} • {{ item.concentration }}</p>
+                    <p class="text-xs text-gray-500">{{ item.brand }}</p>
                   </div>
                   
                   <div class="text-right">
                     <p class="text-sm font-bold text-primary-600">
-                      {{ formatPrice((item.price || 0) * (item.quantity || 1)) }} EGP
+                      {{ cartStore.formatPrice(item.price * item.quantity) }}
                     </p>
                   </div>
                 </div>
               </div>
               
-              <!-- Price Breakdown -->
+              <!-- Price Breakdown - Using cart store values -->
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-gray-600">{{ currentLanguage === 'en' ? 'Subtotal' : 'المجموع الفرعي' }}</span>
-                  <span class="font-medium">{{ formatPrice(subtotal) }} EGP</span>
+                  <span class="font-medium">{{ cartStore.formatPrice(cartStore.subtotal) }}</span>
                 </div>
                 
                 <div class="flex justify-between">
                   <span class="text-gray-600">{{ currentLanguage === 'en' ? 'Shipping' : 'الشحن' }}</span>
-                  <span class="font-medium text-green-600">
-                    {{ shipping === 0 
-                      ? (currentLanguage === 'en' ? 'Free' : 'مجاني') 
-                      : formatPrice(shipping) + ' EGP' }}
+                  <span class="font-medium" :class="{ 'text-green-600': cartStore.shipping === 0 }">
+                    {{ cartStore.shipping === 0 
+                      ? (currentLanguage === 'en' ? 'FREE' : 'مجاني') 
+                      : cartStore.formatPrice(cartStore.shipping) }}
                   </span>
                 </div>
                 
-                <div v-if="shipping > 0" class="text-sm text-primary-600 bg-primary-50 
-                                               p-2 rounded-lg text-center">
-                  {{ currentLanguage === 'en' 
-                    ? `Free shipping on orders over ${formatPrice(freeShippingThreshold)} EGP` 
-                    : `شحن مجاني للطلبات فوق ${formatPrice(freeShippingThreshold)} جنيه` }}
+                <div class="flex justify-between">
+                  <span class="text-gray-600">{{ currentLanguage === 'en' ? 'Tax (14% VAT)' : 'الضريبة (14%)' }}</span>
+                  <span class="font-medium">{{ cartStore.formatPrice(cartStore.tax) }}</span>
                 </div>
                 
-                <div class="border-t border-gray-200 pt-3 mt-3">
+                <!-- Savings (if any) -->
+                <div v-if="savings > 0" class="flex justify-between text-green-600">
+                  <span class="font-medium">{{ currentLanguage === 'en' ? 'You Save' : 'وفرت' }}</span>
+                  <span class="font-bold">{{ cartStore.formatPrice(savings) }}</span>
+                </div>
+                
+                <!-- Free Shipping Progress -->
+                <div v-if="!cartStore.hasFreeShipping" class="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-600">{{ currentLanguage === 'en' ? 'Free shipping progress' : 'تقدم الشحن المجاني' }}</span>
+                    <span class="font-medium text-primary-600">{{ cartStore.formatPrice(shippingProgress.remaining) }}</span>
+                  </div>
+                  <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      class="h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-500"
+                      :style="{ width: `${shippingProgress.percentage}%` }"
+                    />
+                  </div>
+                  <p class="text-xs text-gray-500 mt-2">
+                    {{ currentLanguage === 'en' 
+                      ? `Add ${cartStore.formatPrice(shippingProgress.remaining)} more for free shipping` 
+                      : `أضف ${cartStore.formatPrice(shippingProgress.remaining)} للحصول على شحن مجاني` }}
+                  </p>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4 mt-4">
                   <div class="flex justify-between">
                     <span class="text-lg font-bold text-gray-900">{{ currentLanguage === 'en' ? 'Total' : 'الإجمالي' }}</span>
-                    <span class="text-2xl font-bold text-primary-600">{{ formatPrice(total) }} EGP</span>
+                    <span class="text-2xl font-bold text-primary-600">{{ cartStore.formatPrice(cartStore.total) }}</span>
                   </div>
-                  <p class="text-sm text-gray-500 mt-1">
-                    {{ currentLanguage === 'en' ? 'Prices in Egyptian Pounds' : 'الأسعار بالجنيه المصري' }}
+                  <p class="text-xs text-gray-500 mt-1">
+                    {{ currentLanguage === 'en' ? 'Including VAT' : 'شامل ضريبة القيمة المضافة' }}
                   </p>
                 </div>
               </div>
@@ -448,7 +473,7 @@
                 </div>
                 <div>
                   <p class="text-sm font-medium text-blue-800">
-                    {{ currentLanguage === 'en' ? '30-Day Return Policy' : 'سياسة إرجاع 30 يوم' }}
+                    {{ currentLanguage === 'en' ? '14-Day Return Policy' : 'سياسة إرجاع 14 يوم' }}
                   </p>
                   <p class="text-xs text-blue-600 mt-1">
                     {{ currentLanguage === 'en' 
@@ -470,19 +495,22 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useCartStore } from '@/stores/cart'
+import { useOrdersStore } from '@/stores/orders'
+import { useAuthStore } from '@/stores/auth'
 import SEOHead from '@/components/UI/SEOHead.vue'
-import { showNotification } from '@/utils/notifications'
+import { authNotification } from '@/utils/notifications'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
 const cartStore = useCartStore()
+const ordersStore = useOrdersStore()
+const authStore = useAuthStore()
 
-const { currentLanguage, isRTL } = languageStore
+const { currentLanguage, isRTL, t } = languageStore
 
 // State
 const loading = ref(false)
 const isProcessing = ref(false)
-const freeShippingThreshold = 2000 // 2000 EGP
 
 const checkoutForm = ref({
   fullName: '',
@@ -491,31 +519,14 @@ const checkoutForm = ref({
   address: '',
   city: '',
   governorate: '',
-  paymentMethod: 'cash',
+  paymentMethod: 'cash_on_delivery',
   notes: ''
 })
 
 const errors = ref<Record<string, string>>({})
 
 // Computed
-const cartItems = computed(() => cartStore.items)
-
-// Safe cart items with fallbacks for undefined values
-const safeCartItems = computed(() => {
-  return cartItems.value.map(item => ({
-    ...item,
-    product: item.product || {},
-    quantity: item.quantity || 1,
-    price: item.price || 0
-  }))
-})
-
 const isEmpty = computed(() => cartStore.isEmpty)
-const subtotal = computed(() => cartStore.subtotal)
-const shipping = computed(() => {
-  return subtotal.value >= freeShippingThreshold ? 0 : 50 // 50 EGP shipping
-})
-const total = computed(() => subtotal.value + shipping.value)
 
 const isFormValid = computed(() => {
   const { fullName, email, phone, address, city, governorate } = checkoutForm.value
@@ -529,48 +540,18 @@ const isFormValid = computed(() => {
   )
 })
 
-// Safe getter functions for item properties
-const getSafeItemName = (item: any): string => {
-  if (item.product?.name) {
-    return item.product.name[currentLanguage.value] || item.product.name.en || 'Product'
-  }
-  if (item.name) {
-    return item.name[currentLanguage.value] || item.name.en || 'Product'
-  }
-  return 'Product'
-}
+// Get shipping progress from cart store
+const shippingProgress = computed(() => cartStore.getFreeShippingProgress())
+const savings = computed(() => cartStore.calculateSavings())
 
-const getSafeImageUrl = (item: any): string => {
-  if (item.product?.imageUrl) {
-    return item.product.imageUrl
-  }
-  if (item.imageUrl) {
-    return item.imageUrl
-  }
-  if (item.image) {
-    return item.image
-  }
-  return '/images/default-product.jpg'
-}
-
-const getSafeItemSize = (item: any): string => {
-  if (item.product?.size) {
-    return item.product.size
-  }
-  if (item.size) {
-    return item.size
-  }
-  return '100ml'
+// Methods
+const formatPrice = (price: number) => {
+  return cartStore.formatPrice(price)
 }
 
 const handleImageError = (e: Event) => {
   const img = e.target as HTMLImageElement
   img.src = '/images/default-product.jpg'
-}
-
-// Methods
-const formatPrice = (price: number) => {
-  return (price || 0).toFixed(2)
 }
 
 const validateForm = () => {
@@ -609,95 +590,48 @@ const validateForm = () => {
 
 const placeOrder = async () => {
   if (!validateForm()) {
-    showNotification({
-      type: 'error',
-      title: currentLanguage.value === 'en' ? 'Form Error' : 'خطأ في النموذج',
-      message: currentLanguage.value === 'en' 
-        ? 'Please fix the errors in the form' 
-        : 'يرجى تصحيح الأخطاء في النموذج',
-      duration: 5000
-    })
+    authNotification.error(currentLanguage.value === 'en' 
+      ? 'Please fix the errors in the form' 
+      : 'يرجى تصحيح الأخطاء في النموذج')
     return
   }
 
   isProcessing.value = true
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Create order object with safe values
-    const order = {
-      id: `ORD-${Date.now()}`,
-      orderNumber: `ORD-${Date.now()}`,
-      customer: {
-        name: checkoutForm.value.fullName,
-        email: checkoutForm.value.email,
-        phone: checkoutForm.value.phone,
-        address: checkoutForm.value.address,
-        city: checkoutForm.value.city,
-        governorate: checkoutForm.value.governorate
-      },
-      items: safeCartItems.value.map(item => ({
-        id: item.id,
-        productId: item.id,
-        name: getSafeItemName(item),
-        price: item.price || 0,
-        quantity: item.quantity || 1,
-        size: getSafeItemSize(item),
-        image: getSafeImageUrl(item)
-      })),
-      subtotal: subtotal.value,
-      shipping: shipping.value,
-      total: total.value,
-      currency: 'EGP',
-      paymentMethod: checkoutForm.value.paymentMethod,
-      status: 'pending',
-      notes: checkoutForm.value.notes,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    // Prepare shipping address
+    const shippingAddress = {
+      name: checkoutForm.value.fullName,
+      email: checkoutForm.value.email,
+      phone: checkoutForm.value.phone,
+      address: checkoutForm.value.address,
+      city: checkoutForm.value.city,
+      country: 'Egypt'
     }
 
-    // Here you would typically:
-    // 1. Send order to backend API
-    // 2. Process payment
-    // 3. Save order to database
-    
-    // For demo purposes, save to localStorage
-    const orders = JSON.parse(localStorage.getItem('luxury_orders') || '[]')
-    orders.push(order)
-    localStorage.setItem('luxury_orders', JSON.stringify(orders))
-    
-    // Save guest info for order tracking
-    localStorage.setItem('guest_order_id', order.id)
-    localStorage.setItem('last_order_email', order.customer.email)
-    
-    // Clear cart
-    cartStore.clearCart()
-    
-    // Show success notification
-    showNotification({
-      type: 'success',
-      title: currentLanguage.value === 'en' ? 'Order Placed Successfully!' : 'تم تأكيد الطلب بنجاح!',
-      message: currentLanguage.value === 'en'
-        ? `Your order #${order.orderNumber} has been received. We'll contact you soon for delivery.`
-        : `طلبك رقم #${order.orderNumber} تم استلامه. سنتواصل معك قريباً للتوصيل.`,
-      duration: 8000
-    })
-    
-    // Redirect to order confirmation page
-    router.push(`/order-confirmation/${order.id}`)
-    
-  } catch (error) {
+    // Create order using orders store
+    const order = await ordersStore.createOrder(
+      shippingAddress,
+      checkoutForm.value.paymentMethod,
+      checkoutForm.value.notes
+    )
+
+    if (order) {
+      // Show success notification
+      authNotification.loggedIn(currentLanguage.value === 'en'
+        ? `Order #${order.orderNumber} placed successfully!`
+        : `تم تأكيد الطلب رقم #${order.orderNumber} بنجاح!`)
+      
+      // Redirect to order confirmation page
+      router.push(`/order-confirmation/${order.id}`)
+    } else {
+      throw new Error('Failed to create order')
+    }
+  } catch (error: any) {
     console.error('Checkout error:', error)
-    showNotification({
-      type: 'error',
-      title: currentLanguage.value === 'en' ? 'Checkout Failed' : 'فشل الدفع',
-      message: currentLanguage.value === 'en'
-        ? 'Failed to process your order. Please try again.'
-        : 'فشل معالجة طلبك. يرجى المحاولة مرة أخرى.',
-      duration: 5000
-    })
+    authNotification.error(currentLanguage.value === 'en'
+      ? error.message || 'Failed to process your order. Please try again.'
+      : 'فشل معالجة طلبك. يرجى المحاولة مرة أخرى.')
   } finally {
     isProcessing.value = false
   }
@@ -707,10 +641,12 @@ const placeOrder = async () => {
 onMounted(() => {
   loading.value = true
   
-  // Simulate loading
+  // Restore cart from localStorage
+  cartStore.restoreCart()
+  
   setTimeout(() => {
     // If cart is empty, redirect to cart page
-    if (cartItems.value.length === 0) {
+    if (cartStore.items.length === 0) {
       router.push('/cart')
     }
     loading.value = false
@@ -753,10 +689,6 @@ onMounted(() => {
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
-  }
-  
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
   }
 }
 

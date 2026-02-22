@@ -1,6 +1,7 @@
+<!-- src/pages/Admin/ProductsPage.vue -->
 <template>
   <div>
-    <!-- Header with Spark Plan Warning -->
+    <!-- Header -->
     <div class="bg-white border-b border-gray-200">
       <div class="px-8 py-6">
         <!-- Spark Plan Warning -->
@@ -32,8 +33,11 @@
             <p class="text-gray-600 mt-1">
               {{ t('Manage your product catalog') }}
               <span class="text-sm text-gray-400 ml-2">
-                ({{ products.length }} products loaded)
+                ({{ productsStore.totalProducts }} {{ t('products loaded') }})
               </span>
+            </p>
+            <p v-if="productsStore.lastUpdated" class="text-xs text-gray-400 mt-1">
+              {{ t('Last updated') }}: {{ formatDate(productsStore.lastUpdated) }}
             </p>
           </div>
           <div class="flex items-center gap-4">
@@ -47,6 +51,7 @@
                        focus:ring-2 focus:ring-primary-500 focus:border-primary-500 
                        w-full md:w-64"
                 :style="{ direction: isRTL ? 'rtl' : 'ltr' }"
+                @input="debouncedSearch"
               />
               <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
                    :class="{ 'left-auto right-3': isRTL }"
@@ -57,8 +62,8 @@
             </div>
             
             <!-- Add Product Button -->
-            <router-link
-              to="/admin/products/new"
+            <button
+              @click="openNewProductForm"
               class="bg-primary-500 text-white px-6 py-2 rounded-lg font-medium 
                      hover:bg-primary-600 transition-colors flex items-center gap-2"
               :class="{ 'flex-row-reverse': isRTL }"
@@ -68,7 +73,7 @@
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
               </svg>
               <span>{{ t('Add Product') }}</span>
-            </router-link>
+            </button>
 
             <!-- Export Button -->
             <button
@@ -97,18 +102,18 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
               </svg>
-              <span>{{ t('Refresh') }}</span>
+              <span>{{ productsStore.isLoading ? t('Loading...') : t('Refresh') }}</span>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Export Section (Hidden by default) -->
+    <!-- Export Section -->
     <div v-if="showExportSection" id="export-section" class="px-8 py-4">
       <div class="bg-white rounded-xl shadow-luxury p-6 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-bold text-gray-900">Export Products Data</h3>
+          <h3 class="text-lg font-bold text-gray-900">{{ t('Export Products Data') }}</h3>
           <button @click="showExportSection = false" class="text-gray-500 hover:text-gray-700">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -116,29 +121,29 @@
           </button>
         </div>
         <p class="text-gray-600 mb-4">
-          Export your product data as JSON to import into Firebase Console or other systems.
+          {{ t('Export your product data as JSON to import into Firebase Console or other systems.') }}
         </p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             @click="exportAsJSON"
             class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
           >
-            <div class="font-medium text-gray-900 mb-1">JSON Format</div>
-            <div class="text-sm text-gray-500">For Firebase import/export</div>
+            <div class="font-medium text-gray-900 mb-1">{{ t('JSON Format') }}</div>
+            <div class="text-sm text-gray-500">{{ t('For Firebase import/export') }}</div>
           </button>
           <button
             @click="exportAsCSV"
             class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
           >
-            <div class="font-medium text-gray-900 mb-1">CSV Format</div>
-            <div class="text-sm text-gray-500">For spreadsheets</div>
+            <div class="font-medium text-gray-900 mb-1">{{ t('CSV Format') }}</div>
+            <div class="text-sm text-gray-500">{{ t('For spreadsheets') }}</div>
           </button>
           <button
             @click="copyToClipboard"
             class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
           >
-            <div class="font-medium text-gray-900 mb-1">Copy to Clipboard</div>
-            <div class="text-sm text-gray-500">Quick sharing</div>
+            <div class="font-medium text-gray-900 mb-1">{{ t('Copy to Clipboard') }}</div>
+            <div class="text-sm text-gray-500">{{ t('Quick sharing') }}</div>
           </button>
         </div>
         <div v-if="exportMessage" class="mt-4 p-3 rounded-lg" :class="exportMessageClass">
@@ -153,7 +158,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-luxury p-6">
           <div class="text-sm font-medium text-gray-500 mb-2">{{ t('Total Products') }}</div>
-          <div class="text-2xl font-bold text-gray-900">{{ products.length }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ productsStore.totalProducts }}</div>
           <div class="text-xs text-gray-500 mt-2">{{ t('Loaded from Firebase') }}</div>
         </div>
         <div class="bg-white rounded-xl shadow-luxury p-6">
@@ -168,7 +173,7 @@
         </div>
         <div class="bg-white rounded-xl shadow-luxury p-6">
           <div class="text-sm font-medium text-gray-500 mb-2">{{ t('Avg Price') }}</div>
-          <div class="text-2xl font-bold text-gray-900">${{ averagePrice }}</div>
+          <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(averagePriceNumber) }}</div>
           <div class="text-xs text-gray-500 mt-2">{{ t('Across all products') }}</div>
         </div>
       </div>
@@ -184,7 +189,7 @@
           >
             <option value="">{{ t('All Categories') }}</option>
             <option 
-              v-for="category in categories" 
+              v-for="category in productsStore.categories" 
               :key="category.id" 
               :value="category.id"
             >
@@ -212,7 +217,7 @@
                    focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="">{{ t('All Brands') }}</option>
-            <option v-for="brand in uniqueBrands" :key="brand" :value="brand">
+            <option v-for="brand in productsStore.luxuryBrands" :key="brand" :value="brand">
               {{ brand }}
             </option>
           </select>
@@ -269,8 +274,8 @@
           >
             {{ t('Try Again') }}
           </button>
-          <p class="text-sm text-gray-400 mt-4">
-            {{ t('Using cached data. Last updated:') }} {{ lastUpdated }}
+          <p v-if="productsStore.lastUpdated" class="text-sm text-gray-400 mt-4">
+            {{ t('Using cached data. Last updated:') }} {{ formatDate(productsStore.lastUpdated) }}
           </p>
         </div>
 
@@ -286,10 +291,10 @@
             {{ t('No products found') }}
           </h3>
           <p class="text-gray-600 mb-6">
-            {{ t('Try adjusting your filters or add a new product') }}
+            {{ hasActiveFilters ? t('Try adjusting your filters') : t('No products available') }}
           </p>
-          <router-link
-            to="/admin/products/new"
+          <button
+            @click="openNewProductForm"
             class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white 
                    rounded-lg font-medium hover:bg-primary-600 transition-colors"
             :class="{ 'flex-row-reverse': isRTL }"
@@ -299,7 +304,7 @@
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
             </svg>
             <span>{{ t('Add First Product') }}</span>
-          </router-link>
+          </button>
         </div>
 
         <!-- Products Table -->
@@ -329,7 +334,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr 
-                v-for="product in filteredProducts" 
+                v-for="product in paginatedProducts" 
                 :key="product.id"
                 class="hover:bg-gray-50 transition-colors"
               >
@@ -337,7 +342,7 @@
                   <div class="flex items-center">
                     <div class="h-12 w-12 flex-shrink-0">
                       <img 
-                        :src="getProductImage(product)" 
+                        :src="product.imageUrl || '/images/placeholder-product.jpg'" 
                         :alt="getProductName(product)"
                         class="h-12 w-12 rounded-lg object-cover bg-gray-100"
                         @error="handleImageError"
@@ -360,11 +365,11 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-bold text-gray-900">
-                    ${{ product.price.toFixed(2) }}
+                    {{ formatCurrency(product.price) }}
                   </div>
                   <div v-if="product.originalPrice && product.originalPrice > product.price" 
                        class="text-xs text-gray-500 line-through">
-                    ${{ product.originalPrice.toFixed(2) }}
+                    {{ formatCurrency(product.originalPrice) }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -382,23 +387,29 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span 
-                    v-if="product.isBestSeller"
-                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold 
-                           rounded-full bg-emerald-100 text-emerald-800"
-                  >
-                    {{ t('Best Seller') }}
-                  </span>
-                  <span 
-                    v-else-if="isNewArrival(product)"
-                    class="px-3 py-1 inline-flex text-xs leading-5 font-semibold 
-                           rounded-full bg-blue-100 text-blue-800"
-                  >
-                    {{ t('New') }}
-                  </span>
-                  <span v-else class="text-sm text-gray-500">
-                    {{ t('Standard') }}
-                  </span>
+                  <div class="flex gap-2">
+                    <span 
+                      v-if="product.isBestSeller"
+                      class="px-3 py-1 inline-flex text-xs leading-5 font-semibold 
+                             rounded-full bg-emerald-100 text-emerald-800"
+                    >
+                      {{ t('Best Seller') }}
+                    </span>
+                    <span 
+                      v-if="isNewArrival(product)"
+                      class="px-3 py-1 inline-flex text-xs leading-5 font-semibold 
+                             rounded-full bg-blue-100 text-blue-800"
+                    >
+                      {{ t('New') }}
+                    </span>
+                    <span 
+                      v-if="product.isFeatured"
+                      class="px-3 py-1 inline-flex text-xs leading-5 font-semibold 
+                             rounded-full bg-purple-100 text-purple-800"
+                    >
+                      {{ t('Featured') }}
+                    </span>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex items-center gap-3">
@@ -417,11 +428,11 @@
                       </svg>
                     </a>
                     
-                    <!-- Edit (Local Only) -->
+                    <!-- Edit -->
                     <button
-                      @click="editProductLocal(product)"
+                      @click="openEditProductForm(product)"
                       class="text-primary-600 hover:text-primary-700"
-                      :title="t('Edit (local only)')"
+                      :title="t('Edit product')"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -464,9 +475,11 @@
           <div class="flex items-center justify-between">
             <div class="text-sm text-gray-700">
               {{ t('Showing') }} 
-              <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, allFilteredProducts.length) }}</span>
+              <span class="font-medium">{{ startIndex + 1 }}</span>
+              {{ t('to') }}
+              <span class="font-medium">{{ endIndex }}</span>
               {{ t('of') }}
-              <span class="font-medium">{{ allFilteredProducts.length }}</span>
+              <span class="font-medium">{{ filteredProducts.length }}</span>
               {{ t('products') }}
             </div>
             <div class="flex items-center gap-2">
@@ -553,7 +566,7 @@
       <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-900">Product Details</h3>
+            <h3 class="text-xl font-bold text-gray-900">{{ t('Product Details') }}</h3>
             <button @click="showDetailsModal = false" class="text-gray-500 hover:text-gray-700">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -565,9 +578,10 @@
             <!-- Product Image -->
             <div>
               <img 
-                :src="getProductImage(selectedProduct)" 
+                :src="selectedProduct.imageUrl || '/images/placeholder-product.jpg'" 
                 :alt="getProductName(selectedProduct)"
                 class="w-full rounded-xl shadow-luxury"
+                @error="handleImageError"
               />
             </div>
             
@@ -578,47 +592,65 @@
               </h4>
               <div class="space-y-4">
                 <div>
-                  <label class="text-sm font-medium text-gray-500">Brand</label>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Brand') }}</label>
                   <p class="text-gray-900">{{ selectedProduct.brand }}</p>
                 </div>
                 <div>
-                  <label class="text-sm font-medium text-gray-500">Category</label>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Category') }}</label>
                   <p class="text-gray-900">{{ getCategoryName(selectedProduct.category) }}</p>
                 </div>
                 <div>
-                  <label class="text-sm font-medium text-gray-500">Price</label>
-                  <p class="text-gray-900 font-bold">${{ selectedProduct.price.toFixed(2) }}</p>
-                </div>
-                <div>
-                  <label class="text-sm font-medium text-gray-500">Size & Concentration</label>
-                  <p class="text-gray-900">{{ selectedProduct.size }} • {{ selectedProduct.concentration }}</p>
-                </div>
-                <div>
-                  <label class="text-sm font-medium text-gray-500">Description</label>
-                  <p class="text-gray-900 whitespace-pre-line">
-                    {{ selectedProduct.description?.[currentLanguage] || selectedProduct.description?.en || 'No description' }}
+                  <label class="text-sm font-medium text-gray-500">{{ t('Price') }}</label>
+                  <p class="text-gray-900 font-bold">{{ formatCurrency(selectedProduct.price) }}</p>
+                  <p v-if="selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price" 
+                     class="text-xs text-gray-500 line-through">
+                    {{ formatCurrency(selectedProduct.originalPrice) }}
                   </p>
                 </div>
                 <div>
-                  <label class="text-sm font-medium text-gray-500">Fragrance Notes</label>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Size & Concentration') }}</label>
+                  <p class="text-gray-900">{{ selectedProduct.size }} • {{ selectedProduct.concentration }}</p>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Description') }}</label>
+                  <p class="text-gray-900 whitespace-pre-line">
+                    {{ selectedProduct.description?.[currentLanguage] || selectedProduct.description?.en || t('No description') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Fragrance Notes') }}</label>
                   <div class="mt-2 space-y-2">
                     <div>
-                      <span class="text-xs font-medium text-gray-500">Top Notes:</span>
-                      <p class="text-gray-900">{{ selectedProduct.notes?.top?.join(', ') || 'None' }}</p>
+                      <span class="text-xs font-medium text-gray-500">{{ t('Top Notes') }}:</span>
+                      <p class="text-gray-900">{{ selectedProduct.notes?.top?.join(', ') || t('None') }}</p>
                     </div>
                     <div>
-                      <span class="text-xs font-medium text-gray-500">Heart Notes:</span>
-                      <p class="text-gray-900">{{ selectedProduct.notes?.heart?.join(', ') || 'None' }}</p>
+                      <span class="text-xs font-medium text-gray-500">{{ t('Heart Notes') }}:</span>
+                      <p class="text-gray-900">{{ selectedProduct.notes?.heart?.join(', ') || t('None') }}</p>
                     </div>
                     <div>
-                      <span class="text-xs font-medium text-gray-500">Base Notes:</span>
-                      <p class="text-gray-900">{{ selectedProduct.notes?.base?.join(', ') || 'None' }}</p>
+                      <span class="text-xs font-medium text-gray-500">{{ t('Base Notes') }}:</span>
+                      <p class="text-gray-900">{{ selectedProduct.notes?.base?.join(', ') || t('None') }}</p>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label class="text-sm font-medium text-gray-500">Created</label>
-                  <p class="text-gray-900">{{ formatDateProduct(selectedProduct.createdAt) }}</p>
+                  <label class="text-sm font-medium text-gray-500">{{ t('Created') }}</label>
+                  <p class="text-gray-900">{{ formatDate(selectedProduct.createdAt) }}</p>
+                </div>
+                <div class="flex gap-2">
+                  <span 
+                    v-if="selectedProduct.isBestSeller"
+                    class="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800"
+                  >
+                    {{ t('Best Seller') }}
+                  </span>
+                  <span 
+                    v-if="selectedProduct.isFeatured"
+                    class="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
+                  >
+                    {{ t('Featured') }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -626,22 +658,36 @@
         </div>
       </div>
     </div>
+
+    <!-- Product Form Modal -->
+    <ProductFormModal
+      v-if="showProductForm"
+      :product="editingProduct"
+      :brand="selectedBrandForProduct"
+      @close="closeProductForm"
+      @save="handleSaveProduct"
+      @saved="handleProductSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useProductsStore } from '@/stores/products'
-import type { Product, Category } from '@/types'
+import { useBrandsStore } from '@/stores/brands'
+import ProductFormModal from '@/components/Admin/ProductForm.vue'
+import type { Product, Category, Brand } from '@/types'
+import { authNotification } from '@/utils/notifications'
+import debounce from 'lodash/debounce'
+import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/firebase/config'
 
-const router = useRouter()
 const languageStore = useLanguageStore()
 const productsStore = useProductsStore()
+const brandsStore = useBrandsStore()
 
 const { currentLanguage, isRTL, t } = languageStore
-const { products, categories, lastUpdated } = productsStore
 
 // State
 const searchQuery = ref('')
@@ -660,6 +706,9 @@ const itemsPerPage = 10
 const showDeleteModal = ref(false)
 const showDetailsModal = ref(false)
 const showExportSection = ref(false)
+const showProductForm = ref(false)
+const editingProduct = ref<Product | null>(null)
+const selectedBrandForProduct = ref<Brand | null>(null)
 const productToDelete = ref<Product | null>(null)
 const selectedProduct = ref<Product | null>(null)
 const deleting = ref(false)
@@ -671,37 +720,32 @@ const hasActiveFilters = computed(() => {
   return filters.value.category || filters.value.brand || filters.value.status || searchQuery.value
 })
 
-const uniqueBrands = computed(() => {
-  const brands = new Set(products.map(p => p.brand).filter(Boolean))
-  return Array.from(brands).sort()
-})
-
 const bestSellersCount = computed(() => {
-  return products.filter(p => p.isBestSeller).length
+  return productsStore.products.filter(p => p.isBestSeller).length
 })
 
 const newArrivalsCount = computed(() => {
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-  return products.filter(p => isNewArrival(p)).length
+  return productsStore.products.filter(p => isNewArrival(p)).length
 })
 
-const averagePrice = computed(() => {
-  if (products.length === 0) return '0.00'
-  const total = products.reduce((sum, p) => sum + p.price, 0)
-  return (total / products.length).toFixed(2)
+const averagePriceNumber = computed(() => {
+  if (productsStore.products.length === 0) return 0
+  const total = productsStore.products.reduce((sum, p) => sum + p.price, 0)
+  return total / productsStore.products.length
 })
 
 // Get all filtered products (without pagination)
-const allFilteredProducts = computed(() => {
-  let filtered = [...products]
+const filteredProducts = computed(() => {
+  let filtered = [...productsStore.products]
 
   // Apply search
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(product =>
       getProductName(product).toLowerCase().includes(query) ||
-      product.description?.[currentLanguage]?.toLowerCase().includes(query) ||
+      product.description?.[currentLanguage.value]?.toLowerCase().includes(query) ||
       product.description?.en?.toLowerCase().includes(query) ||
       product.brand?.toLowerCase().includes(query) ||
       product.category?.toLowerCase().includes(query)
@@ -761,27 +805,35 @@ const allFilteredProducts = computed(() => {
 })
 
 // Get paginated products
-const filteredProducts = computed(() => {
+const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
   const end = start + itemsPerPage
-  return allFilteredProducts.value.slice(start, end)
+  return filteredProducts.value.slice(start, end)
 })
 
 const totalPages = computed(() => {
-  return Math.ceil(allFilteredProducts.value.length / itemsPerPage)
+  return Math.ceil(filteredProducts.value.length / itemsPerPage)
+})
+
+const startIndex = computed(() => {
+  return (currentPage.value - 1) * itemsPerPage
+})
+
+const endIndex = computed(() => {
+  return Math.min(startIndex.value + itemsPerPage, filteredProducts.value.length)
 })
 
 // Helper methods
 const getCategoryDisplayName = (category: Category) => {
   if (!category) return ''
   if (typeof category === 'string') return category
-  return category[currentLanguage] || category.name || category.id || ''
+  return category[currentLanguage.value] || category.name || category.id || ''
 }
 
 const getCategoryName = (categoryId: string) => {
   if (!categoryId) return ''
   
-  const category = categories.find(cat => cat.id === categoryId)
+  const category = productsStore.categories.find(cat => cat.id === categoryId)
   if (category) {
     return getCategoryDisplayName(category)
   }
@@ -792,12 +844,7 @@ const getCategoryName = (categoryId: string) => {
 const getProductName = (product: Product | null) => {
   if (!product) return ''
   if (typeof product.name === 'string') return product.name
-  return product.name?.[currentLanguage] || product.name?.en || 'Unnamed Product'
-}
-
-const getProductImage = (product: Product) => {
-  if (!product) return ''
-  return product.imageUrl || '/images/placeholder-product.jpg'
+  return product.name?.[currentLanguage.value] || product.name?.en || t('Unnamed Product')
 }
 
 const getProductDate = (date: any): Date => {
@@ -812,13 +859,24 @@ const getProductDate = (date: any): Date => {
   }
 }
 
-const formatDateProduct = (date: any) => {
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-EG', {
+    style: 'currency',
+    currency: 'EGP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount).replace('EGP', 'LE ')
+}
+
+const formatDate = (date: any) => {
   try {
     const dateObj = getProductDate(date)
-    return dateObj.toLocaleDateString(currentLanguage === 'ar' ? 'ar-EG' : 'en-US', {
+    return dateObj.toLocaleDateString(currentLanguage.value === 'ar' ? 'ar-EG' : 'en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
   } catch {
     return ''
@@ -847,12 +905,14 @@ const clearFilters = () => {
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
@@ -864,7 +924,7 @@ const handleImageError = (event: Event) => {
 
 const refreshProducts = async () => {
   try {
-    await productsStore.fetchProducts()
+    await productsStore.refreshProducts()
   } catch (error) {
     console.error('Error refreshing products:', error)
   }
@@ -872,24 +932,28 @@ const refreshProducts = async () => {
 
 // Export functions
 const exportProducts = () => {
-  showExportSection.value = true
+  showExportSection.value = !showExportSection.value
 }
 
 const exportAsJSON = () => {
   const data = {
     exportDate: new Date().toISOString(),
-    products: allFilteredProducts.value.map(product => ({
+    totalProducts: filteredProducts.value.length,
+    products: filteredProducts.value.map(product => ({
       id: product.id,
       slug: product.slug,
       name: product.name,
       description: product.description,
       brand: product.brand,
+      brandId: product.brandId,
+      brandSlug: product.brandSlug,
       category: product.category,
       price: product.price,
       originalPrice: product.originalPrice,
       size: product.size,
       concentration: product.concentration,
       imageUrl: product.imageUrl,
+      images: product.images,
       isBestSeller: product.isBestSeller,
       isFeatured: product.isFeatured,
       rating: product.rating,
@@ -898,7 +962,8 @@ const exportAsJSON = () => {
       inStock: product.inStock,
       stockQuantity: product.stockQuantity,
       createdAt: product.createdAt,
-      updatedAt: product.updatedAt
+      updatedAt: product.updatedAt,
+      meta: product.meta
     }))
   }
   
@@ -912,17 +977,17 @@ const exportAsJSON = () => {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
   
-  showMessage('Products exported as JSON successfully!', 'success')
+  showMessage(t('Products exported as JSON successfully!'), 'success')
 }
 
 const exportAsCSV = () => {
   const headers = [
-    'ID', 'Slug', 'Name (EN)', 'Name (AR)', 'Brand', 'Category', 'Price', 
+    'ID', 'Slug', 'Name (EN)', 'Name (AR)', 'Brand', 'Category', 'Price (EGP)', 
     'Size', 'Concentration', 'Is Best Seller', 'Is Featured', 'In Stock', 
     'Stock Quantity', 'Rating', 'Review Count'
   ]
   
-  const rows = allFilteredProducts.value.map(product => [
+  const rows = filteredProducts.value.map(product => [
     product.id,
     product.slug || '',
     typeof product.name === 'string' ? product.name : product.name?.en || '',
@@ -940,7 +1005,7 @@ const exportAsCSV = () => {
     product.reviewCount?.toString() || '0'
   ])
   
-  const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+  const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n')
   const blob = new Blob([csvContent], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -951,25 +1016,28 @@ const exportAsCSV = () => {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
   
-  showMessage('Products exported as CSV successfully!', 'success')
+  showMessage(t('Products exported as CSV successfully!'), 'success')
 }
 
 const copyToClipboard = async () => {
   const data = {
     exportDate: new Date().toISOString(),
-    products: allFilteredProducts.value.map(product => ({
+    totalProducts: filteredProducts.value.length,
+    products: filteredProducts.value.map(product => ({
       name: getProductName(product),
       brand: product.brand,
       price: product.price,
-      category: product.category
+      category: product.category,
+      size: product.size,
+      concentration: product.concentration
     }))
   }
   
   try {
     await navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-    showMessage('Product data copied to clipboard!', 'success')
+    showMessage(t('Product data copied to clipboard!'), 'success')
   } catch (error) {
-    showMessage('Failed to copy to clipboard', 'error')
+    showMessage(t('Failed to copy to clipboard'), 'error')
   }
 }
 
@@ -984,11 +1052,155 @@ const showMessage = (message: string, type: 'success' | 'error' | 'info') => {
   }, 3000)
 }
 
+// Helper function to convert File to Base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = error => reject(error)
+  })
+}
+
 // Product actions
-const editProductLocal = (product: Product) => {
-  // On Spark Plan, we can only edit locally
-  showMessage('Spark Plan: Editing is local only. Changes will be lost on refresh.', 'info')
-  router.push(`/admin/products/edit/${product.id}`)
+const openNewProductForm = () => {
+  editingProduct.value = null
+  selectedBrandForProduct.value = null
+  showProductForm.value = true
+}
+
+const openEditProductForm = (product: Product) => {
+  editingProduct.value = product
+  // Find the brand for this product
+  const brand = brandsStore.brands.find(b => b.id === product.brandId)
+  selectedBrandForProduct.value = brand || null
+  showProductForm.value = true
+}
+
+const closeProductForm = () => {
+  showProductForm.value = false
+  editingProduct.value = null
+  selectedBrandForProduct.value = null
+}
+
+const handleProductSaved = () => {
+  refreshProducts()
+  closeProductForm()
+}
+
+const handleSaveProduct = async (data: {
+  productData: any
+  brandId?: string
+  createNewBrand?: boolean
+  newBrandData?: any
+}) => {
+  console.log('📦 Parent received save event:', data)
+  
+  try {
+    if (editingProduct.value) {
+      // TODO: Implement update product in Firebase
+      console.log('Updating product:', data.productData)
+      authNotification.loggedIn(t('Product updated successfully'))
+    } else if (data.createNewBrand) {
+      // Create new brand with product using brandsStore
+      console.log('Creating new brand with product...')
+      
+      // Handle brand image - convert to Base64 if exists
+      let brandImageBase64 = ''
+      if (data.newBrandData.imageFile) {
+        brandImageBase64 = await fileToBase64(data.newBrandData.imageFile)
+      }
+      
+      // Prepare brand data (with Base64 image)
+      const brandData = {
+        name: data.newBrandData.name,
+        slug: data.newBrandData.slug,
+        category: data.newBrandData.category,
+        description: data.newBrandData.description || '',
+        signature: data.newBrandData.signature || '',
+        isActive: data.newBrandData.isActive !== false,
+        image: brandImageBase64 // Store as Base64 string
+      }
+      
+      // Handle product image - convert to Base64 if exists
+      let productImageBase64 = ''
+      if (data.productData.imageFile) {
+        productImageBase64 = await fileToBase64(data.productData.imageFile)
+      } else if (data.productData.imageUrl) {
+        productImageBase64 = data.productData.imageUrl
+      }
+      
+      // Prepare product data for the brand (with Base64 image)
+      const productForBrand = {
+        ...data.productData,
+        brand: brandData.name,
+        brandSlug: brandData.slug,
+        imageUrl: productImageBase64, // Store as Base64 string
+        imageFile: undefined // Remove File object
+      }
+      
+      // Use brandsStore to add brand with product
+      const brandId = await brandsStore.addBrandWithProducts(
+        brandData,
+        [productForBrand]
+      )
+      
+      if (brandId) {
+        console.log('✅ Brand and product created successfully:', brandId)
+        authNotification.loggedIn(t('Brand and product added successfully'))
+      } else {
+        throw new Error('Failed to create brand')
+      }
+    } else if (data.brandId) {
+      // Add product to existing brand
+      console.log('Adding product to existing brand:', data.brandId)
+      
+      // Find the brand
+      const brand = brandsStore.brands.find(b => b.id === data.brandId)
+      if (!brand) {
+        throw new Error('Brand not found')
+      }
+      
+      // Handle product image - convert to Base64 if exists
+      let productImageBase64 = ''
+      if (data.productData.imageFile) {
+        productImageBase64 = await fileToBase64(data.productData.imageFile)
+      } else if (data.productData.imageUrl) {
+        productImageBase64 = data.productData.imageUrl
+      }
+      
+      // Add product directly to the brand's subcollection
+      const batch = writeBatch(db)
+      const productsRef = collection(db, 'brands', brand.id, 'products')
+      const productDocRef = doc(productsRef)
+      
+      // Prepare product data with brand information (with Base64 image)
+      const productData = {
+        ...data.productData,
+        brand: brand.name,
+        brandSlug: brand.slug,
+        brandId: brand.id,
+        imageUrl: productImageBase64, // Store as Base64 string
+        imageFile: undefined, // Remove File object
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+      
+      batch.set(productDocRef, productData)
+      await batch.commit()
+      
+      console.log('✅ Product added successfully to brand:', brand.id)
+      authNotification.loggedIn(t('Product added successfully'))
+    }
+    
+    // Refresh products list
+    await productsStore.refreshProducts()
+    
+  } catch (error) {
+    console.error('❌ Error saving product:', error)
+    authNotification.error(t('Failed to save product'))
+    throw error // Re-throw to let modal know it failed
+  }
 }
 
 const viewProductDetails = (product: Product) => {
@@ -1006,28 +1218,38 @@ const deleteProductLocal = async () => {
 
   deleting.value = true
   try {
-    // Only delete from local state on Spark Plan
-    await productsStore.removeProduct(productToDelete.value.id)
+    // Filter out the product from local state
+    const index = productsStore.products.findIndex(p => p.id === productToDelete.value!.id)
+    if (index !== -1) {
+      productsStore.products.splice(index, 1)
+    }
     showDeleteModal.value = false
     productToDelete.value = null
-    showMessage('Product removed from local state. It will return on next refresh from Firebase.', 'info')
+    showMessage(t('Product removed from local state. It will return on next refresh from Firebase.'), 'info')
   } catch (error) {
-    showMessage('Failed to delete product', 'error')
+    showMessage(t('Failed to delete product'), 'error')
   } finally {
     deleting.value = false
   }
 }
 
+const debouncedSearch = debounce(() => {
+  currentPage.value = 1
+}, 300)
+
 // Watch for filter changes
 watch([searchQuery, filters], () => {
   currentPage.value = 1
-})
+}, { deep: true })
 
 // Initialize
 onMounted(async () => {
   try {
-    if (products.length === 0) {
+    if (productsStore.products.length === 0) {
       await productsStore.fetchProducts()
+    }
+    if (brandsStore.brands.length === 0) {
+      await brandsStore.loadBrands()
     }
   } catch (error) {
     console.error('Error loading products:', error)
