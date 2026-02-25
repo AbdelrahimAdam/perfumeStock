@@ -413,16 +413,17 @@ import AdminSidebar from '@/components/Admin/AdminSidebar.vue'
 const router = useRouter()
 const route = useRoute()
 
-// Stores - Initialize safely
+// Stores
 const languageStore = useLanguageStore()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const productsStore = useProductsStore()
 
+// Use storeToRefs for reactive state/computed
+const { currentLanguage, isRTL } = storeToRefs(languageStore)
+const { isLoading: globalLoading } = storeToRefs(productsStore)
+
 // State with safe defaults
-const { currentLanguage, isRTL } = languageStore
-const { isTransitioning } = storeToRefs(languageStore)
-const { globalLoading } = storeToRefs(productsStore)
 const scrollY = ref(0)
 const isMobile = ref(false)
 const fontsLoaded = ref(false)
@@ -476,9 +477,9 @@ const isPublicRoute = computed(() => {
 })
 
 const appClasses = computed(() => ({
-  'rtl': isRTL,
-  'ltr': !isRTL,
-  'scroll-locked': (globalLoading || isTransitioning?.value) || false,
+  'rtl': isRTL.value,
+  'ltr': !isRTL.value,
+  'scroll-locked': (globalLoading.value) || false,
   'mobile': isMobile.value,
   'desktop': !isMobile.value,
   'fonts-loaded': fontsLoaded.value,
@@ -553,13 +554,14 @@ const appTranslations = {
 }
 
 // Safe translate function
-const safeTranslate = (key: string | { [key: string]: string } | undefined) => {
+const safeTranslate = (key: string | { [key: string]: string } | undefined): string => {
   if (!key) return ''
   
   try {
     if (typeof key === 'string') {
       const translations = appTranslations[key as keyof typeof appTranslations]
       if (translations) {
+        // Use languageStore.t if available, else fallback to object lookup
         if (languageStore.t) {
           return languageStore.t(translations) || key
         }
@@ -571,6 +573,7 @@ const safeTranslate = (key: string | { [key: string]: string } | undefined) => {
       return key
     }
     
+    // key is an object with en/ar
     if (languageStore.t) {
       return languageStore.t(key) || key.en || ''
     }
@@ -673,16 +676,20 @@ const formatTimeAgo = (date: Date) => {
 
 // Click outside directive for admin dropdowns
 const vClickOutside = {
-  mounted(el: HTMLElement, binding: any) {
-    el.clickOutsideEvent = (event: Event) => {
+  mounted(el: HTMLElement, binding: { value: () => void }) {
+    const handler = (event: Event) => {
       if (!(el === event.target || el.contains(event.target as Node))) {
         binding.value()
       }
     }
-    document.addEventListener('click', el.clickOutsideEvent)
+    ;(el as any).__clickOutsideHandler = handler
+    document.addEventListener('click', handler)
   },
   unmounted(el: HTMLElement) {
-    document.removeEventListener('click', el.clickOutsideEvent)
+    const handler = (el as any).__clickOutsideHandler
+    if (handler) {
+      document.removeEventListener('click', handler)
+    }
   }
 }
 
@@ -935,18 +942,18 @@ onMounted(async () => {
   
   // Initialize stores - ONLY initialize auth on non-public routes
   try {
-    languageStore.initialize?.()
+    if (languageStore.initialize) languageStore.initialize()
     
     // Only initialize auth on protected routes
     if (!isPublicRoute.value) {
-      await authStore.checkAuth?.()
+      if (authStore.checkAuth) await authStore.checkAuth()
     } else {
       console.log('🌍 Public route detected in App.vue - skipping auth initialization')
     }
     
     await Promise.allSettled([
-      productsStore.fetchProducts?.() || Promise.resolve(),
-      cartStore.initialize?.() || Promise.resolve()
+      productsStore.fetchProducts ? productsStore.fetchProducts() : Promise.resolve(),
+      cartStore.initialize ? cartStore.initialize() : Promise.resolve()
     ])
   } catch (error) {
     console.error('❌ Store initialization failed:', error)
@@ -1001,7 +1008,7 @@ watch(() => isRTL.value, () => {
 })
 
 // Watch route changes
-watch(() => route.path, (newPath) => {
+watch(() => route.path, (_newPath) => { // renamed to _newPath to avoid unused variable error
   updatePageTitle()
   
   // Close admin dropdowns on route change

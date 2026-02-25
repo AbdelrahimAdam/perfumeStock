@@ -8,7 +8,7 @@ export const useLanguageStore = defineStore('language', () => {
   const currentLanguage = useLocalStorage<Language>('luxury_perfume_language', 'en')
   const isTransitioning = ref(false)
 
-  // Available languages
+  // Available languages (only English and Arabic)
   const availableLanguages = computed(() => [
     {
       code: 'en',
@@ -23,34 +23,6 @@ export const useLanguageStore = defineStore('language', () => {
       native: 'العربية',
       flag: '🇸🇦',
       direction: 'rtl'
-    },
-    {
-      code: 'fr',
-      name: 'French',
-      native: 'Français',
-      flag: '🇫🇷',
-      direction: 'ltr'
-    },
-    {
-      code: 'es',
-      name: 'Spanish',
-      native: 'Español',
-      flag: '🇪🇸',
-      direction: 'ltr'
-    },
-    {
-      code: 'it',
-      name: 'Italian',
-      native: 'Italiano',
-      flag: '🇮🇹',
-      direction: 'ltr'
-    },
-    {
-      code: 'ru',
-      name: 'Russian',
-      native: 'Русский',
-      flag: '🇷🇺',
-      direction: 'ltr'
     }
   ])
 
@@ -119,16 +91,19 @@ export const useLanguageStore = defineStore('language', () => {
     if (!savedLang) {
       // Try to detect browser language
       const browserLang = navigator.language.split('-')[0]
-      const detectedLang = availableLanguages.value.find(lang => lang.code === browserLang)
-      
-      if (detectedLang) {
-        setLanguage(detectedLang.code as Language)
-      } else {
-        setLanguage('en')
-      }
+      // Only accept 'en' or 'ar' from browser, otherwise default to 'en'
+      const detectedLang = browserLang === 'ar' ? 'ar' : 'en'
+      setLanguage(detectedLang as Language)
     } else {
-      currentLanguage.value = savedLang
-      updateDocumentAttributes()
+      // Ensure saved language is valid (en or ar)
+      if (savedLang === 'en' || savedLang === 'ar') {
+        currentLanguage.value = savedLang
+        updateDocumentAttributes()
+      } else {
+        // Fallback to English if saved language is invalid
+        currentLanguage.value = 'en'
+        updateDocumentAttributes()
+      }
     }
   }
 

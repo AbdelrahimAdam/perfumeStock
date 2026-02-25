@@ -1,4 +1,4 @@
-import type { Language, Product, Category } from '@/types'
+import type { Language, Product } from '@/types'
 
 /**
  * Format price with currency symbol
@@ -72,13 +72,16 @@ export const deepClone = <T>(obj: T): T => {
 
 /**
  * Get localized text based on language
+ * Safely handles Language type that may include unsupported codes
  */
 export const getLocalizedText = (
   obj: { en: string; ar: string } | string,
   language: Language
 ): string => {
   if (typeof obj === 'string') return obj
-  return obj[language] || obj.en || ''
+  // Only 'en' and 'ar' are valid keys for obj; default to 'en' for any other language
+  const lang = (language === 'en' || language === 'ar') ? language : 'en'
+  return obj[lang] || obj.en || ''
 }
 
 /**

@@ -8,7 +8,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
   sendPasswordResetEmail,
-  confirmPasswordReset,
+  confirmPasswordReset as firebaseConfirmPasswordReset, // renamed to avoid shadowing
   updateProfile,
   updatePassword,
   reauthenticateWithCredential,
@@ -20,10 +20,6 @@ import {
   setDoc, 
   updateDoc,
   serverTimestamp,
-  collection,
-  query,
-  where,
-  getDocs,
   arrayUnion,
   arrayRemove
 } from 'firebase/firestore'
@@ -77,15 +73,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isCustomer = computed(() => !!customer.value)
   
   const userInitials = computed(() => {
-    if (user.value?.displayName) {
-      return user.value.displayName
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-    }
-    if (customer.value?.displayName) {
-      return customer.value.displayName
+    const name = user.value?.displayName || customer.value?.displayName || ''
+    if (name) {
+      return name
         .split(' ')
         .map(n => n[0])
         .join('')
@@ -112,7 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
         email: firebaseUser.email || '',
         displayName: data.displayName || firebaseUser.displayName || '',
         role: 'super-admin',
-        photoURL: data.photoURL || firebaseUser.photoURL || null,
+        photoURL: data.photoURL || firebaseUser.photoURL || undefined,
         isActive: data.isActive !== false,
         permissions: data.permissions || ['all'],
         createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -135,7 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || '',
-          photoURL: firebaseUser.photoURL || null,
+          photoURL: firebaseUser.photoURL || undefined,
           createdAt: new Date(),
           updatedAt: new Date(),
           lastLogin: new Date(),
@@ -159,7 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
         id: firebaseUser.uid,
         email: firebaseUser.email || '',
         displayName: data.displayName || firebaseUser.displayName || '',
-        photoURL: data.photoURL || firebaseUser.photoURL || null,
+        photoURL: data.photoURL || firebaseUser.photoURL || undefined,
         addresses: data.addresses || [],
         wishlist: data.wishlist || [],
         newsletter: data.newsletter || false,
@@ -207,7 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err: any) {
       console.error('❌ Super-admin login error:', err)
       error.value = err.message || 'Invalid credentials'
-      authNotification.error(error.value)
+      authNotification.error(error.value || 'Login failed')
       throw err
     } finally {
       isLoading.value = false
@@ -261,7 +251,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err: any) {
       console.error('❌ Customer login error:', err)
       error.value = err.message || 'Invalid credentials'
-      authNotification.error(error.value)
+      authNotification.error(error.value || 'Login failed')
       throw err
     } finally {
       isLoading.value = false
@@ -291,7 +281,7 @@ export const useAuthStore = defineStore('auth', () => {
         id: firebaseUser.uid,
         email: userData.email,
         displayName: userData.displayName,
-        photoURL: null,
+        photoURL: undefined,
         phone: userData.phone,
         addresses: [],
         wishlist: [],
@@ -317,7 +307,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err: any) {
       console.error('❌ Customer registration error:', err)
       error.value = err.message
-      authNotification.error(error.value)
+      authNotification.error(error.value || 'Registration failed')
       throw err
     } finally {
       isLoading.value = false
@@ -428,7 +418,7 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = err.message || 'Failed to change password'
       }
       
-      authNotification.error(error.value)
+      authNotification.error(error.value || 'Password change failed')
       throw err
     } finally {
       isLoading.value = false
@@ -645,10 +635,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Confirm Password Reset
+  // Confirm Password Reset (uses aliased Firebase function)
   const confirmPasswordReset = async (code: string, newPassword: string) => {
     try {
-      await confirmPasswordReset(auth, code, newPassword)
+      await firebaseConfirmPasswordReset(auth, code, newPassword)
     } catch (error) {
       throw error
     }
@@ -672,23 +662,31 @@ export const useAuthStore = defineStore('auth', () => {
       const customerSaved = localStorage.getItem('luxury_customer_session')
 
       if (adminSaved) {
-        const { user: savedUser, expiry } = JSON.parse(adminSaved)
-        if (new Date(expiry) > new Date()) {
-          user.value = savedUser
-          sessionExpiry.value = new Date(expiry)
-          return
-        } else {
+        try {
+          const { user: savedUser, expiry } = JSON.parse(adminSaved)
+          if (new Date(expiry) > new Date()) {
+            user.value = savedUser
+            sessionExpiry.value = new Date(expiry)
+            return
+          } else {
+            localStorage.removeItem('luxury_admin_session')
+          }
+        } catch (e) {
           localStorage.removeItem('luxury_admin_session')
         }
       }
 
       if (customerSaved) {
-        const { user: savedUser, expiry } = JSON.parse(customerSaved)
-        if (new Date(expiry) > new Date()) {
-          customer.value = savedUser
-          sessionExpiry.value = new Date(expiry)
-          return
-        } else {
+        try {
+          const { user: savedUser, expiry } = JSON.parse(customerSaved)
+          if (new Date(expiry) > new Date()) {
+            customer.value = savedUser
+            sessionExpiry.value = new Date(expiry)
+            return
+          } else {
+            localStorage.removeItem('luxury_customer_session')
+          }
+        } catch (e) {
           localStorage.removeItem('luxury_customer_session')
         }
       }
@@ -757,7 +755,7 @@ export const useAuthStore = defineStore('auth', () => {
         email,
         displayName,
         role: 'super-admin',
-        photoURL: null,
+        photoURL: undefined,
         isActive: true,
         permissions: ['all'],
         createdAt: new Date(),

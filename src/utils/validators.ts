@@ -81,11 +81,13 @@ export const validateImage = (file: File): string[] => {
   return errors
 }
 
-// Price range validation
+// Price range validation (fixed type error)
 export const priceRangeSchema = yup.object().shape({
   min: yup.number().min(0, 'Minimum price must be at least 0'),
   max: yup.number().when('min', (min, schema) => {
-    return schema.min(min || 0, 'Maximum price must be greater than minimum price')
+    // Safely cast min to number (it could be undefined or any, but we know it's the value of the 'min' field)
+    const minValue = typeof min === 'number' ? min : 0
+    return schema.min(minValue, 'Maximum price must be greater than minimum price')
   })
 })
 

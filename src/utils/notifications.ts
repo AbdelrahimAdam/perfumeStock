@@ -9,7 +9,7 @@ export interface Notification {
   message: string
   duration?: number
   position?: NotificationPosition
-  icon?: string
+  icon?: string // Professional icon name (e.g., 'check-circle', 'alert-circle')
   action?: {
     label: string
     onClick: () => void
@@ -29,25 +29,12 @@ class LuxuryNotification {
   private subscribers: ((notifications: Notification[]) => void)[] = []
   private nextId = 0
 
-  // Luxury notification types
-  private getIcon(type: NotificationType): string {
-    const icons: Record<NotificationType, string> = {
-      success: '✨',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️'
-    }
-    return icons[type]
-  }
-
-  private getColor(type: NotificationType): string {
-    const colors: Record<NotificationType, string> = {
-      success: '#10b981',
-      error: '#ef4444',
-      warning: '#f59e0b',
-      info: '#3b82f6'
-    }
-    return colors[type]
+  // Professional icon mapping (can be used in template)
+  private static iconMap: Record<NotificationType, string> = {
+    success: 'check-circle',
+    error: 'alert-circle',
+    warning: 'alert-triangle',
+    info: 'info'
   }
 
   // Show a luxury notification
@@ -57,7 +44,9 @@ class LuxuryNotification {
       id,
       position: 'top-right',
       duration: 5000,
-      ...notification
+      ...notification,
+      // Set default icon based on type if not provided
+      icon: notification.icon || LuxuryNotification.iconMap[notification.type]
     }
 
     this.notifications.push(fullNotification)
@@ -115,7 +104,7 @@ class LuxuryNotification {
       type: 'success',
       title,
       message,
-      icon: '✨',
+      icon: LuxuryNotification.iconMap.success,
       ...options
     })
   }
@@ -125,7 +114,7 @@ class LuxuryNotification {
       type: 'error',
       title,
       message,
-      icon: '❌',
+      icon: LuxuryNotification.iconMap.error,
       ...options
     })
   }
@@ -135,7 +124,7 @@ class LuxuryNotification {
       type: 'warning',
       title,
       message,
-      icon: '⚠️',
+      icon: LuxuryNotification.iconMap.warning,
       ...options
     })
   }
@@ -145,7 +134,7 @@ class LuxuryNotification {
       type: 'info',
       title,
       message,
-      icon: 'ℹ️',
+      icon: LuxuryNotification.iconMap.info,
       ...options
     })
   }
@@ -170,7 +159,8 @@ class LuxuryNotification {
       type,
       title: '',
       message,
-      duration
+      duration,
+      icon: LuxuryNotification.iconMap[type]
     })
   }
 }
@@ -204,25 +194,25 @@ export const showToast = (message: string, type?: NotificationType, duration?: n
 export const cartNotification = {
   added: (productName: string) => 
     showSuccess('Added to Cart', `${productName} added to your luxury collection`, {
-      icon: '🛍️',
+      icon: 'shopping-bag',
       duration: 3000
     }),
   
   removed: (productName: string) =>
     showInfo('Removed from Cart', `${productName} removed from your collection`, {
-      icon: '🗑️',
+      icon: 'trash-2',
       duration: 3000
     }),
   
   updated: (productName: string, quantity: number) =>
     showSuccess('Quantity Updated', `${productName} quantity set to ${quantity}`, {
-      icon: '🔄',
+      icon: 'refresh-cw',
       duration: 3000
     }),
   
   cleared: () =>
     showSuccess('Cart Cleared', 'Your luxury cart has been cleared', {
-      icon: '🧹',
+      icon: 'trash',
       duration: 3000
     })
 }
@@ -231,19 +221,19 @@ export const cartNotification = {
 export const authNotification = {
   loggedIn: (userName: string) =>
     showSuccess('Welcome Back', `Welcome ${userName}`, {
-      icon: '👋',
+      icon: 'log-in',
       duration: 4000
     }),
   
   loggedOut: () =>
     showInfo('Logged Out', 'Successfully logged out', {
-      icon: '👋',
+      icon: 'log-out',
       duration: 3000
     }),
   
   error: (message: string) =>
     showError('Authentication Error', message, {
-      icon: '🔒',
+      icon: 'lock',
       duration: 5000
     })
 }
@@ -252,25 +242,25 @@ export const authNotification = {
 export const productNotification = {
   added: (productName: string) =>
     showSuccess('Product Added', `${productName} added successfully`, {
-      icon: '✨',
+      icon: 'package-plus',
       duration: 3000
     }),
   
   updated: (productName: string) =>
     showSuccess('Product Updated', `${productName} updated successfully`, {
-      icon: '✏️',
+      icon: 'edit',
       duration: 3000
     }),
   
   deleted: (productName: string) =>
     showSuccess('Product Deleted', `${productName} removed successfully`, {
-      icon: '🗑️',
+      icon: 'trash-2',
       duration: 3000
     }),
   
   error: (message: string) =>
     showError('Product Error', message, {
-      icon: '❌',
+      icon: 'alert-circle',
       duration: 5000
     })
 }

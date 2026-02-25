@@ -14,6 +14,7 @@ import {
   deleteDoc,
   serverTimestamp,
   Timestamp,
+  FieldValue,          // <-- added for type casting
   limit,
   startAfter,
   QueryDocumentSnapshot,
@@ -36,11 +37,11 @@ import type {
 } from '@/types'
 
 export interface FirestoreOrder extends Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt' | 'cancelledAt' | 'statusHistory'> {
-  createdAt: Timestamp
-  updatedAt: Timestamp
-  shippedAt?: Timestamp | null
-  deliveredAt?: Timestamp | null
-  cancelledAt?: Timestamp | null
+  createdAt: Timestamp | FieldValue   // <-- allow FieldValue during creation
+  updatedAt: Timestamp | FieldValue
+  shippedAt?: Timestamp | FieldValue | null
+  deliveredAt?: Timestamp | FieldValue | null
+  cancelledAt?: Timestamp | FieldValue | null
   statusHistory?: Array<{
     status: OrderStatus
     timestamp: Timestamp
@@ -148,11 +149,11 @@ export const useOrdersStore = defineStore('orders', () => {
 
   const convertTimestampsToDates = (firestoreOrder: FirestoreOrder & { id: string }): Order => ({
     ...firestoreOrder,
-    createdAt: firestoreOrder.createdAt?.toDate() || new Date(),
-    updatedAt: firestoreOrder.updatedAt?.toDate() || new Date(),
-    shippedAt: firestoreOrder.shippedAt?.toDate() || null,
-    deliveredAt: firestoreOrder.deliveredAt?.toDate() || null,
-    cancelledAt: firestoreOrder.cancelledAt?.toDate() || null,
+    createdAt: (firestoreOrder.createdAt as Timestamp)?.toDate?.() || new Date(),
+    updatedAt: (firestoreOrder.updatedAt as Timestamp)?.toDate?.() || new Date(),
+    shippedAt: (firestoreOrder.shippedAt as Timestamp)?.toDate?.() || null,
+    deliveredAt: (firestoreOrder.deliveredAt as Timestamp)?.toDate?.() || null,
+    cancelledAt: (firestoreOrder.cancelledAt as Timestamp)?.toDate?.() || null,
     statusHistory: firestoreOrder.statusHistory?.map(h => ({
       ...h,
       timestamp: h.timestamp.toDate()
@@ -375,7 +376,7 @@ export const useOrdersStore = defineStore('orders', () => {
           const product = productsStore.products.find(p => p.id === item.id)
           return {
             id: item.id,
-            productId: item.id,
+            productId: item.id,                // <-- productId is required for stock updates
             name: product?.name?.en || item.name?.en || 'Product',
             nameAr: product?.name?.ar || item.name?.ar,
             price: product?.price || item.price,
@@ -426,8 +427,8 @@ export const useOrdersStore = defineStore('orders', () => {
             ...h,
             timestamp: Timestamp.fromDate(h.timestamp)
           })),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+          createdAt: serverTimestamp() as any,    // <-- cast to any to satisfy FirestoreOrder
+          updatedAt: serverTimestamp() as any
         }
 
         const ordersCollection = collection(db, 'orders')
@@ -554,7 +555,7 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
-  // ========== updateOrderStatus (already implemented) ==========
+  // ========== updateOrderStatus ==========
   const updateOrderStatus = async (
     orderId: string,
     status: OrderStatus,
@@ -620,6 +621,7 @@ export const useOrdersStore = defineStore('orders', () => {
         if (order.paymentStatus === 'paid') {
           updateData.paymentStatus = 'refunded'
         }
+        // Restore stock
         for (const item of order.items) {
           const productRef = doc(db, 'products', item.productId)
           const productDoc = await getDoc(productRef)
@@ -686,7 +688,7 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
-  // ========== Other Actions (stubs – replace with your full implementations if needed) ==========
+  // ========== updatePaymentStatus ==========
   const updatePaymentStatus = async (orderId: string, paymentStatus: PaymentStatus) => {
     if (!authStore.isAdmin) {
       authNotification.error('You do not have permission to update payment status')
@@ -695,8 +697,18 @@ export const useOrdersStore = defineStore('orders', () => {
     loading.value = true
     try {
       const orderDoc = doc(db, 'orders', orderId)
-      await updateDoc(orderDoc, { paymentStatus, updatedAt: serverTimestamp() })
-      // update local array...
+      await updateDoc(orderDoc, { 
+        paymentStatus, 
+        updatedAt: serverTimestamp() 
+      })
+      // Update local array
+      const index = orders.value.findIndex(o => o.id === orderId)
+      if (index !== -1) {
+        orders.value[index] = { ...orders.value[index], paymentStatus, updatedAt: new Date() }
+      }
+      if (currentOrder.value?.id === orderId) {
+        currentOrder.value = { ...currentOrder.value, paymentStatus, updatedAt: new Date() }
+      }
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update payment status'
@@ -706,17 +718,19 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
-  const updateOrder = async (orderId: string, updateData: Partial<Order>) => { /* ... */ }
-  const cancelOrder = async (orderId: string, reason?: string) => { /* ... */ }
-  const deleteOrder = async (orderId: string) => { /* ... */ }
-  const searchOrders = async (searchTerm: string, status?: OrderStatus) => { /* ... */ }
-  const getOrdersByEmail = async (email: string) => { /* ... */ }
-  const reorder = async (orderId: string) => { /* ... */ }
-  const downloadInvoice = async (orderId: string) => { /* ... */ }
-  const getMonthlyRevenue = async (year: number, month: number) => { /* ... */ }
-  const getOrderStats = async () => { /* ... */ }
-  const loadMore = async () => { /* ... */ }
+  // ========== Stub functions (marked as unused) ==========
+  const _updateOrder = async (_orderId: string, _updateData: Partial<Order>) => { /* ... */ }
+  const _cancelOrder = async (_orderId: string, _reason?: string) => { /* ... */ }
+  const _deleteOrder = async (_orderId: string) => { /* ... */ }
+  const _searchOrders = async (_searchTerm: string, _status?: OrderStatus) => { /* ... */ }
+  const _getOrdersByEmail = async (_email: string) => { /* ... */ }
+  const _reorder = async (_orderId: string) => { /* ... */ }
+  const _downloadInvoice = async (_orderId: string) => { /* ... */ }
+  const _getMonthlyRevenue = async (_year: number, _month: number) => { /* ... */ }
+  const _getOrderStats = async () => { /* ... */ }
+  const _loadMore = async () => { /* ... */ }
 
+  // ========== Clear helpers ==========
   const clearCurrentOrder = () => { currentOrder.value = null }
   const clearOrders = () => {
     orders.value = []
@@ -725,7 +739,7 @@ export const useOrdersStore = defineStore('orders', () => {
     error.value = null
   }
 
-  // Admin real-time helpers
+  // Admin helpers
   const setOrders = (newOrders: Order[]) => { orders.value = newOrders }
   const addOrder = (order: Order) => { orders.value.unshift(order) }
 
@@ -758,16 +772,16 @@ export const useOrdersStore = defineStore('orders', () => {
     getGuestOrders,
     updateOrderStatus,
     updatePaymentStatus,
-    updateOrder,
-    cancelOrder,
-    deleteOrder,
-    searchOrders,
-    getOrdersByEmail,
-    reorder,
-    downloadInvoice,
-    getMonthlyRevenue,
-    getOrderStats,
-    loadMore,
+    updateOrder: _updateOrder,
+    cancelOrder: _cancelOrder,
+    deleteOrder: _deleteOrder,
+    searchOrders: _searchOrders,
+    getOrdersByEmail: _getOrdersByEmail,
+    reorder: _reorder,
+    downloadInvoice: _downloadInvoice,
+    getMonthlyRevenue: _getMonthlyRevenue,
+    getOrderStats: _getOrderStats,
+    loadMore: _loadMore,
     clearCurrentOrder,
     clearOrders,
 

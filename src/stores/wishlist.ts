@@ -14,7 +14,7 @@ export interface WishlistItem {
     ar: string
   }
   brand: string
-  brandSlug: string
+  brandSlug?: string            // ✅ Made optional to match Product type
   size: string
   concentration: string
   price: number
@@ -71,7 +71,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
       slug: product.slug,
       name: product.name,
       brand: product.brand,
-      brandSlug: product.brandSlug,
+      brandSlug: product.brandSlug,          // ✅ now allowed to be undefined
       size: product.size,
       concentration: product.concentration,
       price: product.price,

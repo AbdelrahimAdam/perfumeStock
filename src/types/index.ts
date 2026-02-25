@@ -13,9 +13,43 @@ export interface Translation {
 // Homepage
 // ===============================
 
+export interface HeroBanner {
+  imageUrl: string
+  title: string
+  subtitle: string
+  linkText?: string
+  linkUrl?: string
+}
+
+export interface Offer {
+  id?: string
+  slug: string
+  title: string
+  subtitle: string
+  description: string
+  imageUrl: string
+  oldPrice: number
+  newPrice: number
+  offerType: string
+  terms?: string
+  startDate?: string
+  endDate?: string
+  active?: boolean
+}
+
+export interface MarqueeBrand {
+  id: string
+  name: string
+  logo: string
+}
+
 export interface HomepageData {
-  heroTitle: string
-  heroSubtitle: string
+  heroBanner: HeroBanner
+  heroTitle?: string // kept for backward compatibility
+  heroSubtitle?: string
+  activeOffers: Offer[]
+  featuredBrands: FeaturedBrand[]
+  marqueeBrands: MarqueeBrand[]
   aboutWork: {
     title: string
     description: string
@@ -24,7 +58,6 @@ export interface HomepageData {
     isDarkMode: boolean
     defaultLanguage: Language
   }
-  activeOffers?: any[]
   productCount?: number
   lastUpdated?: string
   source?: 'firebase' | 'local' | 'api'
@@ -67,8 +100,8 @@ export interface Product {
   size: string
   concentration: string
 
-  // NEW: classification field (gender)
-  classification?: string; // 'M' | 'F' | 'U'
+  // classification field (gender)
+  classification?: string // 'M' | 'F' | 'U'
 
   notes: {
     top: string[]
@@ -88,11 +121,16 @@ export interface Product {
   isActive?: boolean
 
   inStock: boolean
+  stockQuantity: number
+
+  // Additional fields from Firestore (used in some places)
+  ratings?: number
+  ratingCount?: number
+  stock?: number // alias for stockQuantity
 
   rating?: number
   reviewCount?: number
 
-  // ✅ Added SKU field (optional for existing products)
   sku?: string
 
   createdAt?: any
@@ -118,7 +156,7 @@ export interface ProductFormData {
   originalPrice?: number
   size: string
   concentration: string
-  classification?: string // NEW
+  classification?: string
   notes: {
     top: string[]
     heart: string[]
@@ -142,12 +180,15 @@ export interface CartItem {
   id: string
   name: Translation
   imageUrl: string
+  image?: string // alias for imageUrl (used in some components)
   price: number
+  originalPrice?: number // for discount display
   size: string
   concentration?: string
   brand?: string
   quantity: number
   addedAt?: string
+  productId?: string // used in order items
 }
 
 // ===============================
@@ -159,8 +200,41 @@ export interface AdminUser {
   email: string
   displayName: string
   photoURL?: string
+  phoneNumber?: string // added
   role: 'admin' | 'super-admin'
   lastLogin?: Date
+  isActive?: boolean
+  createdAt?: string
+  lastLoginAt?: string
+  permissions?: string[]
+}
+
+// Customer user (for authenticated customers)
+export interface CustomerUser {
+  uid: string
+  email: string
+  displayName?: string
+  photoURL?: string
+  phoneNumber?: string
+  addresses?: Address[]
+  defaultAddressId?: string
+  createdAt?: Date
+  lastLogin?: Date
+}
+
+// Address for customer
+export interface Address {
+  id: string
+  label?: string // e.g., "Home", "Work"
+  fullName: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state?: string
+  postalCode?: string
+  country: string
+  phone: string
+  isDefault?: boolean
 }
 
 // ===============================
@@ -188,6 +262,8 @@ export interface FilterOptions {
   isFeatured?: boolean
   newArrival?: boolean
 
+  classification?: string
+
   sortBy?: string
   searchTerm?: string
 }
@@ -196,11 +272,29 @@ export interface FilterOptions {
 // Orders
 // ===============================
 
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
+export type PaymentMethod = string // or union of supported methods
+
+export interface StatusHistoryItem {
+  status: OrderStatus
+  date: Date
+  note?: string
+}
+
 export interface OrderCustomer {
   name: string
   email: string
   phone: string
   userId?: string
+  address?: string // full address string (legacy)
+  // structured address fields (new)
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
 }
 
 export interface Order {
@@ -215,21 +309,39 @@ export interface Order {
   tax?: number
   discount?: number
   total: number
+  shipping?: number // alias for shippingCost (used in some places)
 
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
-
+  status: OrderStatus
   paymentMethod: string
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
+  paymentStatus: PaymentStatus
 
-  shippingAddress: string
+  shippingAddress: string // legacy
   trackingNumber?: string
   notes?: string
+  adminNotes?: string
+
+  guestId?: string
+  userEmail?: string // legacy
+
+  statusHistory?: StatusHistoryItem[]
 
   createdAt: Date
   updatedAt: Date
   shippedAt?: Date
   deliveredAt?: Date
   cancelledAt?: Date
+}
+
+// Firestore order type (with Timestamps)
+import type { Timestamp } from 'firebase/firestore'
+
+export interface FirestoreOrder extends Omit<Order, 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt' | 'cancelledAt' | 'statusHistory'> {
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  shippedAt?: Timestamp
+  deliveredAt?: Timestamp
+  cancelledAt?: Timestamp
+  statusHistory?: Array<Omit<StatusHistoryItem, 'date'> & { date: Timestamp }>
 }
 
 // ===============================
@@ -256,6 +368,12 @@ export interface WishlistItem {
   productId: string
   userId: string
   addedAt: Date
+  product?: Product // populated version
+  brand?: string
+  brandSlug?: string
+  price?: number
+  imageUrl?: string
+  name?: Translation
 }
 
 // ===============================
@@ -384,3 +502,29 @@ export interface FeaturedBrand {
   slug: string
   category?: string
 }
+
+// ===============================
+// DTOs for Admin Services
+// ===============================
+
+export interface CreateAdminDto {
+  email: string
+  password: string
+  displayName: string
+  phoneNumber?: string
+  role: 'admin' | 'super-admin'
+  photoURL?: string
+}
+
+export interface UpdateAdminDto {
+  displayName?: string
+  phoneNumber?: string
+  role?: 'admin' | 'super-admin'
+  photoURL?: string
+  isActive?: boolean
+}
+
+// ===============================
+// Exports for convenience
+// ===============================
+export type { Timestamp } // re-export if needed
